@@ -26,13 +26,15 @@ func (p Pozycja) Wartosc() float64 {
 }
 
 type Oferta struct {
-	NazwaFirmy string    `json:"nazwa_firmy"`
-	NIP        string    `json:"nip"`
-	Adres      string    `json:"adres"`
-	Miasto     string    `json:"miasto"`
-	Telefon    string    `json:"telefon"`
-	Klient     string    `json:"klient"`
-	Pozycje    []Pozycja `json:"pozycje"`
+	NazwaFirmy   string    `json:"nazwa_firmy"`
+	NIP          string    `json:"nip"`
+	Adres        string    `json:"adres"`
+	Miasto       string    `json:"miasto"`
+	Telefon      string    `json:"telefon"`
+	Klient       string    `json:"klient"`
+	NumerOferty  string    `json:"numer_oferty"`
+	DataWaznosci string    `json:"data_waznosci"`
+	Pozycje      []Pozycja `json:"pozycje"`
 }
 
 func (o Oferta) Suma() float64 {
@@ -136,7 +138,18 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 
 	pdf.SetFont(family, "", 22)
 	pdf.SetTextColor(30, 30, 30)
+	yTytul := pdf.GetY()
 	pdf.CellFormat(0, 12, "OFERTA HANDLOWA", "", 1, "C", false, 0, "")
+	if s := strings.TrimSpace(o.NumerOferty); s != "" {
+		yPoTytule := pdf.GetY()
+		pdf.SetFont(family, "", 11)
+		pdf.SetTextColor(120, 120, 120)
+		pdf.SetXY(15, yTytul)
+		pdf.CellFormat(0, 12, "Nr "+s, "", 0, "R", false, 0, "")
+		pdf.SetFont(family, "", 22)
+		pdf.SetTextColor(30, 30, 30)
+		pdf.SetY(yPoTytule)
+	}
 	pdf.SetDrawColor(180, 180, 180)
 	pdf.Line(15, pdf.GetY()+1, 195, pdf.GetY()+1)
 	pdf.Ln(8)
@@ -207,8 +220,12 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	pdf.Ln(10)
 	pdf.SetFont(family, "", 9)
 	pdf.SetTextColor(90, 90, 90)
+	terminWaznosci := "14 dni od daty wystawienia"
+	if s := strings.TrimSpace(o.DataWaznosci); s != "" {
+		terminWaznosci = "do " + s
+	}
 	pdf.MultiCell(0, 5,
-		"Oferta ważna 14 dni od daty wystawienia. Ceny są cenami netto, do których należy doliczyć podatek VAT zgodnie z obowiązującymi przepisami. "+
+		"Oferta ważna "+terminWaznosci+". Ceny są cenami netto, do których należy doliczyć podatek VAT zgodnie z obowiązującymi przepisami. "+
 			"Dziękujemy za zainteresowanie naszą ofertą.",
 		"", "L", false)
 

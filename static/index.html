@@ -109,7 +109,8 @@
     }
 
     input[type="text"],
-    input[type="number"] {
+    input[type="number"],
+    input[type="date"] {
       font: inherit;
       font-size: 14px;
       padding: 12px 14px;
@@ -235,6 +236,20 @@
       background: #f5f5f5;
       color: var(--text);
     }
+
+    .btn-clear {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 0;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: -0.005em;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      transition: color 0.15s ease;
+    }
+    .btn-clear:hover { color: var(--text); }
 
     .submit-wrap { margin-top: 32px; }
 
@@ -369,6 +384,21 @@
               <input type="text" id="miasto" name="miasto" placeholder="00-000 Miasto" pattern="\d{2}-\d{3}\s+.+" title="Format: 00-000 Miasto">
             </div>
           </div>
+          <button type="button" class="btn-clear" id="btn-wyczysc-firme">Wyczyść dane firmy</button>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">Szczegóły oferty</h2>
+          <div class="row">
+            <div class="field">
+              <label for="numer_oferty">Numer oferty</label>
+              <input type="text" id="numer_oferty" name="numer_oferty" placeholder="np. OF/2026/001">
+            </div>
+            <div class="field">
+              <label for="data_waznosci">Data ważności</label>
+              <input type="date" id="data_waznosci" name="data_waznosci">
+            </div>
+          </div>
         </section>
 
         <section class="section">
@@ -467,6 +497,16 @@
 
     dodajWiersz();
 
+    (function ustawDomyslnaDateWaznosci() {
+      const input = document.getElementById('data_waznosci');
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      input.value = `${yyyy}-${mm}-${dd}`;
+    })();
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       ukryjKomunikat();
@@ -484,6 +524,8 @@
         miasto: document.getElementById('miasto').value.trim(),
         telefon: document.getElementById('telefon').value.trim(),
         klient: document.getElementById('klient').value.trim(),
+        numer_oferty: document.getElementById('numer_oferty').value.trim(),
+        data_waznosci: document.getElementById('data_waznosci').value,
         pozycje: pozycje,
       };
 
@@ -522,6 +564,47 @@
         btnGeneruj.textContent = 'Generuj PDF';
       }
     });
+
+    const POLA_FIRMY = ['nazwa_firmy', 'nip', 'adres', 'miasto', 'telefon'];
+    const STORAGE_KEY_FIRMA = 'oferowo_dane_firmy';
+
+    function zapiszDaneFirmy() {
+      const dane = {};
+      POLA_FIRMY.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) dane[id] = el.value;
+      });
+      try {
+        localStorage.setItem(STORAGE_KEY_FIRMA, JSON.stringify(dane));
+      } catch (e) {}
+    }
+
+    function wczytajDaneFirmy() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_FIRMA);
+        if (!raw) return;
+        const dane = JSON.parse(raw);
+        if (!dane || typeof dane !== 'object') return;
+        POLA_FIRMY.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && typeof dane[id] === 'string') el.value = dane[id];
+        });
+      } catch (e) {}
+    }
+
+    function wyczyscDaneFirmy() {
+      try {
+        localStorage.removeItem(STORAGE_KEY_FIRMA);
+      } catch (e) {}
+      POLA_FIRMY.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+    }
+
+    form.addEventListener('submit', zapiszDaneFirmy);
+    document.getElementById('btn-wyczysc-firme').addEventListener('click', wyczyscDaneFirmy);
+    wczytajDaneFirmy();
   </script>
 </body>
 </html>
