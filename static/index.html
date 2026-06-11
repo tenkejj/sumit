@@ -350,6 +350,28 @@
     <div class="card">
       <form id="oferta-form" autocomplete="off">
         <section class="section">
+          <h2 class="section-title">Dane firmy</h2>
+          <div class="row">
+            <div class="field">
+              <label for="nip">NIP</label>
+              <input type="text" id="nip" name="nip" placeholder="000-000-00-00" pattern="\d{3}-\d{3}-\d{2}-\d{2}" title="Format: 000-000-00-00">
+            </div>
+            <div class="field">
+              <label for="telefon">Telefon</label>
+              <input type="text" id="telefon" name="telefon" placeholder="np. +48 600 000 000">
+            </div>
+            <div class="field">
+              <label for="adres">Adres (ulica, numer)</label>
+              <input type="text" id="adres" name="adres" placeholder="np. ul. Przykładowa 12/3">
+            </div>
+            <div class="field">
+              <label for="miasto">Miasto i kod pocztowy</label>
+              <input type="text" id="miasto" name="miasto" placeholder="00-000 Miasto" pattern="\d{2}-\d{3}\s+.+" title="Format: 00-000 Miasto">
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
           <h2 class="section-title">Strony</h2>
           <div class="row">
             <div class="field">
@@ -457,6 +479,10 @@
 
       const payload = {
         nazwa_firmy: document.getElementById('nazwa_firmy').value.trim(),
+        nip: document.getElementById('nip').value.trim(),
+        adres: document.getElementById('adres').value.trim(),
+        miasto: document.getElementById('miasto').value.trim(),
+        telefon: document.getElementById('telefon').value.trim(),
         klient: document.getElementById('klient').value.trim(),
         pozycje: pozycje,
       };

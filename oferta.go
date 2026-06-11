@@ -27,6 +27,10 @@ func (p Pozycja) Wartosc() float64 {
 
 type Oferta struct {
 	NazwaFirmy string    `json:"nazwa_firmy"`
+	NIP        string    `json:"nip"`
+	Adres      string    `json:"adres"`
+	Miasto     string    `json:"miasto"`
+	Telefon    string    `json:"telefon"`
 	Klient     string    `json:"klient"`
 	Pozycje    []Pozycja `json:"pozycje"`
 }
@@ -143,6 +147,28 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	startY := pdf.GetY()
 	pdf.SetXY(15, startY)
 	pdf.MultiCell(85, 6, "Sprzedawca:\n"+o.NazwaFirmy, "", "L", false)
+
+	var daneFirmy []string
+	if s := strings.TrimSpace(o.NIP); s != "" {
+		daneFirmy = append(daneFirmy, "NIP: "+s)
+	}
+	if s := strings.TrimSpace(o.Adres); s != "" {
+		daneFirmy = append(daneFirmy, s)
+	}
+	if s := strings.TrimSpace(o.Miasto); s != "" {
+		daneFirmy = append(daneFirmy, s)
+	}
+	if s := strings.TrimSpace(o.Telefon); s != "" {
+		daneFirmy = append(daneFirmy, "tel. "+s)
+	}
+	if len(daneFirmy) > 0 {
+		pdf.SetX(15)
+		pdf.SetFont(family, "", 8)
+		pdf.SetTextColor(120, 120, 120)
+		pdf.MultiCell(85, 4, strings.Join(daneFirmy, "\n"), "", "L", false)
+		pdf.SetFont(family, "", 11)
+		pdf.SetTextColor(0, 0, 0)
+	}
 	leftEnd := pdf.GetY()
 
 	pdf.SetXY(110, startY)
