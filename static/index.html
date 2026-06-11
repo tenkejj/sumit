@@ -251,6 +251,31 @@
     }
     .btn-clear:hover { color: var(--text); }
 
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .logo-preview {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-preview[hidden] { display: none; }
+    .logo-preview img {
+      max-width: 80px;
+      max-height: 80px;
+      width: auto;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      object-fit: contain;
+      background: #fafafa;
+    }
+    .logo-preview .btn-clear { margin-top: 0; }
+
     .submit-wrap { margin-top: 32px; }
 
     .btn-primary {
@@ -384,6 +409,14 @@
               <input type="text" id="miasto" name="miasto" placeholder="00-000 Miasto" pattern="\d{2}-\d{3}\s+.+" title="Format: 00-000 Miasto">
             </div>
           </div>
+          <div class="logo-wrap">
+            <input type="file" id="logo-input" accept="image/png,image/jpeg" hidden>
+            <button type="button" class="btn-clear" id="btn-dodaj-logo">Dodaj logo</button>
+            <div class="logo-preview" id="logo-preview-wrap" hidden>
+              <img id="logo-preview" alt="Podgląd logo">
+              <button type="button" class="btn-clear" id="btn-usun-logo">Usuń logo</button>
+            </div>
+          </div>
           <button type="button" class="btn-clear" id="btn-wyczysc-firme">Wyczyść dane firmy</button>
         </section>
 
@@ -497,6 +530,47 @@
 
     dodajWiersz();
 
+    let logoBase64 = '';
+    const logoInput = document.getElementById('logo-input');
+    const btnDodajLogo = document.getElementById('btn-dodaj-logo');
+    const btnUsunLogo = document.getElementById('btn-usun-logo');
+    const logoPreviewWrap = document.getElementById('logo-preview-wrap');
+    const logoPreviewImg = document.getElementById('logo-preview');
+
+    btnDodajLogo.addEventListener('click', () => {
+      logoInput.click();
+    });
+
+    logoInput.addEventListener('change', () => {
+      const file = logoInput.files && logoInput.files[0];
+      if (!file) return;
+      if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
+        pokazKomunikat('Wybierz plik PNG lub JPG.', 'error');
+        logoInput.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        logoBase64 = String(reader.result || '');
+        logoPreviewImg.src = logoBase64;
+        logoPreviewWrap.hidden = false;
+        btnDodajLogo.hidden = true;
+        ukryjKomunikat();
+      };
+      reader.onerror = () => {
+        pokazKomunikat('Nie udało się wczytać pliku logo.', 'error');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    btnUsunLogo.addEventListener('click', () => {
+      logoBase64 = '';
+      logoInput.value = '';
+      logoPreviewImg.removeAttribute('src');
+      logoPreviewWrap.hidden = true;
+      btnDodajLogo.hidden = false;
+    });
+
     (function ustawDomyslnaDateWaznosci() {
       const input = document.getElementById('data_waznosci');
       const d = new Date();
@@ -526,6 +600,7 @@
         klient: document.getElementById('klient').value.trim(),
         numer_oferty: document.getElementById('numer_oferty').value.trim(),
         data_waznosci: document.getElementById('data_waznosci').value,
+        logo_base64: logoBase64,
         pozycje: pozycje,
       };
 

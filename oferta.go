@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -34,6 +35,7 @@ type Oferta struct {
 	Klient       string    `json:"klient"`
 	NumerOferty  string    `json:"numer_oferty"`
 	DataWaznosci string    `json:"data_waznosci"`
+	LogoBase64   string    `json:"logo_base64"`
 	Pozycje      []Pozycja `json:"pozycje"`
 }
 
@@ -135,6 +137,15 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	pdf.SetMargins(15, 18, 15)
 	pdf.SetAutoPageBreak(true, 18)
 	pdf.AddPage()
+
+	if strings.TrimSpace(o.LogoBase64) != "" {
+		if data, imgType, err := dekodujLogoBase64(o.LogoBase64); err == nil {
+			const nazwaLogo = "oferta_logo"
+			opts := fpdf.ImageOptions{ImageType: imgType, ReadDpi: false}
+			pdf.RegisterImageOptionsReader(nazwaLogo, opts, bytes.NewReader(data))
+			pdf.ImageOptions(nazwaLogo, 15, 10, 0, 20, false, opts, 0, "")
+		}
+	}
 
 	pdf.SetFont(family, "", 22)
 	pdf.SetTextColor(30, 30, 30)
@@ -248,4 +259,46 @@ func maxF(a, b float64) float64 {
 		return a
 	}
 	return b
+}
+
+// dekodujLogoBase64 przyjmuje data URL (np. "data:image/png;base64,...") lub
+// surowy base64 i zwraca zdekodowane bajty obrazu wraz z typem ("PNG" / "JPG")
+// rozpoznanym z prefiksu MIME lub magicznych bajtów obrazu.
+func dekodujLogoBase64(s string) ([]byte, string, error) {
+	s = strings.TrimSpace(s)
+	raw := s
+	imgType := ""
+
+	if strings.HasPrefix(s, "data:") {
+		idx := strings.Index(s, ";base64,")
+		if idx == -1 {
+			return nil, "", fmt.Errorf("nieprawidłowy data URL logo")
+		}
+		prefix := s[:idx]
+		raw = s[idx+len(";base64,"):]
+		switch {
+		case strings.Contains(prefix, "image/png"):
+			imgType = "PNG"
+		case strings.Contains(prefix, "image/jpeg"), strings.Contains(prefix, "image/jpg"):
+			imgType = "JPG"
+		}
+	}
+
+	data, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil {
+		return nil, "", fmt.Errorf("dekodowanie base64 logo: %w", err)
+	}
+
+	if imgType == "" {
+		switch {
+		case len(data) >= 8 && bytes.HasPrefix(data, []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}):
+			imgType = "PNG"
+		case len(data) >= 3 && bytes.HasPrefix(data, []byte{0xFF, 0xD8, 0xFF}):
+			imgType = "JPG"
+		default:
+			return nil, "", fmt.Errorf("nieobsługiwany typ obrazu logo (oczekiwano PNG lub JPG)")
+		}
+	}
+
+	return data, imgType, nil
 }
