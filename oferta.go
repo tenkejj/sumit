@@ -26,17 +26,66 @@ func (p Pozycja) Wartosc() float64 {
 	return p.Ilosc * p.CenaJednostkowa
 }
 
+// FirmaDane zawiera dane sprzedawcy renderowane w nagłówku PDF.
+// Pola są deserializowane z płaskiego JSON-a wysyłanego przez frontend
+// (patrz Oferta.UnmarshalJSON).
+type FirmaDane struct {
+	Nazwa      string `json:"nazwa_firmy"`
+	NIP        string `json:"nip"`
+	Adres      string `json:"adres"`
+	Miasto     string `json:"miasto"`
+	Telefon    string `json:"telefon"`
+	Email      string `json:"email"`
+	LogoBase64 string `json:"logo_base64"`
+}
+
 type Oferta struct {
-	NazwaFirmy   string    `json:"nazwa_firmy"`
-	NIP          string    `json:"nip"`
-	Adres        string    `json:"adres"`
-	Miasto       string    `json:"miasto"`
-	Telefon      string    `json:"telefon"`
+	Firma        FirmaDane `json:"-"`
 	Klient       string    `json:"klient"`
 	NumerOferty  string    `json:"numer_oferty"`
 	DataWaznosci string    `json:"data_waznosci"`
-	LogoBase64   string    `json:"logo_base64"`
+	Uwagi        string    `json:"uwagi"`
 	Pozycje      []Pozycja `json:"pozycje"`
+}
+
+// ofertaJSON to wewnętrzna reprezentacja serializacji przyjmująca płaski
+// JSON, jaki wysyła frontend (pola firmy obok klient/pozycji na jednym
+// poziomie). Mapowanie do zagnieżdżonej Oferta.Firma odbywa się w
+// (Un)MarshalJSON, dzięki czemu kontrakt JSON pozostaje niezmieniony.
+type ofertaJSON struct {
+	FirmaDane
+	Klient       string    `json:"klient"`
+	NumerOferty  string    `json:"numer_oferty"`
+	DataWaznosci string    `json:"data_waznosci"`
+	Uwagi        string    `json:"uwagi"`
+	Pozycje      []Pozycja `json:"pozycje"`
+}
+
+func (o *Oferta) UnmarshalJSON(data []byte) error {
+	var raw ofertaJSON
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*o = Oferta{
+		Firma:        raw.FirmaDane,
+		Klient:       raw.Klient,
+		NumerOferty:  raw.NumerOferty,
+		DataWaznosci: raw.DataWaznosci,
+		Uwagi:        raw.Uwagi,
+		Pozycje:      raw.Pozycje,
+	}
+	return nil
+}
+
+func (o Oferta) MarshalJSON() ([]byte, error) {
+	return json.Marshal(ofertaJSON{
+		FirmaDane:    o.Firma,
+		Klient:       o.Klient,
+		NumerOferty:  o.NumerOferty,
+		DataWaznosci: o.DataWaznosci,
+		Uwagi:        o.Uwagi,
+		Pozycje:      o.Pozycje,
+	})
 }
 
 func (o Oferta) Suma() float64 {
@@ -76,7 +125,7 @@ func handleOferta(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o Oferta) Waliduj() error {
-	if strings.TrimSpace(o.NazwaFirmy) == "" {
+	if strings.TrimSpace(o.Firma.Nazwa) == "" {
 		return fmt.Errorf("pole nazwa_firmy jest wymagane")
 	}
 	if strings.TrimSpace(o.Klient) == "" {
@@ -138,8 +187,8 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	pdf.SetAutoPageBreak(true, 18)
 	pdf.AddPage()
 
-	if strings.TrimSpace(o.LogoBase64) != "" {
-		if data, imgType, err := dekodujLogoBase64(o.LogoBase64); err == nil {
+	if strings.TrimSpace(o.Firma.LogoBase64) != "" {
+		if data, imgType, err := dekodujLogoBase64(o.Firma.LogoBase64); err == nil {
 			const nazwaLogo = "oferta_logo"
 			opts := fpdf.ImageOptions{ImageType: imgType, ReadDpi: false}
 			pdf.RegisterImageOptionsReader(nazwaLogo, opts, bytes.NewReader(data))
@@ -170,20 +219,23 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 
 	startY := pdf.GetY()
 	pdf.SetXY(15, startY)
-	pdf.MultiCell(85, 6, "Sprzedawca:\n"+o.NazwaFirmy, "", "L", false)
+	pdf.MultiCell(85, 6, "Sprzedawca:\n"+o.Firma.Nazwa, "", "L", false)
 
 	var daneFirmy []string
-	if s := strings.TrimSpace(o.NIP); s != "" {
+	if s := strings.TrimSpace(o.Firma.NIP); s != "" {
 		daneFirmy = append(daneFirmy, "NIP: "+s)
 	}
-	if s := strings.TrimSpace(o.Adres); s != "" {
+	if s := strings.TrimSpace(o.Firma.Adres); s != "" {
 		daneFirmy = append(daneFirmy, s)
 	}
-	if s := strings.TrimSpace(o.Miasto); s != "" {
+	if s := strings.TrimSpace(o.Firma.Miasto); s != "" {
 		daneFirmy = append(daneFirmy, s)
 	}
-	if s := strings.TrimSpace(o.Telefon); s != "" {
+	if s := strings.TrimSpace(o.Firma.Telefon); s != "" {
 		daneFirmy = append(daneFirmy, "tel. "+s)
+	}
+	if s := strings.TrimSpace(o.Firma.Email); s != "" {
+		daneFirmy = append(daneFirmy, "e-mail: "+s)
 	}
 	if len(daneFirmy) > 0 {
 		pdf.SetX(15)
@@ -228,9 +280,20 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	pdf.CellFormat(145, 9, "Razem:", "1", 0, "R", true, 0, "")
 	pdf.CellFormat(35, 9, formatPLN(o.Suma()), "1", 1, "R", true, 0, "")
 
+	if uwagi := strings.TrimSpace(o.Uwagi); uwagi != "" {
+		pdf.Ln(8)
+		pdf.SetFont(family, "", 8)
+		pdf.SetTextColor(120, 120, 120)
+		pdf.CellFormat(0, 5, "UWAGI DO OFERTY", "", 1, "L", false, 0, "")
+		pdf.Ln(1)
+		pdf.SetFont(family, "", 10)
+		pdf.SetTextColor(30, 30, 30)
+		pdf.MultiCell(0, 5, uwagi, "", "L", false)
+	}
+
 	pdf.Ln(10)
 	pdf.SetFont(family, "", 9)
-	pdf.SetTextColor(90, 90, 90)
+	pdf.SetTextColor(120, 120, 120)
 	terminWaznosci := "14 dni od daty wystawienia"
 	if s := strings.TrimSpace(o.DataWaznosci); s != "" {
 		terminWaznosci = "do " + s

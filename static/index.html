@@ -41,6 +41,16 @@
 
     .header {
       margin-bottom: 56px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .header-brand {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
     }
 
     .logo {
@@ -68,6 +78,38 @@
       font-weight: 400;
       letter-spacing: -0.01em;
     }
+
+    .btn-settings {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      margin-top: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-settings:hover { border-color: var(--text); }
+    .btn-settings:focus-visible {
+      outline: none;
+      border-color: var(--text);
+    }
+    .btn-settings .gear {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+      color: var(--text-muted);
+      transition: color 0.15s ease;
+    }
+    .btn-settings:hover .gear,
+    .btn-settings:focus-visible .gear { color: var(--text); }
 
     .card {
       background: var(--bg);
@@ -110,7 +152,10 @@
 
     input[type="text"],
     input[type="number"],
-    input[type="date"] {
+    input[type="date"],
+    input[type="email"],
+    input[type="tel"],
+    textarea {
       font: inherit;
       font-size: 14px;
       padding: 12px 14px;
@@ -123,15 +168,25 @@
       letter-spacing: -0.005em;
     }
 
-    input::placeholder { color: var(--text-muted); }
+    input::placeholder,
+    textarea::placeholder { color: var(--text-muted); }
 
-    input:hover:not(:focus) {
+    input:hover:not(:focus),
+    textarea:hover:not(:focus) {
       border-color: #d4d4d4;
     }
 
-    input:focus {
+    input:focus,
+    textarea:focus {
       outline: none;
       border-color: var(--text);
+    }
+
+    textarea {
+      font-family: inherit;
+      line-height: 1.5;
+      resize: vertical;
+      min-height: 96px;
     }
 
     input[type="number"] {
@@ -178,7 +233,7 @@
     }
     .col-nazwa { min-width: 180px; }
     .col-ilosc { width: 90px; }
-    .col-cena  { width: 120px; }
+    .col-cena  { width: 140px; }
     .col-akcja { width: 36px; text-align: right; }
 
     button {
@@ -237,6 +292,41 @@
       color: var(--text);
     }
 
+    .price-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .price-adjusts {
+      display: flex;
+      gap: 4px;
+    }
+
+    .btn-adjust {
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 1.4;
+      color: var(--text-muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      letter-spacing: -0.005em;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-adjust:hover {
+      color: #0a0a0a;
+      border-color: #0a0a0a;
+    }
+    .btn-adjust:focus-visible {
+      outline: none;
+      color: #0a0a0a;
+      border-color: #0a0a0a;
+    }
+
     .btn-clear {
       display: inline-block;
       margin-top: 16px;
@@ -276,7 +366,67 @@
     }
     .logo-preview .btn-clear { margin-top: 0; }
 
+    .date-helpers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      letter-spacing: -0.005em;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .chip:hover {
+      border-color: var(--text);
+      color: var(--text);
+    }
+    .chip:focus-visible {
+      outline: none;
+      border-color: var(--text);
+      color: var(--text);
+    }
+
+    .footer-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .footer-presets .chip {
+      background: #e5e5e5;
+      border-color: #e5e5e5;
+    }
+
+    .footer-presets .chip:hover,
+    .footer-presets .chip:focus-visible {
+      background: var(--bg);
+      border-color: var(--text);
+      color: var(--text);
+    }
+
+    .footer-presets .chip[aria-pressed="true"] {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+
     .submit-wrap { margin-top: 32px; }
+
+    .submit-actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    .submit-actions .btn-clear { margin-top: 0; }
 
     .btn-primary {
       width: 100%;
@@ -359,6 +509,10 @@
     }
 
     .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
       padding: 20px 24px;
       border-bottom: 1px solid var(--border);
     }
@@ -414,6 +568,161 @@
     }
     .btn-secondary:hover { border-color: var(--text); }
 
+    .items-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+      margin-top: 16px;
+    }
+    .items-actions .btn-add { margin-top: 0; }
+
+    .modal-card.catalog-card { max-width: 560px; }
+    .modal-card.settings-card { max-width: 560px; }
+
+    .settings-form .row {
+      margin-bottom: 16px;
+    }
+    .settings-form .row:last-child {
+      margin-bottom: 0;
+    }
+    .settings-form .field-full {
+      grid-column: 1 / -1;
+    }
+    .settings-form .logo-wrap {
+      margin-top: 0;
+      gap: 10px;
+    }
+    .settings-hint {
+      margin: 0 0 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: -0.005em;
+    }
+    .settings-card .modal-footer {
+      justify-content: space-between;
+    }
+    .settings-card .modal-footer .btn-clear { margin-top: 0; }
+
+    .btn-import,
+    .btn-export {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-muted);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .btn-import:hover,
+    .btn-export:hover {
+      border-color: var(--text);
+      color: var(--text);
+    }
+    .btn-import .hint,
+    .btn-export .hint {
+      font-weight: 400;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .btn-import:hover .hint,
+    .btn-export:hover .hint { color: var(--text-muted); }
+
+    .catalog-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .catalog-search {
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .catalog-categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .catalog-categories .chip[aria-pressed="true"] {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+
+    .catalog-feedback {
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      letter-spacing: -0.005em;
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: var(--bg);
+    }
+    .catalog-feedback[hidden] { display: none; }
+    .catalog-feedback.error { border-color: var(--text); }
+
+    .catalog-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 50vh;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .catalog-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .catalog-item:last-child { border-bottom: none; }
+    .catalog-item:hover { background: #f5f5f5; }
+    .catalog-item:focus-visible {
+      outline: none;
+      background: #f5f5f5;
+    }
+
+    .catalog-item-nazwa {
+      font-size: 14px;
+      color: var(--text);
+      letter-spacing: -0.005em;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .catalog-item-cena {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .catalog-empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
     @media (max-width: 600px) {
       .modal { padding: 12px; }
       .modal-body iframe { height: 60vh; }
@@ -421,7 +730,9 @@
 
     @media (max-width: 600px) {
       body { padding: 48px 20px 60px; }
-      .header { margin-bottom: 36px; }
+      .header { margin-bottom: 36px; align-items: center; }
+      .btn-settings { padding: 8px; }
+      .btn-settings span:not(.gear) { display: none; }
       .logo { font-size: 26px; }
       .card { padding: 28px 24px; }
       .row { grid-template-columns: 1fr; gap: 16px; }
@@ -472,46 +783,24 @@
 <body>
   <div class="page">
     <header class="header">
-      <div class="logo">
-        <span class="logo-dot"></span>
-        <span>Oferowo</span>
+      <div class="header-brand">
+        <div class="logo">
+          <span class="logo-dot"></span>
+          <span>Oferowo</span>
+        </div>
+        <p class="tagline">Twórz oferty PDF w kilka sekund.</p>
       </div>
-      <p class="tagline">Twórz oferty PDF w kilka sekund.</p>
+      <button type="button" class="btn-settings" id="btn-settings" aria-haspopup="dialog" aria-controls="settings-modal" title="Ustawienia firmy">
+        <svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09c0 .66.39 1.26 1.03 1.51a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87c.25.64.85 1.03 1.51 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.03z"></path>
+        </svg>
+        <span>Ustawienia firmy</span>
+      </button>
     </header>
 
     <div class="card">
       <form id="oferta-form" autocomplete="off">
-        <section class="section">
-          <h2 class="section-title">Dane firmy</h2>
-          <div class="row">
-            <div class="field">
-              <label for="nip">NIP</label>
-              <input type="text" id="nip" name="nip" placeholder="000-000-00-00" pattern="\d{3}-\d{3}-\d{2}-\d{2}" title="Format: 000-000-00-00">
-            </div>
-            <div class="field">
-              <label for="telefon">Telefon</label>
-              <input type="text" id="telefon" name="telefon" placeholder="np. +48 600 000 000">
-            </div>
-            <div class="field">
-              <label for="adres">Adres (ulica, numer)</label>
-              <input type="text" id="adres" name="adres" placeholder="np. ul. Przykładowa 12/3">
-            </div>
-            <div class="field">
-              <label for="miasto">Miasto i kod pocztowy</label>
-              <input type="text" id="miasto" name="miasto" placeholder="00-000 Miasto" pattern="\d{2}-\d{3}\s+.+" title="Format: 00-000 Miasto">
-            </div>
-          </div>
-          <div class="logo-wrap">
-            <input type="file" id="logo-input" accept="image/png,image/jpeg" hidden>
-            <button type="button" class="btn-clear" id="btn-dodaj-logo">Dodaj logo</button>
-            <div class="logo-preview" id="logo-preview-wrap" hidden>
-              <img id="logo-preview" alt="Podgląd logo">
-              <button type="button" class="btn-clear" id="btn-usun-logo">Usuń logo</button>
-            </div>
-          </div>
-          <button type="button" class="btn-clear" id="btn-wyczysc-firme">Wyczyść dane firmy</button>
-        </section>
-
         <section class="section">
           <h2 class="section-title">Szczegóły oferty</h2>
           <div class="row">
@@ -522,21 +811,20 @@
             <div class="field">
               <label for="data_waznosci">Data ważności</label>
               <input type="date" id="data_waznosci" name="data_waznosci">
+              <div class="date-helpers" role="group" aria-label="Szybkie ustawienie daty ważności">
+                <button type="button" class="chip" data-days="7">+7 dni</button>
+                <button type="button" class="chip" data-days="14">+14 dni</button>
+                <button type="button" class="chip" data-days="30">+30 dni</button>
+              </div>
             </div>
           </div>
         </section>
 
         <section class="section">
-          <h2 class="section-title">Strony</h2>
-          <div class="row">
-            <div class="field">
-              <label for="nazwa_firmy">Sprzedawca</label>
-              <input type="text" id="nazwa_firmy" name="nazwa_firmy" placeholder="Nazwa Twojej firmy" required>
-            </div>
-            <div class="field">
-              <label for="klient">Klient</label>
-              <input type="text" id="klient" name="klient" placeholder="Nazwa klienta" required>
-            </div>
+          <h2 class="section-title">Klient</h2>
+          <div class="field">
+            <label for="klient">Nazwa klienta</label>
+            <input type="text" id="klient" name="klient" placeholder="Nazwa klienta" required>
           </div>
         </section>
 
@@ -555,14 +843,37 @@
             <tbody id="pozycje-tbody"></tbody>
           </table>
 
-          <button type="button" class="btn-add" id="btn-dodaj">
-            <span class="plus">+</span>
-            <span>Dodaj pozycję</span>
-          </button>
+          <div class="items-actions">
+            <button type="button" class="btn-add" id="btn-dodaj">
+              <span class="plus">+</span>
+              <span>Dodaj pozycję</span>
+            </button>
+            <button type="button" class="btn-add" id="btn-katalog" aria-haspopup="dialog" aria-controls="catalog-modal">
+              <span class="plus">+</span>
+              <span>Wybierz z katalogu</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">Uwagi do oferty</h2>
+          <div class="field">
+            <label for="uwagi">Notatki widoczne pod tabelą</label>
+            <textarea id="uwagi" name="uwagi" rows="4" placeholder="np. dodatkowe warunki, terminy, gwarancje"></textarea>
+            <div class="footer-presets" role="group" aria-label="Szybkie wstawianie uwag">
+              <button type="button" class="chip" data-preset="Zaliczka 30%" aria-pressed="false">Zaliczka 30%</button>
+              <button type="button" class="chip" data-preset="Termin 7 dni" aria-pressed="false">Termin 7 dni</button>
+              <button type="button" class="chip" data-preset="Gwarancja 12 m-cy" aria-pressed="false">Gwarancja 12 m-cy</button>
+              <button type="button" class="chip" data-preset="Ważność 30 dni" aria-pressed="false">Ważność 30 dni</button>
+            </div>
+          </div>
         </section>
 
         <div class="submit-wrap">
           <button type="submit" class="btn-primary" id="btn-generuj">Podgląd i pobierz</button>
+          <div class="submit-actions">
+            <button type="button" class="btn-clear" id="btn-wyczysc-formularz">Wyczyść formularz</button>
+          </div>
         </div>
 
         <div id="message" class="message"></div>
@@ -588,6 +899,93 @@
     </div>
   </div>
 
+  <div class="modal" id="settings-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+    <div class="modal-backdrop" id="settings-modal-backdrop"></div>
+    <div class="modal-card settings-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="settings-modal-title">Ustawienia firmy</h3>
+      </div>
+      <div class="modal-body">
+        <p class="settings-hint">Dane sprzedawcy używane na każdej ofercie. Zapis automatyczny przy zamknięciu okna.</p>
+        <form id="settings-form" class="settings-form" autocomplete="off" onsubmit="return false;">
+          <div class="row">
+            <div class="field field-full">
+              <label for="cfg-nazwa_firmy">Nazwa firmy</label>
+              <input type="text" id="cfg-nazwa_firmy" placeholder="Nazwa Twojej firmy">
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="cfg-nip">NIP</label>
+              <input type="text" id="cfg-nip" placeholder="000-000-00-00" pattern="\d{3}-\d{3}-\d{2}-\d{2}" title="Format: 000-000-00-00">
+            </div>
+            <div class="field">
+              <label for="cfg-telefon">Telefon</label>
+              <input type="tel" id="cfg-telefon" placeholder="np. +48 600 000 000">
+            </div>
+            <div class="field">
+              <label for="cfg-adres">Adres (ulica, numer)</label>
+              <input type="text" id="cfg-adres" placeholder="np. ul. Przykładowa 12/3">
+            </div>
+            <div class="field">
+              <label for="cfg-miasto">Miasto i kod pocztowy</label>
+              <input type="text" id="cfg-miasto" placeholder="00-000 Miasto" pattern="\d{2}-\d{3}\s+.+" title="Format: 00-000 Miasto">
+            </div>
+            <div class="field field-full">
+              <label for="cfg-email">Email</label>
+              <input type="email" id="cfg-email" placeholder="kontakt@twojafirma.pl">
+            </div>
+          </div>
+          <div class="row">
+            <div class="field field-full">
+              <label>Logo</label>
+              <div class="logo-wrap">
+                <input type="file" id="cfg-logo-input" accept="image/png,image/jpeg" hidden>
+                <button type="button" class="btn-secondary" id="btn-cfg-dodaj-logo">Wybierz plik (PNG / JPG, ≤ 200 KB)</button>
+                <div class="logo-preview" id="cfg-logo-preview-wrap" hidden>
+                  <img id="cfg-logo-preview" alt="Podgląd logo">
+                  <button type="button" class="btn-clear" id="btn-cfg-usun-logo">Usuń logo</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="settings-message" class="message" role="alert"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-clear" id="btn-cfg-wyczysc">Wyczyść ustawienia</button>
+        <button type="button" class="btn-secondary" id="btn-cfg-zamknij">Zamknij i zapisz</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="catalog-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="catalog-modal-title">
+    <div class="modal-backdrop" id="catalog-modal-backdrop"></div>
+    <div class="modal-card catalog-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="catalog-modal-title">Katalog usług</h3>
+        <div class="catalog-actions">
+          <button type="button" class="btn-import" id="btn-import-catalog" title="Wczytaj listę usług zapisaną w Excelu jako CSV (rozdzielany przecinkami)">
+            Importuj CSV <span class="hint">(plik z Excela)</span>
+          </button>
+          <button type="button" class="btn-export" id="btn-export-catalog" title="Eksportuj katalog do Excela (CSV)">
+            Eksportuj CSV <span class="hint">(do Excela)</span>
+          </button>
+          <input type="file" id="import-catalog" accept=".csv,text/csv" hidden>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="catalog-feedback" id="catalog-feedback" hidden></div>
+        <input type="text" id="catalog-search" class="catalog-search" placeholder="Szukaj usługi..." autocomplete="off">
+        <div class="catalog-categories" id="catalog-categories" role="group" aria-label="Filtr kategorii"></div>
+        <ul class="catalog-list" id="catalog-list" role="listbox" aria-label="Predefiniowane usługi"></ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btn-zamknij-catalog">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const tbody = document.getElementById('pozycje-tbody');
     const btnDodaj = document.getElementById('btn-dodaj');
@@ -607,7 +1005,15 @@
         <td class="col-lp"></td>
         <td class="col-nazwa"><input type="text" class="in-nazwa" placeholder="np. Usługa konsultingowa" required></td>
         <td class="col-ilosc"><input type="number" class="in-ilosc" step="any" min="0" placeholder="1" required></td>
-        <td class="col-cena"><input type="number" class="in-cena" step="0.01" min="0" placeholder="0,00" required></td>
+        <td class="col-cena">
+          <div class="price-wrap">
+            <input type="number" class="in-cena" step="0.01" min="0" placeholder="0,00" required>
+            <div class="price-adjusts" role="group" aria-label="Szybka korekta ceny jednostkowej">
+              <button type="button" class="btn-adjust" data-adjust="-5" title="Obniż cenę jednostkową o 5%" aria-label="Obniż cenę jednostkową o 5% (rabat)">Rab. -5%</button>
+              <button type="button" class="btn-adjust" data-adjust="10" title="Dolicz 10% marży do ceny jednostkowej" aria-label="Dolicz 10% marży do ceny jednostkowej">Mar. +10%</button>
+            </div>
+          </div>
+        </td>
         <td class="col-akcja">
           <button type="button" class="btn-remove" title="Usuń">&times;</button>
         </td>
@@ -620,8 +1026,31 @@
         tr.remove();
         odswiezNumery();
       });
+      tr.querySelectorAll('.btn-adjust').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pct = parseFloat(btn.dataset.adjust);
+          if (Number.isFinite(pct)) applyAdjustment(tr, pct);
+        });
+      });
       tbody.appendChild(tr);
       odswiezNumery();
+    }
+
+    function applyAdjustment(row, percentage) {
+      if (!row) return;
+      const input = row.querySelector('.in-cena');
+      if (!input) return;
+      const raw = String(input.value).replace(',', '.').trim();
+      const current = parseFloat(raw);
+      if (!Number.isFinite(current)) {
+        pokazKomunikat('Podaj cenę jednostkową, zanim zastosujesz korektę.', 'error');
+        input.focus();
+        return;
+      }
+      const next = current * (1 + percentage / 100);
+      const rounded = Math.max(0, Math.round(next * 100) / 100);
+      input.value = String(rounded);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
     function pokazKomunikat(tekst, typ) {
@@ -638,47 +1067,6 @@
 
     dodajWiersz();
 
-    let logoBase64 = '';
-    const logoInput = document.getElementById('logo-input');
-    const btnDodajLogo = document.getElementById('btn-dodaj-logo');
-    const btnUsunLogo = document.getElementById('btn-usun-logo');
-    const logoPreviewWrap = document.getElementById('logo-preview-wrap');
-    const logoPreviewImg = document.getElementById('logo-preview');
-
-    btnDodajLogo.addEventListener('click', () => {
-      logoInput.click();
-    });
-
-    logoInput.addEventListener('change', () => {
-      const file = logoInput.files && logoInput.files[0];
-      if (!file) return;
-      if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
-        pokazKomunikat('Wybierz plik PNG lub JPG.', 'error');
-        logoInput.value = '';
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        logoBase64 = String(reader.result || '');
-        logoPreviewImg.src = logoBase64;
-        logoPreviewWrap.hidden = false;
-        btnDodajLogo.hidden = true;
-        ukryjKomunikat();
-      };
-      reader.onerror = () => {
-        pokazKomunikat('Nie udało się wczytać pliku logo.', 'error');
-      };
-      reader.readAsDataURL(file);
-    });
-
-    btnUsunLogo.addEventListener('click', () => {
-      logoBase64 = '';
-      logoInput.value = '';
-      logoPreviewImg.removeAttribute('src');
-      logoPreviewWrap.hidden = true;
-      btnDodajLogo.hidden = false;
-    });
-
     (function ustawDomyslnaDateWaznosci() {
       const input = document.getElementById('data_waznosci');
       const d = new Date();
@@ -688,6 +1076,73 @@
       const dd = String(d.getDate()).padStart(2, '0');
       input.value = `${yyyy}-${mm}-${dd}`;
     })();
+
+    function ustawDateZaDniOdDzis(dni) {
+      const input = document.getElementById('data_waznosci');
+      if (!input) return;
+      const d = new Date();
+      d.setDate(d.getDate() + dni);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      input.value = `${yyyy}-${mm}-${dd}`;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    document.querySelectorAll('.date-helpers .chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dni = parseInt(btn.dataset.days, 10);
+        if (Number.isFinite(dni)) ustawDateZaDniOdDzis(dni);
+      });
+    });
+
+    const uwagiTextarea = document.getElementById('uwagi');
+    const presetChips = document.querySelectorAll('.footer-presets .chip');
+
+    function presetLines() {
+      if (!uwagiTextarea) return [];
+      return uwagiTextarea.value.split('\n');
+    }
+
+    function togglePreset(text) {
+      if (!uwagiTextarea) return;
+      const target = String(text).trim();
+      if (!target) return;
+
+      const lines = presetLines();
+      const idx = lines.findIndex(l => l.trim() === target);
+
+      if (idx !== -1) {
+        lines.splice(idx, 1);
+        while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();
+        uwagiTextarea.value = lines.join('\n');
+      } else {
+        const current = uwagiTextarea.value;
+        const sep = current && !current.endsWith('\n') ? '\n' : '';
+        uwagiTextarea.value = current + sep + target;
+      }
+
+      uwagiTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+      odswiezStanPresetow();
+    }
+
+    function odswiezStanPresetow() {
+      if (!uwagiTextarea) return;
+      const lines = presetLines().map(l => l.trim());
+      presetChips.forEach(chip => {
+        const preset = (chip.dataset.preset || '').trim();
+        const aktywny = preset && lines.includes(preset);
+        chip.setAttribute('aria-pressed', aktywny ? 'true' : 'false');
+      });
+    }
+
+    presetChips.forEach(chip => {
+      chip.addEventListener('click', () => togglePreset(chip.dataset.preset || ''));
+    });
+
+    if (uwagiTextarea) {
+      uwagiTextarea.addEventListener('input', odswiezStanPresetow);
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -699,16 +1154,25 @@
         cena_jednostkowa: parseFloat(tr.querySelector('.in-cena').value),
       }));
 
+      const cfg = wczytajConfig();
+      if (!String(cfg.nazwa_firmy || '').trim()) {
+        pokazKomunikat('Uzupełnij nazwę firmy w Ustawieniach firmy (ikona koła zębatego).', 'error');
+        otworzSettings();
+        return;
+      }
+
       const payload = {
-        nazwa_firmy: document.getElementById('nazwa_firmy').value.trim(),
-        nip: document.getElementById('nip').value.trim(),
-        adres: document.getElementById('adres').value.trim(),
-        miasto: document.getElementById('miasto').value.trim(),
-        telefon: document.getElementById('telefon').value.trim(),
+        nazwa_firmy: String(cfg.nazwa_firmy || '').trim(),
+        nip: String(cfg.nip || '').trim(),
+        adres: String(cfg.adres || '').trim(),
+        miasto: String(cfg.miasto || '').trim(),
+        telefon: String(cfg.telefon || '').trim(),
+        email: String(cfg.email || '').trim(),
+        logo_base64: String(cfg.logo_base64 || ''),
         klient: document.getElementById('klient').value.trim(),
         numer_oferty: document.getElementById('numer_oferty').value.trim(),
         data_waznosci: document.getElementById('data_waznosci').value,
-        logo_base64: logoBase64,
+        uwagi: document.getElementById('uwagi').value.trim(),
         pozycje: pozycje,
       };
 
@@ -793,46 +1257,683 @@
       a.remove();
     });
 
-    const POLA_FIRMY = ['nazwa_firmy', 'nip', 'adres', 'miasto', 'telefon'];
-    const STORAGE_KEY_FIRMA = 'oferowo_dane_firmy';
+    const STORAGE_KEY_CONFIG = 'oferowo_config';
+    const STORAGE_KEY_CONFIG_LEGACY = 'oferowo_dane_firmy';
+    const POLA_CONFIG = ['nazwa_firmy', 'nip', 'adres', 'miasto', 'telefon', 'email'];
+    const MAX_LOGO_BYTES = 200 * 1024;
 
-    function zapiszDaneFirmy() {
-      const dane = {};
-      POLA_FIRMY.forEach(id => {
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsBackdrop = document.getElementById('settings-modal-backdrop');
+    const btnSettings = document.getElementById('btn-settings');
+    const btnCfgZamknij = document.getElementById('btn-cfg-zamknij');
+    const btnCfgWyczysc = document.getElementById('btn-cfg-wyczysc');
+    const settingsMessage = document.getElementById('settings-message');
+
+    const cfgLogoInput = document.getElementById('cfg-logo-input');
+    const btnCfgDodajLogo = document.getElementById('btn-cfg-dodaj-logo');
+    const btnCfgUsunLogo = document.getElementById('btn-cfg-usun-logo');
+    const cfgLogoPreviewWrap = document.getElementById('cfg-logo-preview-wrap');
+    const cfgLogoPreviewImg = document.getElementById('cfg-logo-preview');
+
+    let cfgLogoBase64 = '';
+
+    function pokazKomunikatCfg(tekst, typ) {
+      if (!settingsMessage) return;
+      settingsMessage.textContent = tekst;
+      settingsMessage.className = 'message ' + (typ || '');
+    }
+
+    function ukryjKomunikatCfg() {
+      if (!settingsMessage) return;
+      settingsMessage.textContent = '';
+      settingsMessage.className = 'message';
+    }
+
+    function migrujStaryConfig() {
+      try {
+        if (localStorage.getItem(STORAGE_KEY_CONFIG)) return;
+        const raw = localStorage.getItem(STORAGE_KEY_CONFIG_LEGACY);
+        if (!raw) return;
+        const stare = JSON.parse(raw);
+        if (!stare || typeof stare !== 'object') return;
+        const nowe = {};
+        POLA_CONFIG.forEach(k => {
+          if (typeof stare[k] === 'string') nowe[k] = stare[k];
+        });
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(nowe));
+        localStorage.removeItem(STORAGE_KEY_CONFIG_LEGACY);
+      } catch (e) {}
+    }
+
+    function wczytajConfig() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_CONFIG);
+        if (!raw) return {};
+        const dane = JSON.parse(raw);
+        if (!dane || typeof dane !== 'object') return {};
+        return dane;
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function zapiszConfig(cfg) {
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(cfg));
+      } catch (e) {
+        pokazKomunikatCfg('Nie udało się zapisać ustawień (brak miejsca w przeglądarce).', 'error');
+      }
+    }
+
+    function ustawPodgladLogo(dataUrl) {
+      if (dataUrl) {
+        cfgLogoBase64 = dataUrl;
+        cfgLogoPreviewImg.src = dataUrl;
+        cfgLogoPreviewWrap.hidden = false;
+        btnCfgDodajLogo.textContent = 'Zmień plik (PNG / JPG, ≤ 200 KB)';
+      } else {
+        cfgLogoBase64 = '';
+        cfgLogoPreviewImg.removeAttribute('src');
+        cfgLogoPreviewWrap.hidden = true;
+        btnCfgDodajLogo.textContent = 'Wybierz plik (PNG / JPG, ≤ 200 KB)';
+      }
+    }
+
+    function wypelnijFormularzCfg() {
+      const cfg = wczytajConfig();
+      POLA_CONFIG.forEach(k => {
+        const el = document.getElementById('cfg-' + k);
+        if (el) el.value = typeof cfg[k] === 'string' ? cfg[k] : '';
+      });
+      ustawPodgladLogo(typeof cfg.logo_base64 === 'string' ? cfg.logo_base64 : '');
+      ukryjKomunikatCfg();
+    }
+
+    function zbierzConfigZFormularza() {
+      const cfg = {};
+      POLA_CONFIG.forEach(k => {
+        const el = document.getElementById('cfg-' + k);
+        cfg[k] = el ? el.value.trim() : '';
+      });
+      cfg.logo_base64 = cfgLogoBase64 || '';
+      return cfg;
+    }
+
+    function zapiszCfgZFormularza() {
+      zapiszConfig(zbierzConfigZFormularza());
+    }
+
+    btnCfgDodajLogo.addEventListener('click', () => cfgLogoInput.click());
+
+    cfgLogoInput.addEventListener('change', () => {
+      const file = cfgLogoInput.files && cfgLogoInput.files[0];
+      if (!file) return;
+      if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
+        pokazKomunikatCfg('Wybierz plik PNG lub JPG.', 'error');
+        cfgLogoInput.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || '');
+        if (dataUrl.length > MAX_LOGO_BYTES) {
+          const kb = Math.round(dataUrl.length / 1024);
+          pokazKomunikatCfg('Logo musi być ≤ 200 KB po konwersji (aktualnie ~' + kb + ' KB). Wybierz mniejszy plik.', 'error');
+          cfgLogoInput.value = '';
+          return;
+        }
+        ustawPodgladLogo(dataUrl);
+        ukryjKomunikatCfg();
+      };
+      reader.onerror = () => {
+        pokazKomunikatCfg('Nie udało się wczytać pliku logo.', 'error');
+        cfgLogoInput.value = '';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    btnCfgUsunLogo.addEventListener('click', () => {
+      ustawPodgladLogo('');
+      cfgLogoInput.value = '';
+    });
+
+    btnCfgWyczysc.addEventListener('click', () => {
+      POLA_CONFIG.forEach(k => {
+        const el = document.getElementById('cfg-' + k);
+        if (el) el.value = '';
+      });
+      ustawPodgladLogo('');
+      cfgLogoInput.value = '';
+      try { localStorage.removeItem(STORAGE_KEY_CONFIG); } catch (e) {}
+      pokazKomunikatCfg('Wyczyszczono ustawienia firmy.', 'success');
+    });
+
+    function otworzSettings() {
+      wypelnijFormularzCfg();
+      settingsModal.hidden = false;
+      settingsModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => {
+        const first = document.getElementById('cfg-nazwa_firmy');
+        if (first) first.focus();
+      }, 0);
+    }
+
+    function zamknijSettings() {
+      zapiszCfgZFormularza();
+      settingsModal.hidden = true;
+      settingsModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    btnSettings.addEventListener('click', otworzSettings);
+    btnCfgZamknij.addEventListener('click', zamknijSettings);
+    settingsBackdrop.addEventListener('click', zamknijSettings);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !settingsModal.hidden) zamknijSettings();
+    });
+
+    migrujStaryConfig();
+
+    const STORAGE_KEY_DRAFT = 'oferowo_draft';
+    const POLA_DRAFT = [
+      'klient', 'numer_oferty', 'data_waznosci', 'uwagi',
+    ];
+
+    function debounce(fn, wait) {
+      let t;
+      return function (...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), wait);
+      };
+    }
+
+    function zbierzPozycjeDoDraft() {
+      return [...tbody.querySelectorAll('tr')].map(tr => ({
+        nazwa: tr.querySelector('.in-nazwa').value,
+        ilosc: tr.querySelector('.in-ilosc').value,
+        cena: tr.querySelector('.in-cena').value,
+      }));
+    }
+
+    function saveDraft() {
+      const dane = { pozycje: zbierzPozycjeDoDraft() };
+      POLA_DRAFT.forEach(id => {
         const el = document.getElementById(id);
         if (el) dane[id] = el.value;
       });
       try {
-        localStorage.setItem(STORAGE_KEY_FIRMA, JSON.stringify(dane));
+        localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(dane));
       } catch (e) {}
     }
 
-    function wczytajDaneFirmy() {
+    const saveDraftDebounced = debounce(saveDraft, 500);
+
+    function wczytajDraft() {
+      let dane;
       try {
-        const raw = localStorage.getItem(STORAGE_KEY_FIRMA);
+        const raw = localStorage.getItem(STORAGE_KEY_DRAFT);
         if (!raw) return;
-        const dane = JSON.parse(raw);
-        if (!dane || typeof dane !== 'object') return;
-        POLA_FIRMY.forEach(id => {
-          const el = document.getElementById(id);
-          if (el && typeof dane[id] === 'string') el.value = dane[id];
+        dane = JSON.parse(raw);
+      } catch (e) {
+        return;
+      }
+      if (!dane || typeof dane !== 'object') return;
+
+      POLA_DRAFT.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && typeof dane[id] === 'string') el.value = dane[id];
+      });
+
+      if (Array.isArray(dane.pozycje) && dane.pozycje.length > 0) {
+        tbody.innerHTML = '';
+        dane.pozycje.forEach(p => {
+          dodajWiersz();
+          const tr = tbody.lastElementChild;
+          if (!tr) return;
+          if (typeof p.nazwa === 'string') tr.querySelector('.in-nazwa').value = p.nazwa;
+          if (typeof p.ilosc === 'string') tr.querySelector('.in-ilosc').value = p.ilosc;
+          if (typeof p.cena === 'string')  tr.querySelector('.in-cena').value  = p.cena;
         });
-      } catch (e) {}
+      }
+
+      odswiezStanPresetow();
     }
 
-    function wyczyscDaneFirmy() {
-      try {
-        localStorage.removeItem(STORAGE_KEY_FIRMA);
-      } catch (e) {}
-      POLA_FIRMY.forEach(id => {
+    function ustawDomyslnaDate() {
+      const input = document.getElementById('data_waznosci');
+      if (!input) return;
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      input.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function wyczyscFormularz() {
+      try { localStorage.removeItem(STORAGE_KEY_DRAFT); } catch (e) {}
+
+      POLA_DRAFT.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
+
+      tbody.innerHTML = '';
+      dodajWiersz();
+
+      ustawDomyslnaDate();
+      odswiezStanPresetow();
+      ukryjKomunikat();
     }
 
-    form.addEventListener('submit', zapiszDaneFirmy);
-    document.getElementById('btn-wyczysc-firme').addEventListener('click', wyczyscDaneFirmy);
-    wczytajDaneFirmy();
+    document.addEventListener('DOMContentLoaded', () => {
+      wczytajDraft();
+
+      form.addEventListener('input', saveDraftDebounced);
+      btnDodaj.addEventListener('click', saveDraftDebounced);
+      tbody.addEventListener('click', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('btn-remove')) {
+          saveDraftDebounced();
+        }
+      });
+
+      document.getElementById('btn-wyczysc-formularz').addEventListener('click', wyczyscFormularz);
+    });
+
+    const STORAGE_KEY_KATALOG = 'oferowo_katalog';
+    const STORAGE_KEY_KATALOG_VER = 'oferowo_katalog_v';
+    const KATALOG_VERSION = 2;
+
+    const DOMYSLNY_KATALOG = [
+      { nazwa: 'Wymiana baterii umywalkowej',       cena_jednostkowa: 150, kategoria: 'Hydraulika' },
+      { nazwa: 'Naprawa spłuczki',                  cena_jednostkowa: 100, kategoria: 'Hydraulika' },
+      { nazwa: 'Udrożnienie odpływu',               cena_jednostkowa: 200, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż umywalki',                   cena_jednostkowa: 250, kategoria: 'Hydraulika' },
+      { nazwa: 'Wymiana zaworu kątowego',           cena_jednostkowa:  80, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż WC kompakt',                 cena_jednostkowa: 350, kategoria: 'Hydraulika' },
+      { nazwa: 'Wymiana grzejnika',                 cena_jednostkowa: 450, kategoria: 'Hydraulika' },
+
+      { nazwa: 'Montaż gniazda elektrycznego',      cena_jednostkowa:  80, kategoria: 'Elektryka' },
+      { nazwa: 'Wymiana włącznika',                 cena_jednostkowa:  60, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż lampy sufitowej',            cena_jednostkowa: 120, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż żyrandola',                  cena_jednostkowa: 150, kategoria: 'Elektryka' },
+      { nazwa: 'Pomiary elektryczne (protokół)',    cena_jednostkowa: 200, kategoria: 'Elektryka' },
+      { nazwa: 'Wymiana rozdzielni',                cena_jednostkowa: 800, kategoria: 'Elektryka' },
+
+      { nazwa: 'Malowanie ściany (m²)',             cena_jednostkowa:  35, kategoria: 'Wykończenia' },
+      { nazwa: 'Gładź gipsowa (m²)',                cena_jednostkowa:  50, kategoria: 'Wykończenia' },
+      { nazwa: 'Tapetowanie (m²)',                  cena_jednostkowa:  45, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż drzwi wewnętrznych',         cena_jednostkowa: 350, kategoria: 'Wykończenia' },
+      { nazwa: 'Listwy przypodłogowe (mb)',         cena_jednostkowa:  25, kategoria: 'Wykończenia' },
+      { nazwa: 'Układanie paneli (m²)',             cena_jednostkowa:  40, kategoria: 'Wykończenia' },
+      { nazwa: 'Układanie płytek (m²)',             cena_jednostkowa: 120, kategoria: 'Wykończenia' },
+
+      { nazwa: 'Wyburzenie ścianki działowej (m²)', cena_jednostkowa: 180, kategoria: 'Budowlanka' },
+      { nazwa: 'Stawianie ścianki działowej (m²)',  cena_jednostkowa: 220, kategoria: 'Budowlanka' },
+
+      { nazwa: 'Robocizna (godzina)',               cena_jednostkowa:  80, kategoria: 'Inne' },
+      { nazwa: 'Dojazd (km)',                       cena_jednostkowa:   3, kategoria: 'Inne' },
+      { nazwa: 'Wywóz gruzu (m³)',                  cena_jednostkowa: 350, kategoria: 'Inne' },
+    ];
+
+    function zapiszKatalog(items) {
+      try {
+        localStorage.setItem(STORAGE_KEY_KATALOG, JSON.stringify(items));
+        localStorage.setItem(STORAGE_KEY_KATALOG_VER, String(KATALOG_VERSION));
+      } catch (e) {}
+    }
+
+    function wczytajKatalog() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_KATALOG);
+        const ver = parseInt(localStorage.getItem(STORAGE_KEY_KATALOG_VER) || '0', 10);
+        if (!raw || ver < KATALOG_VERSION) {
+          zapiszKatalog(DOMYSLNY_KATALOG);
+          return DOMYSLNY_KATALOG.slice();
+        }
+        const dane = JSON.parse(raw);
+        if (!Array.isArray(dane)) return DOMYSLNY_KATALOG.slice();
+        return dane
+          .filter(it => it && typeof it.nazwa === 'string')
+          .map(it => ({
+            nazwa: it.nazwa,
+            cena_jednostkowa: Number(it.cena_jednostkowa) || 0,
+            kategoria: (typeof it.kategoria === 'string' && it.kategoria.trim()) || 'Inne',
+          }));
+      } catch (e) {
+        return DOMYSLNY_KATALOG.slice();
+      }
+    }
+
+    const catalogModal = document.getElementById('catalog-modal');
+    const catalogBackdrop = document.getElementById('catalog-modal-backdrop');
+    const catalogList = document.getElementById('catalog-list');
+    const catalogSearch = document.getElementById('catalog-search');
+    const catalogCategories = document.getElementById('catalog-categories');
+    const catalogFeedback = document.getElementById('catalog-feedback');
+    const btnKatalog = document.getElementById('btn-katalog');
+    const btnZamknijCatalog = document.getElementById('btn-zamknij-catalog');
+    const btnImportCatalog = document.getElementById('btn-import-catalog');
+    const btnExportCatalog = document.getElementById('btn-export-catalog');
+    const importCatalogInput = document.getElementById('import-catalog');
+
+    let aktywnyWiersz = null;
+    let aktywnaKategoria = '';
+
+    tbody.addEventListener('focusin', (e) => {
+      const tr = e.target && e.target.closest && e.target.closest('tr');
+      if (tr && tbody.contains(tr)) aktywnyWiersz = tr;
+    });
+
+    function formatujCene(cena) {
+      const n = Number(cena);
+      if (!Number.isFinite(n)) return '';
+      return n.toFixed(2).replace('.', ',') + ' zł';
+    }
+
+    function pokazFeedbackKatalog(tekst, typ) {
+      if (!catalogFeedback) return;
+      catalogFeedback.textContent = tekst;
+      catalogFeedback.className = 'catalog-feedback' + (typ === 'error' ? ' error' : '');
+      catalogFeedback.hidden = false;
+      if (typ !== 'error') {
+        setTimeout(() => { if (catalogFeedback.textContent === tekst) ukryjFeedbackKatalog(); }, 3000);
+      }
+    }
+
+    function ukryjFeedbackKatalog() {
+      if (!catalogFeedback) return;
+      catalogFeedback.hidden = true;
+      catalogFeedback.textContent = '';
+      catalogFeedback.className = 'catalog-feedback';
+    }
+
+    function dostepneKategorie(items) {
+      const set = new Set();
+      items.forEach(it => set.add(it.kategoria || 'Inne'));
+      return Array.from(set);
+    }
+
+    function renderujKategorie(items) {
+      catalogCategories.innerHTML = '';
+      const kategorie = dostepneKategorie(items);
+      const wszystkie = document.createElement('button');
+      wszystkie.type = 'button';
+      wszystkie.className = 'chip';
+      wszystkie.textContent = 'Wszystkie';
+      wszystkie.setAttribute('aria-pressed', aktywnaKategoria === '' ? 'true' : 'false');
+      wszystkie.addEventListener('click', () => {
+        aktywnaKategoria = '';
+        renderujKatalog();
+      });
+      catalogCategories.appendChild(wszystkie);
+      kategorie.forEach(kat => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = kat;
+        chip.setAttribute('aria-pressed', aktywnaKategoria === kat ? 'true' : 'false');
+        chip.addEventListener('click', () => {
+          aktywnaKategoria = aktywnaKategoria === kat ? '' : kat;
+          renderujKatalog();
+        });
+        catalogCategories.appendChild(chip);
+      });
+    }
+
+    function renderujKatalog() {
+      const items = wczytajKatalog();
+      renderujKategorie(items);
+
+      const q = (catalogSearch.value || '').trim().toLowerCase();
+      const widoczne = items.filter(it => {
+        if (aktywnaKategoria && (it.kategoria || 'Inne') !== aktywnaKategoria) return false;
+        if (q && !it.nazwa.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      catalogList.innerHTML = '';
+      if (widoczne.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'catalog-empty';
+        li.textContent = 'Brak pozycji pasujących do filtra.';
+        catalogList.appendChild(li);
+        return;
+      }
+      widoczne.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'catalog-item';
+        li.setAttribute('role', 'option');
+        li.tabIndex = 0;
+        li.dataset.kategoria = item.kategoria || 'Inne';
+        const nazwa = document.createElement('span');
+        nazwa.className = 'catalog-item-nazwa';
+        nazwa.textContent = item.nazwa;
+        const cena = document.createElement('span');
+        cena.className = 'catalog-item-cena';
+        cena.textContent = formatujCene(item.cena_jednostkowa);
+        li.appendChild(nazwa);
+        li.appendChild(cena);
+        li.addEventListener('click', () => addFromCatalog(item));
+        li.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            addFromCatalog(item);
+          }
+        });
+        catalogList.appendChild(li);
+      });
+    }
+
+    function czyWierszPusty(tr) {
+      if (!tr) return false;
+      const n = tr.querySelector('.in-nazwa');
+      const i = tr.querySelector('.in-ilosc');
+      const c = tr.querySelector('.in-cena');
+      return (!n || !n.value.trim()) && (!i || !i.value.trim()) && (!c || !c.value.trim());
+    }
+
+    function znajdzDocelowyWiersz() {
+      if (aktywnyWiersz && tbody.contains(aktywnyWiersz)) return aktywnyWiersz;
+      const ostatni = tbody.lastElementChild;
+      if (ostatni && czyWierszPusty(ostatni)) return ostatni;
+      dodajWiersz();
+      return tbody.lastElementChild;
+    }
+
+    function addFromCatalog(item) {
+      if (!item || typeof item !== 'object') return;
+      const tr = znajdzDocelowyWiersz();
+      if (!tr) return;
+
+      const inNazwa = tr.querySelector('.in-nazwa');
+      const inIlosc = tr.querySelector('.in-ilosc');
+      const inCena  = tr.querySelector('.in-cena');
+
+      if (inNazwa && typeof item.nazwa === 'string') {
+        inNazwa.value = item.nazwa;
+        inNazwa.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (inIlosc && !inIlosc.value.trim()) {
+        inIlosc.value = '1';
+        inIlosc.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (inCena) {
+        const cena = Number(item.cena_jednostkowa);
+        if (Number.isFinite(cena)) {
+          inCena.value = String(cena);
+          inCena.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+
+      aktywnyWiersz = tr;
+      zamknijKatalog();
+    }
+
+    window.addFromCatalog = addFromCatalog;
+
+    function parsujCSV(text) {
+      const rows = [];
+      const src = text.replace(/^\uFEFF/, '');
+      let cur = '';
+      let row = [];
+      let inQuotes = false;
+      for (let i = 0; i < src.length; i++) {
+        const ch = src[i];
+        if (inQuotes) {
+          if (ch === '"') {
+            if (src[i + 1] === '"') { cur += '"'; i++; }
+            else { inQuotes = false; }
+          } else {
+            cur += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === ',' || ch === ';') {
+            row.push(cur); cur = '';
+          } else if (ch === '\n' || ch === '\r') {
+            if (ch === '\r' && src[i + 1] === '\n') i++;
+            row.push(cur); cur = '';
+            if (row.some(f => f.trim() !== '')) rows.push(row.map(f => f.trim()));
+            row = [];
+          } else {
+            cur += ch;
+          }
+        }
+      }
+      if (cur !== '' || row.length > 0) {
+        row.push(cur);
+        if (row.some(f => f.trim() !== '')) rows.push(row.map(f => f.trim()));
+      }
+      return rows;
+    }
+
+    function importujCSV(text) {
+      const rows = parsujCSV(text);
+      if (rows.length === 0) throw new Error('Plik jest pusty.');
+      let startIdx = 0;
+      const pierwsza = rows[0].map(f => f.toLowerCase());
+      if (pierwsza[0] === 'nazwa' || pierwsza[0] === 'name') startIdx = 1;
+
+      const items = [];
+      for (let i = startIdx; i < rows.length; i++) {
+        const r = rows[i];
+        const nazwa = r[0];
+        if (!nazwa) continue;
+        const cenaRaw = (r[1] || '0').replace(/\s/g, '').replace(',', '.');
+        const cena = parseFloat(cenaRaw);
+        const kategoria = r[2] || 'Inne';
+        items.push({
+          nazwa,
+          cena_jednostkowa: Number.isFinite(cena) ? cena : 0,
+          kategoria,
+        });
+      }
+      if (items.length === 0) throw new Error('Brak prawidłowych pozycji w pliku.');
+      zapiszKatalog(items);
+      return items;
+    }
+
+    const KOMUNIKAT_BLEDU_IMPORTU = 'Nie udało się odczytać pliku. Upewnij się, że zapisałeś go w Excelu jako CSV (rozdzielany przecinkami).';
+
+    function escCSV(wartosc) {
+      const s = String(wartosc == null ? '' : wartosc);
+      if (/[",\r\n]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    function eksportujKatalogCSV() {
+      const items = wczytajKatalog();
+      if (!items || items.length === 0) {
+        pokazFeedbackKatalog('Katalog jest pusty — nie ma czego eksportować.', 'error');
+        return;
+      }
+
+      const linie = ['nazwa,cena_jednostkowa,kategoria'];
+      items.forEach(it => {
+        const cena = Number(it.cena_jednostkowa);
+        const cenaTxt = Number.isFinite(cena) ? cena.toFixed(2) : '0.00';
+        linie.push(
+          escCSV(it.nazwa) + ',' +
+          escCSV(cenaTxt) + ',' +
+          escCSV(it.kategoria || 'Inne')
+        );
+      });
+
+      const csv = '\uFEFF' + linie.join('\r\n') + '\r\n';
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'moje_uslugi_oferowo.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+
+      pokazFeedbackKatalog('Wyeksportowano ' + items.length + ' pozycji do pliku CSV.', 'success');
+    }
+
+    btnExportCatalog.addEventListener('click', eksportujKatalogCSV);
+
+    btnImportCatalog.addEventListener('click', () => importCatalogInput.click());
+
+    importCatalogInput.addEventListener('change', () => {
+      const file = importCatalogInput.files && importCatalogInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const items = importujCSV(String(reader.result || ''));
+          aktywnaKategoria = '';
+          catalogSearch.value = '';
+          renderujKatalog();
+          pokazFeedbackKatalog('Zaimportowano ' + items.length + ' pozycji z pliku Excela.', 'success');
+        } catch (err) {
+          console.warn('Import katalogu:', err);
+          pokazFeedbackKatalog(KOMUNIKAT_BLEDU_IMPORTU, 'error');
+        } finally {
+          importCatalogInput.value = '';
+        }
+      };
+      reader.onerror = () => {
+        pokazFeedbackKatalog(KOMUNIKAT_BLEDU_IMPORTU, 'error');
+        importCatalogInput.value = '';
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+
+    function otworzKatalog() {
+      if (!aktywnyWiersz || !tbody.contains(aktywnyWiersz)) {
+        aktywnyWiersz = tbody.lastElementChild;
+      }
+      catalogSearch.value = '';
+      aktywnaKategoria = '';
+      ukryjFeedbackKatalog();
+      renderujKatalog();
+      catalogModal.hidden = false;
+      catalogModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => catalogSearch.focus(), 0);
+    }
+
+    function zamknijKatalog() {
+      catalogModal.hidden = true;
+      catalogModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    btnKatalog.addEventListener('click', otworzKatalog);
+    btnZamknijCatalog.addEventListener('click', zamknijKatalog);
+    catalogBackdrop.addEventListener('click', zamknijKatalog);
+    catalogSearch.addEventListener('input', () => renderujKatalog());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !catalogModal.hidden) zamknijKatalog();
+    });
   </script>
 </body>
 </html>
