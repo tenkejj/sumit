@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -14,8 +13,7 @@ func main() {
 			http.NotFound(w, r)
 			return
 		}
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprint(w, "Oferowo działa!")
+		http.ServeFile(w, r, "static/index.html")
 	})
 
 	mux.HandleFunc("POST /oferta", handleOferta)

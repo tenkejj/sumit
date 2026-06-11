@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oferowo — generator ofert PDF</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f8;
+      color: #1f2937;
+      margin: 0;
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      padding: 32px;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 26px;
+      color: #111827;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      margin: 0 0 28px;
+      font-size: 14px;
+    }
+
+    fieldset {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 18px 20px 22px;
+      margin: 0 0 22px;
+    }
+
+    legend {
+      padding: 0 8px;
+      font-weight: 600;
+      color: #374151;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      flex: 1 1 240px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      font: inherit;
+      padding: 9px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      color: #111827;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #6b7280;
+      font-weight: 600;
+      padding: 8px 6px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    tbody td {
+      padding: 6px;
+      vertical-align: top;
+    }
+
+    tbody input {
+      width: 100%;
+    }
+
+    .col-lp { width: 40px; text-align: center; color: #6b7280; }
+    .col-nazwa { min-width: 220px; }
+    .col-ilosc { width: 110px; }
+    .col-cena { width: 140px; }
+    .col-akcja { width: 60px; text-align: center; }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-weight: 500;
+      transition: background-color 0.15s, transform 0.05s;
+    }
+
+    button:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+      padding: 12px 22px;
+      font-size: 15px;
+    }
+    .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+    .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+    .btn-secondary:hover { background: #e5e7eb; }
+
+    .btn-remove {
+      background: transparent;
+      color: #dc2626;
+      padding: 4px 8px;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .btn-remove:hover { background: #fee2e2; }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .message {
+      margin-top: 16px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: none;
+    }
+    .message.error {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      display: block;
+    }
+    .message.success {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Oferowo</h1>
+    <p class="subtitle">Wypełnij formularz i wygeneruj ofertę PDF.</p>
+
+    <form id="oferta-form" autocomplete="off">
+      <fieldset>
+        <legend>Strony</legend>
+        <div class="row">
+          <div class="field">
+            <label for="nazwa_firmy">Nazwa firmy (sprzedawca)</label>
+            <input type="text" id="nazwa_firmy" name="nazwa_firmy" required>
+          </div>
+          <div class="field">
+            <label for="klient">Nazwa klienta</label>
+            <input type="text" id="klient" name="klient" required>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Pozycje</legend>
+        <table>
+          <thead>
+            <tr>
+              <th class="col-lp">Lp.</th>
+              <th class="col-nazwa">Nazwa</th>
+              <th class="col-ilosc">Ilość</th>
+              <th class="col-cena">Cena jedn. (zł)</th>
+              <th class="col-akcja"></th>
+            </tr>
+          </thead>
+          <tbody id="pozycje-tbody"></tbody>
+        </table>
+
+        <div class="actions">
+          <button type="button" class="btn-secondary" id="btn-dodaj">+ Dodaj pozycję</button>
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" class="btn-primary" id="btn-generuj">Generuj PDF</button>
+      </div>
+
+      <div id="message" class="message"></div>
+    </form>
+  </div>
+
+  <script>
+    const tbody = document.getElementById('pozycje-tbody');
+    const btnDodaj = document.getElementById('btn-dodaj');
+    const btnGeneruj = document.getElementById('btn-generuj');
+    const form = document.getElementById('oferta-form');
+    const message = document.getElementById('message');
+
+    function odswiezNumery() {
+      [...tbody.querySelectorAll('tr')].forEach((tr, i) => {
+        tr.querySelector('.col-lp').textContent = i + 1;
+      });
+    }
+
+    function dodajWiersz() {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="col-lp"></td>
+        <td class="col-nazwa"><input type="text" class="in-nazwa" placeholder="np. Usługa konsultingowa" required></td>
+        <td class="col-ilosc"><input type="number" class="in-ilosc" step="any" min="0" placeholder="1" required></td>
+        <td class="col-cena"><input type="number" class="in-cena" step="0.01" min="0" placeholder="0,00" required></td>
+        <td class="col-akcja">
+          <button type="button" class="btn-remove" title="Usuń">&times;</button>
+        </td>
+      `;
+      tr.querySelector('.btn-remove').addEventListener('click', () => {
+        if (tbody.children.length <= 1) {
+          pokazKomunikat('Musi pozostać co najmniej jedna pozycja.', 'error');
+          return;
+        }
+        tr.remove();
+        odswiezNumery();
+      });
+      tbody.appendChild(tr);
+      odswiezNumery();
+    }
+
+    function pokazKomunikat(tekst, typ) {
+      message.textContent = tekst;
+      message.className = 'message ' + typ;
+    }
+
+    function ukryjKomunikat() {
+      message.textContent = '';
+      message.className = 'message';
+    }
+
+    btnDodaj.addEventListener('click', dodajWiersz);
+
+    dodajWiersz();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      ukryjKomunikat();
+
+      const pozycje = [...tbody.querySelectorAll('tr')].map(tr => ({
+        nazwa: tr.querySelector('.in-nazwa').value.trim(),
+        ilosc: parseFloat(tr.querySelector('.in-ilosc').value),
+        cena_jednostkowa: parseFloat(tr.querySelector('.in-cena').value),
+      }));
+
+      const payload = {
+        nazwa_firmy: document.getElementById('nazwa_firmy').value.trim(),
+        klient: document.getElementById('klient').value.trim(),
+        pozycje: pozycje,
+      };
+
+      btnGeneruj.disabled = true;
+      btnGeneruj.textContent = 'Generowanie...';
+
+      try {
+        const res = await fetch('/oferta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const tekst = await res.text();
+          throw new Error(tekst || `Błąd ${res.status}`);
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+
+        const nazwaPliku = `oferta-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nazwaPliku;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        pokazKomunikat('PDF wygenerowany i pobrany.', 'success');
+      } catch (err) {
+        pokazKomunikat('Nie udało się wygenerować PDF: ' + err.message, 'error');
+      } finally {
+        btnGeneruj.disabled = false;
+        btnGeneruj.textContent = 'Generuj PDF';
+      }
+    });
+  </script>
+</body>
+</html>
