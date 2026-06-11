@@ -327,6 +327,98 @@
       letter-spacing: -0.005em;
     }
 
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal[hidden] { display: none; }
+
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 10, 10, 0.6);
+    }
+
+    .modal-card {
+      position: relative;
+      width: 100%;
+      max-width: 860px;
+      max-height: 90vh;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(10, 10, 10, 0.15);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+
+    .modal-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      padding: 16px 24px;
+    }
+
+    .modal-body iframe {
+      width: 100%;
+      height: 70vh;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      display: block;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .modal-footer .btn-primary {
+      width: auto;
+      padding: 10px 20px;
+      font-size: 14px;
+    }
+
+    .btn-secondary {
+      padding: 10px 20px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      transition: border-color 0.15s ease;
+    }
+    .btn-secondary:hover { border-color: var(--text); }
+
+    @media (max-width: 600px) {
+      .modal { padding: 12px; }
+      .modal-body iframe { height: 60vh; }
+    }
+
     @media (max-width: 600px) {
       body { padding: 48px 20px 60px; }
       .header { margin-bottom: 36px; }
@@ -470,7 +562,7 @@
         </section>
 
         <div class="submit-wrap">
-          <button type="submit" class="btn-primary" id="btn-generuj">Generuj PDF</button>
+          <button type="submit" class="btn-primary" id="btn-generuj">Podgląd i pobierz</button>
         </div>
 
         <div id="message" class="message"></div>
@@ -478,6 +570,22 @@
     </div>
 
     <p class="footer">© Oferowo</p>
+  </div>
+
+  <div class="modal" id="pdf-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pdf-modal-title">
+    <div class="modal-backdrop" id="pdf-modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="pdf-modal-title">Podgląd oferty</h3>
+      </div>
+      <div class="modal-body">
+        <iframe id="pdf-preview" title="Podgląd PDF"></iframe>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btn-zamknij-modal">Zamknij</button>
+        <button type="button" class="btn-primary" id="btn-pobierz-pdf">Pobierz PDF</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -623,21 +731,66 @@
         const url = URL.createObjectURL(blob);
 
         const nazwaPliku = `oferta-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = nazwaPliku;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        pokazPodgladPdf(url, nazwaPliku);
 
-        pokazKomunikat('PDF wygenerowany i pobrany.', 'success');
+        pokazKomunikat('PDF wygenerowany. Otwórz podgląd, aby pobrać plik.', 'success');
       } catch (err) {
         pokazKomunikat('Nie udało się wygenerować PDF: ' + err.message, 'error');
       } finally {
         btnGeneruj.disabled = false;
-        btnGeneruj.textContent = 'Generuj PDF';
+        btnGeneruj.textContent = 'Podgląd i pobierz';
       }
+    });
+
+    const pdfModal = document.getElementById('pdf-modal');
+    const pdfModalBackdrop = document.getElementById('pdf-modal-backdrop');
+    const pdfPreview = document.getElementById('pdf-preview');
+    const btnPobierzPdf = document.getElementById('btn-pobierz-pdf');
+    const btnZamknijModal = document.getElementById('btn-zamknij-modal');
+
+    let aktualnyPodgladUrl = '';
+    let aktualnaNazwaPliku = '';
+
+    function pokazPodgladPdf(url, nazwaPliku) {
+      if (aktualnyPodgladUrl) {
+        URL.revokeObjectURL(aktualnyPodgladUrl);
+      }
+      aktualnyPodgladUrl = url;
+      aktualnaNazwaPliku = nazwaPliku;
+      pdfPreview.src = url;
+      pdfModal.hidden = false;
+      pdfModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function zamknijPodgladPdf() {
+      pdfModal.hidden = true;
+      pdfModal.setAttribute('aria-hidden', 'true');
+      pdfPreview.removeAttribute('src');
+      document.body.style.overflow = '';
+      if (aktualnyPodgladUrl) {
+        URL.revokeObjectURL(aktualnyPodgladUrl);
+        aktualnyPodgladUrl = '';
+      }
+      aktualnaNazwaPliku = '';
+    }
+
+    btnZamknijModal.addEventListener('click', zamknijPodgladPdf);
+    pdfModalBackdrop.addEventListener('click', zamknijPodgladPdf);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !pdfModal.hidden) {
+        zamknijPodgladPdf();
+      }
+    });
+
+    btnPobierzPdf.addEventListener('click', () => {
+      if (!aktualnyPodgladUrl) return;
+      const a = document.createElement('a');
+      a.href = aktualnyPodgladUrl;
+      a.download = aktualnaNazwaPliku;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     });
 
     const POLA_FIRMY = ['nazwa_firmy', 'nip', 'adres', 'miasto', 'telefon'];

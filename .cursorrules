@@ -1,0 +1,24 @@
+# Oferowo — zasady projektu
+
+## Stack
+- Backend: Go 1.26, standardowa biblioteka + go-pdf/fpdf
+- Frontend: vanilla HTML/CSS/JS, zero frameworków, zero npm
+- Pliki: main.go, oferta.go, static/index.html
+
+## Zasady Go
+- Nie modyfikuj struktury Oferta i Pozycja bez pytania
+- Obsługa błędów zawsze przez if err != nil
+- Żadnych nowych zewnętrznych zależności bez pytania
+- Nie modyfikuj main.go bez wyraźnej prośby
+
+## Zasady designu
+- Kolory tylko: #0a0a0a, #ffffff, #e5e5e5, #6b7280
+- Czcionka: Inter z Google Fonts
+- Zero gradientów, zero glassmorphism, zero fioletu
+- Inspiracja: linear.app, raycast.com
+
+## Zasady ogólne
+- Nie podejmuj decyzji architektonicznych samodzielnie
+- Zawsze zachowuj logikę JavaScript bez zmian
+- Jeden plik HTML — nie rozbijaj na komponenty
+- Zawsze pytaj jeśli coś jest niejednoznaczne
