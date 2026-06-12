@@ -20,9 +20,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #ffffff;
-      --bg-soft: #fafafa;
-      --bg-hover: #f5f5f5;
+      --bg: #f5f5f7;
+      --bg-soft: #ffffff;
+      --bg-hover: #ececef;
       --bg-chip: #e5e5e5;
       --text: #0a0a0a;
       --text-muted: #6b7280;
@@ -86,7 +86,7 @@
       inset: 0;
       pointer-events: none;
       z-index: -1;
-      background: radial-gradient(circle at 50% -20%, rgba(10, 10, 10, 0.035), transparent 50%);
+      background: radial-gradient(circle at 50% -20%, rgba(255, 255, 255, 0.9), transparent 55%);
     }
 
     [data-theme="dark"] body::before {
@@ -1168,8 +1168,9 @@
     .view-tabs,
     .stats-card,
     .stats-empty {
-      background: rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.7);
       border-color: rgba(10, 10, 10, 0.06);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
       -webkit-backdrop-filter: blur(16px);
       backdrop-filter: blur(16px);
     }
@@ -1180,12 +1181,13 @@
     [data-theme="dark"] .stats-empty {
       background: rgba(255, 255, 255, 0.02);
       border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: none;
     }
 
     .view-tabs { border: 1px solid rgba(10, 10, 10, 0.06); }
     [data-theme="dark"] .view-tabs { border: 1px solid rgba(255, 255, 255, 0.06); }
 
-    @media (min-width: 768px) {
+    @media (min-width: 768px) and (max-width: 1023.98px) {
       #oferta-form {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1198,6 +1200,65 @@
       #oferta-form > .submit-wrap,
       #oferta-form > #message {
         grid-column: 1 / -1;
+      }
+    }
+
+    .kreator-layout {
+      display: block;
+    }
+
+    .live-preview-wrap { display: none; }
+
+    @media (min-width: 1024px) {
+      .kreator-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        align-items: start;
+      }
+      .live-preview-wrap {
+        display: block;
+        position: sticky;
+        top: 24px;
+      }
+      .live-preview-wrap iframe {
+        width: 100%;
+        height: calc(100vh - 48px);
+        border: 1px solid rgba(10, 10, 10, 0.06);
+        border-radius: 12px;
+        background: var(--bg-soft);
+        display: block;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+      }
+      [data-theme="dark"] .live-preview-wrap iframe {
+        border-color: rgba(255, 255, 255, 0.06);
+        background: var(--bg-soft);
+        box-shadow: none;
+      }
+      .live-preview-empty {
+        width: 100%;
+        height: calc(100vh - 48px);
+        border: 1px dashed rgba(10, 10, 10, 0.12);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        color: var(--text-muted);
+        font-size: 13px;
+        text-align: center;
+        letter-spacing: -0.005em;
+        background: rgba(255, 255, 255, 0.4);
+        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(16px);
+      }
+      [data-theme="dark"] .live-preview-empty {
+        border-color: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .live-preview-wrap iframe[hidden],
+      .live-preview-empty[hidden] {
+        display: none;
       }
     }
 
@@ -1310,6 +1371,7 @@
     </nav>
 
     <div id="view-kreator" class="view" role="tabpanel" aria-labelledby="tab-kreator">
+    <div class="kreator-layout">
     <div class="card">
       <form id="oferta-form" autocomplete="off">
         <section class="section">
@@ -1389,6 +1451,11 @@
 
         <div id="message" class="message"></div>
       </form>
+    </div>
+      <aside class="live-preview-wrap" aria-label="Podgląd PDF na żywo">
+        <iframe id="live-pdf-preview" title="Podgląd PDF na żywo" hidden></iframe>
+        <div id="live-pdf-preview-empty" class="live-preview-empty">Wypełnij dane oferty (nazwa firmy, klient i&nbsp;przynajmniej jedna pozycja), aby zobaczyć podgląd.</div>
+      </aside>
     </div>
     </div>
 
@@ -1803,15 +1870,118 @@
       uwagiTextarea.addEventListener('input', odswiezStanPresetow);
     }
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      ukryjKomunikat();
-
-      const pozycje = [...tbody.querySelectorAll('tr')].map(tr => ({
+    function budujPayloadZFormularza() {
+      const cfg = wczytajConfig();
+      const nazwaFirmy = String(cfg.nazwa_firmy || '').trim();
+      const klient = document.getElementById('klient').value.trim();
+      const pozycjeWiersze = [...tbody.querySelectorAll('tr')];
+      const pozycje = pozycjeWiersze.map(tr => ({
         nazwa: tr.querySelector('.in-nazwa').value.trim(),
         ilosc: parseFloat(tr.querySelector('.in-ilosc').value),
         cena_jednostkowa: parseFloat(tr.querySelector('.in-cena').value),
       }));
+      const pozycjeOk = pozycje.filter(p => p.nazwa && Number.isFinite(p.ilosc) && p.ilosc > 0 && Number.isFinite(p.cena_jednostkowa) && p.cena_jednostkowa >= 0);
+
+      const gotowy = !!nazwaFirmy && !!klient && pozycjeOk.length > 0;
+
+      return {
+        gotowy,
+        nazwaFirmy,
+        klient,
+        payload: {
+          nazwa_firmy: nazwaFirmy,
+          nip: String(cfg.nip || '').trim(),
+          adres: String(cfg.adres || '').trim(),
+          miasto: String(cfg.miasto || '').trim(),
+          telefon: String(cfg.telefon || '').trim(),
+          email: String(cfg.email || '').trim(),
+          logo_base64: String(cfg.logo_base64 || ''),
+          numer_konta: String(cfg.numer_konta || '').trim(),
+          klient: klient,
+          numer_oferty: document.getElementById('numer_oferty').value.trim(),
+          data_waznosci: document.getElementById('data_waznosci').value,
+          uwagi: document.getElementById('uwagi').value.trim(),
+          pozycje: pozycje,
+        },
+      };
+    }
+
+    const livePodgladMql = (window.matchMedia && window.matchMedia('(min-width: 1024px)')) || { matches: false, addEventListener() {}, addListener() {} };
+    const liveIframe = document.getElementById('live-pdf-preview');
+    const liveEmpty = document.getElementById('live-pdf-preview-empty');
+    let livePodgladUrl = '';
+    let livePodgladAbort = null;
+
+    function pokazPlaceholderLive() {
+      if (!liveIframe || !liveEmpty) return;
+      liveIframe.removeAttribute('src');
+      liveIframe.hidden = true;
+      liveEmpty.hidden = false;
+    }
+
+    function aktualizujTekstPrzyciskuGeneruj() {
+      if (!btnGeneruj) return;
+      btnGeneruj.textContent = livePodgladMql.matches ? 'Pobierz PDF' : 'Podgląd i pobierz';
+    }
+    aktualizujTekstPrzyciskuGeneruj();
+
+    async function aktualizujLivePodglad() {
+      if (!livePodgladMql.matches) return;
+      if (!liveIframe) return;
+
+      const { gotowy, payload } = budujPayloadZFormularza();
+      if (!gotowy) {
+        pokazPlaceholderLive();
+        if (livePodgladAbort) { livePodgladAbort.abort(); livePodgladAbort = null; }
+        return;
+      }
+
+      if (livePodgladAbort) livePodgladAbort.abort();
+      const ctrl = new AbortController();
+      livePodgladAbort = ctrl;
+
+      try {
+        const res = await fetch('/oferta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: ctrl.signal,
+        });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (ctrl.signal.aborted) return;
+
+        const nowyUrl = URL.createObjectURL(blob);
+        const stary = livePodgladUrl;
+        livePodgladUrl = nowyUrl;
+        liveIframe.src = nowyUrl + '#toolbar=0&navpanes=0';
+        liveIframe.hidden = false;
+        if (liveEmpty) liveEmpty.hidden = true;
+        if (stary) {
+          setTimeout(() => URL.revokeObjectURL(stary), 1500);
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      } finally {
+        if (livePodgladAbort === ctrl) livePodgladAbort = null;
+      }
+    }
+
+    const livePodgladMqlHandler = () => {
+      aktualizujTekstPrzyciskuGeneruj();
+      if (livePodgladMql.matches) {
+        aktualizujLivePodglad();
+      } else if (livePodgladAbort) {
+        livePodgladAbort.abort();
+        livePodgladAbort = null;
+      }
+    };
+    if (livePodgladMql.addEventListener) livePodgladMql.addEventListener('change', livePodgladMqlHandler);
+    else if (livePodgladMql.addListener) livePodgladMql.addListener(livePodgladMqlHandler);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      ukryjKomunikat();
 
       const cfg = wczytajConfig();
       if (!String(cfg.nazwa_firmy || '').trim()) {
@@ -1820,24 +1990,11 @@
         return;
       }
 
-      const payload = {
-        nazwa_firmy: String(cfg.nazwa_firmy || '').trim(),
-        nip: String(cfg.nip || '').trim(),
-        adres: String(cfg.adres || '').trim(),
-        miasto: String(cfg.miasto || '').trim(),
-        telefon: String(cfg.telefon || '').trim(),
-        email: String(cfg.email || '').trim(),
-        logo_base64: String(cfg.logo_base64 || ''),
-        numer_konta: String(cfg.numer_konta || '').trim(),
-        klient: document.getElementById('klient').value.trim(),
-        numer_oferty: document.getElementById('numer_oferty').value.trim(),
-        data_waznosci: document.getElementById('data_waznosci').value,
-        uwagi: document.getElementById('uwagi').value.trim(),
-        pozycje: pozycje,
-      };
+      const { payload } = budujPayloadZFormularza();
+      const desktopTryb = livePodgladMql.matches;
 
       btnGeneruj.disabled = true;
-      btnGeneruj.textContent = 'Generowanie...';
+      btnGeneruj.textContent = desktopTryb ? 'Pobieranie...' : 'Generowanie...';
 
       try {
         const res = await fetch('/oferta', {
@@ -1852,17 +2009,46 @@
         }
 
         const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-
         const nazwaPliku = `oferta-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
-        pokazPodgladPdf(url, nazwaPliku, payload);
 
-        pokazKomunikat('PDF wygenerowany. Otwórz podgląd, aby pobrać plik.', 'success');
+        if (desktopTryb) {
+          if (liveIframe) {
+            const podgladUrl = URL.createObjectURL(blob);
+            const stary = livePodgladUrl;
+            livePodgladUrl = podgladUrl;
+            liveIframe.src = podgladUrl + '#toolbar=0&navpanes=0';
+            liveIframe.hidden = false;
+            if (liveEmpty) liveEmpty.hidden = true;
+            if (stary) setTimeout(() => URL.revokeObjectURL(stary), 1500);
+          }
+
+          const dlUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = dlUrl;
+          a.download = nazwaPliku;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(dlUrl), 10000);
+
+          dodajDoHistorii(payload);
+          inkrementujNumeracje();
+          renderStatystyki();
+          const numerEl = document.getElementById('numer_oferty');
+          if (numerEl) numerEl.value = nastepnyNumerOferty();
+          aktualnyPayloadEmail = payload;
+
+          pokazKomunikat('PDF pobrany. Oferta zapisana w historii.', 'success');
+        } else {
+          const url = URL.createObjectURL(blob);
+          pokazPodgladPdf(url, nazwaPliku, payload);
+          pokazKomunikat('PDF wygenerowany. Otwórz podgląd, aby pobrać plik.', 'success');
+        }
       } catch (err) {
         pokazKomunikat('Nie udało się wygenerować PDF: ' + err.message, 'error');
       } finally {
         btnGeneruj.disabled = false;
-        btnGeneruj.textContent = 'Podgląd i pobierz';
+        aktualizujTekstPrzyciskuGeneruj();
       }
     });
 
@@ -2217,6 +2403,7 @@
       try {
         localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(dane));
       } catch (e) {}
+      aktualizujLivePodglad();
     }
 
     const saveDraftDebounced = debounce(saveDraft, 500);
@@ -2281,6 +2468,7 @@
 
       odswiezStanPresetow();
       ukryjKomunikat();
+      aktualizujLivePodglad();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -2303,6 +2491,7 @@
 
       renderStatystyki();
       initViewTabs();
+      aktualizujLivePodglad();
     });
 
     function initViewTabs() {
