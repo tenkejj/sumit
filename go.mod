@@ -1,4 +1,4 @@
-module oferowo
+module github.com/tenkejj/sumit
 
 go 1.26.4
 
