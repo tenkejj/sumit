@@ -178,6 +178,64 @@
     }
     .header-actions .btn-settings { margin-top: 0; }
 
+    #app-logo {
+      min-width: 0;
+    }
+    #app-logo > img {
+      width: 24px;
+      height: 24px;
+      flex: 0 0 24px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .view-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-chip);
+      border-radius: 10px;
+      padding: 4px;
+      width: max-content;
+      margin: 0 auto 32px;
+    }
+
+    .view-tab {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--text-muted);
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      cursor: pointer;
+      transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .view-tab:hover { color: var(--text); }
+    .view-tab:focus-visible {
+      outline: none;
+      color: var(--text);
+    }
+
+    .view-tab.is-active {
+      background: var(--bg);
+      color: var(--text);
+      box-shadow: 0 1px 2px var(--shadow);
+    }
+
+    [data-theme="dark"] .view-tabs {
+      background: var(--bg-soft);
+    }
+    [data-theme="dark"] .view-tab.is-active {
+      background: var(--bg-chip);
+      box-shadow: none;
+    }
+
+    .view.hidden { display: none; }
+
     .card {
       background: var(--bg);
       border: 1px solid var(--border);
@@ -1155,8 +1213,10 @@
     <header class="header">
       <div class="header-brand">
         <div class="logo">
-          <span class="logo-dot"></span>
-          <span>Oferowo</span>
+          <div id="app-logo" style="display: flex; align-items: center; gap: 8px;">
+            <span class="logo-dot"></span>
+            <span>Oferowo</span>
+          </div>
         </div>
         <p class="tagline">Twórz oferty PDF w kilka sekund.</p>
       </div>
@@ -1194,6 +1254,12 @@
       </div>
     </header>
 
+    <nav class="view-tabs" role="tablist" aria-label="Widoki aplikacji">
+      <button type="button" class="view-tab is-active" role="tab" id="tab-kreator" aria-selected="true" aria-controls="view-kreator" data-view-target="view-kreator">Kreator</button>
+      <button type="button" class="view-tab" role="tab" id="tab-statystyki" aria-selected="false" aria-controls="view-statystyki" data-view-target="view-statystyki">Statystyki</button>
+    </nav>
+
+    <div id="view-kreator" class="view" role="tabpanel" aria-labelledby="tab-kreator">
     <div class="card">
       <form id="oferta-form" autocomplete="off">
         <section class="section">
@@ -1274,8 +1340,11 @@
         <div id="message" class="message"></div>
       </form>
     </div>
+    </div>
 
-    <section class="stats-section" id="stats-section" aria-label="Statystyki ofert"></section>
+    <div id="view-statystyki" class="view hidden" role="tabpanel" aria-labelledby="tab-statystyki" hidden>
+      <section class="stats-section" id="stats-section" aria-label="Statystyki ofert"></section>
+    </div>
 
     <p class="footer">© Oferowo</p>
   </div>
@@ -2183,7 +2252,47 @@
       document.getElementById('btn-wyczysc-formularz').addEventListener('click', wyczyscFormularz);
 
       renderStatystyki();
+      initViewTabs();
     });
+
+    function initViewTabs() {
+      const tabs = document.querySelectorAll('.view-tab[data-view-target]');
+      if (!tabs.length) return;
+
+      const widoki = new Map();
+      tabs.forEach(tab => {
+        const targetId = tab.getAttribute('data-view-target');
+        const widok = document.getElementById(targetId);
+        if (widok) widoki.set(targetId, widok);
+      });
+
+      function aktywuj(targetId) {
+        tabs.forEach(tab => {
+          const aktywny = tab.getAttribute('data-view-target') === targetId;
+          tab.classList.toggle('is-active', aktywny);
+          tab.setAttribute('aria-selected', aktywny ? 'true' : 'false');
+        });
+        widoki.forEach((widok, id) => {
+          const aktywny = id === targetId;
+          widok.classList.toggle('hidden', !aktywny);
+          if (aktywny) {
+            widok.removeAttribute('hidden');
+          } else {
+            widok.setAttribute('hidden', '');
+          }
+        });
+        if (targetId === 'view-statystyki') {
+          renderStatystyki();
+        }
+      }
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const targetId = tab.getAttribute('data-view-target');
+          if (targetId) aktywuj(targetId);
+        });
+      });
+    }
 
     const STORAGE_KEY_KATALOG = 'oferowo_katalog';
     const STORAGE_KEY_KATALOG_VER = 'oferowo_katalog_v';
