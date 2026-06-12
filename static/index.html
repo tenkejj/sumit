@@ -1282,6 +1282,10 @@
               <label for="cfg-email">Email</label>
               <input type="email" id="cfg-email" placeholder="kontakt@twojafirma.pl">
             </div>
+            <div class="field field-full">
+              <label for="cfg-numer_konta">Numer konta bankowego (NRB)</label>
+              <input type="text" id="cfg-numer_konta" placeholder="12 3456 7890 1234 5678 9012 3456" inputmode="numeric" autocomplete="off" pattern="^(?:PL\s*)?(?:\d\s*){26}$" title="26 cyfr (spacje są opcjonalne)">
+            </div>
           </div>
           <div class="row">
             <div class="field field-full">
@@ -1606,6 +1610,7 @@
         telefon: String(cfg.telefon || '').trim(),
         email: String(cfg.email || '').trim(),
         logo_base64: String(cfg.logo_base64 || ''),
+        numer_konta: String(cfg.numer_konta || '').trim(),
         klient: document.getElementById('klient').value.trim(),
         numer_oferty: document.getElementById('numer_oferty').value.trim(),
         data_waznosci: document.getElementById('data_waznosci').value,
@@ -1716,7 +1721,7 @@
 
     const STORAGE_KEY_CONFIG = 'oferowo_config';
     const STORAGE_KEY_CONFIG_LEGACY = 'oferowo_dane_firmy';
-    const POLA_CONFIG = ['nazwa_firmy', 'nip', 'adres', 'miasto', 'telefon', 'email'];
+    const POLA_CONFIG = ['nazwa_firmy', 'nip', 'adres', 'miasto', 'telefon', 'email', 'numer_konta'];
     const MAX_LOGO_BYTES = 200 * 1024;
 
     const settingsModal = document.getElementById('settings-modal');
@@ -1816,6 +1821,20 @@
       return cfg;
     }
 
+    function walidujNumerKonta() {
+      const el = document.getElementById('cfg-numer_konta');
+      if (!el) return true;
+      const raw = el.value.trim().toUpperCase().replace(/^PL/, '');
+      const cyfry = raw.replace(/\D+/g, '');
+      if (cyfry.length === 0) return true;
+      if (cyfry.length !== 26) {
+        pokazKomunikatCfg('Numer konta musi mieć dokładnie 26 cyfr (obecnie ' + cyfry.length + ').', 'error');
+        el.focus();
+        return false;
+      }
+      return true;
+    }
+
     function zapiszCfgZFormularza() {
       zapiszConfig(zbierzConfigZFormularza());
     }
@@ -1877,6 +1896,7 @@
     }
 
     function zamknijSettings() {
+      if (!walidujNumerKonta()) return;
       zapiszCfgZFormularza();
       settingsModal.hidden = true;
       settingsModal.setAttribute('aria-hidden', 'true');

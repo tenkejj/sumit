@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/go-pdf/fpdf"
+	qrcode "github.com/skip2/go-qrcode"
 )
 
 type Pozycja struct {
@@ -37,6 +39,7 @@ type FirmaDane struct {
 	Telefon    string `json:"telefon"`
 	Email      string `json:"email"`
 	LogoBase64 string `json:"logo_base64"`
+	NumerKonta string `json:"numer_konta"`
 }
 
 type Oferta struct {
@@ -280,6 +283,44 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	pdf.CellFormat(145, 9, "Razem:", "1", 0, "R", true, 0, "")
 	pdf.CellFormat(35, 9, formatPLN(o.Suma()), "1", 1, "R", true, 0, "")
 
+	if nrb := sanitizeNRB(o.Firma.NumerKonta); len(nrb) == 26 {
+		tytulPrzelewu := "Oferta"
+		if s := strings.TrimSpace(o.NumerOferty); s != "" {
+			tytulPrzelewu = "Oferta " + s
+		}
+		qrContent := formatPolskiQRPrzelew(nrb, o.Suma(), o.Firma.Nazwa, tytulPrzelewu)
+		if png, err := generujQRPNG(qrContent); err == nil {
+			pdf.Ln(8)
+			startY := pdf.GetY()
+			const qrRozmiar = 35.0
+
+			pdf.SetXY(15, startY)
+			pdf.SetFont(family, "", 8)
+			pdf.SetTextColor(120, 120, 120)
+			pdf.CellFormat(0, 4, "ZESKANUJ, ABY ZAPŁACIĆ", "", 1, "L", false, 0, "")
+			pdf.SetX(15)
+			pdf.SetFont(family, "", 10)
+			pdf.SetTextColor(30, 30, 30)
+			pdf.MultiCell(140, 5,
+				"Numer konta: "+formatujNRBzeSpacjami(nrb)+"\n"+
+					"Odbiorca: "+o.Firma.Nazwa+"\n"+
+					"Tytuł: "+tytulPrzelewu+"\n"+
+					"Kwota: "+formatPLN(o.Suma()),
+				"", "L", false)
+
+			const nazwaQR = "oferta_qr"
+			opts := fpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}
+			pdf.RegisterImageOptionsReader(nazwaQR, opts, bytes.NewReader(png))
+			pdf.ImageOptions(nazwaQR, 195-qrRozmiar, startY, qrRozmiar, qrRozmiar, false, opts, 0, "")
+
+			koniecQR := startY + qrRozmiar + 2
+			if pdf.GetY() < koniecQR {
+				pdf.SetY(koniecQR)
+			}
+			pdf.SetTextColor(0, 0, 0)
+		}
+	}
+
 	if uwagi := strings.TrimSpace(o.Uwagi); uwagi != "" {
 		pdf.Ln(8)
 		pdf.SetFont(family, "", 8)
@@ -364,4 +405,81 @@ func dekodujLogoBase64(s string) ([]byte, string, error) {
 	}
 
 	return data, imgType, nil
+}
+
+// sanitizeNRB normalizuje numer rachunku: usuwa białe znaki, myślniki, opcjonalny
+// prefiks "PL" i zwraca surowy ciąg cyfr (oczekiwana długość: 26).
+func sanitizeNRB(s string) string {
+	s = strings.TrimSpace(strings.ToUpper(s))
+	s = strings.TrimPrefix(s, "PL")
+	var b strings.Builder
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// skrocPole przycina łańcuch do co najwyżej max znaków (runów),
+// z uwzględnieniem polskich znaków diakrytycznych.
+func skrocPole(s string, max int) string {
+	s = strings.TrimSpace(s)
+	runes := []rune(s)
+	if len(runes) > max {
+		return string(runes[:max])
+	}
+	return s
+}
+
+// formatPolskiQRPrzelew buduje payload QR zgodny z Rekomendacją Związku Banków
+// Polskich dla kodów dwuwymiarowych ("Standard 2D" / "Standard 2012"). Format
+// pól rozdzielonych pionową kreską:
+//
+//	NIP|PL|NRB|KWOTA_W_GROSZACH|NAZWA_ODBIORCY|TYTUL|REZ1|REZ2|REZ3
+//
+// Pole NIP zostawiamy puste — nie jest wymagane do zwykłego przelewu.
+// Nazwa odbiorcy jest ucinana do 20 znaków, tytuł do 32 znaków zgodnie ze
+// specyfikacją (banki dłuższe pola potrafią odrzucać).
+//
+// TODO: zweryfikować z prawdziwą apką bankową (mBank/IKO/ING) po podpięciu
+// pierwszego klienta — różne banki bywają wrażliwe na końcowe separatory.
+func formatPolskiQRPrzelew(nrb string, kwotaPLN float64, nazwa, tytul string) string {
+	kwotaGrosze := int64(math.Round(kwotaPLN * 100))
+	if kwotaGrosze < 0 {
+		kwotaGrosze = 0
+	}
+	return strings.Join([]string{
+		"",
+		"PL",
+		nrb,
+		strconv.FormatInt(kwotaGrosze, 10),
+		skrocPole(nazwa, 20),
+		skrocPole(tytul, 32),
+		"",
+		"",
+		"",
+	}, "|")
+}
+
+// generujQRPNG zwraca obraz PNG kodu QR (256 px) z poziomem korekcji błędów M.
+func generujQRPNG(content string) ([]byte, error) {
+	return qrcode.Encode(content, qrcode.Medium, 256)
+}
+
+// formatujNRBzeSpacjami zwraca 26-cyfrowy NRB w czytelnej postaci
+// "CC RRRR RRRR RRRR RRRR RRRR RRRR" (jak w drukowanym formacie polskim).
+// Wejście, które nie jest dokładnie 26 cyfr, zwraca bez zmian.
+func formatujNRBzeSpacjami(nrb string) string {
+	if len(nrb) != 26 {
+		return nrb
+	}
+	var b strings.Builder
+	b.Grow(26 + 6)
+	b.WriteString(nrb[0:2])
+	for i := 2; i < 26; i += 4 {
+		b.WriteByte(' ')
+		b.WriteString(nrb[i : i+4])
+	}
+	return b.String()
 }
