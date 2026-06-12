@@ -416,6 +416,76 @@
       min-height: 96px;
     }
 
+    .klient-wrapper {
+      position: relative;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      width: 100%;
+      max-height: 240px;
+      overflow-y: auto;
+      margin: 0;
+      padding: 6px;
+      list-style: none;
+      z-index: 50;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.55) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      border-radius: 10px;
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      backdrop-filter: blur(32px) saturate(180%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 16px 40px -12px rgba(15, 23, 42, 0.18);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    [data-theme="dark"] .dropdown-menu {
+      background: linear-gradient(180deg, rgba(20, 20, 20, 0.92) 0%, rgba(20, 20, 20, 0.85) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+    .dropdown-menu.hidden { display: none; }
+    .dropdown-menu::-webkit-scrollbar { width: 8px; }
+    .dropdown-menu::-webkit-scrollbar-track { background: transparent; }
+    .dropdown-menu::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    .dropdown-menu::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+    .dropdown-item {
+      display: block;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1.4;
+      color: var(--text);
+      letter-spacing: -0.005em;
+      cursor: pointer;
+      white-space: pre-line;
+      transition: background 0.12s ease;
+    }
+    .dropdown-item:hover,
+    .dropdown-item.is-active {
+      background: var(--bg-hover);
+    }
+    .dropdown-item-meta {
+      display: block;
+      margin-top: 2px;
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     input[type="number"] {
       -moz-appearance: textfield;
     }
@@ -1744,7 +1814,10 @@
                 <span class="btn-link-nip-label">Pobierz po NIP</span>
               </button>
             </div>
-            <textarea id="klient" name="klient" rows="3" placeholder="Nazwa klienta&#10;Adres&#10;NIP: 1234567890" required></textarea>
+            <div class="klient-wrapper">
+              <textarea id="klient" name="klient" rows="3" placeholder="Nazwa klienta&#10;Adres&#10;NIP: 1234567890" autocomplete="off" required aria-autocomplete="list" aria-controls="klient-autocomplete" aria-expanded="false"></textarea>
+              <ul id="klient-autocomplete" class="dropdown-menu hidden" role="listbox" aria-label="Powracający klienci z historii"></ul>
+            </div>
           </div>
         </section>
 
@@ -3043,6 +3116,138 @@
 
     function pobierzKlientaPoNIP() {
       otworzModalNIP();
+    }
+
+    const klientTextarea = document.getElementById('klient');
+    const klientAutocompleteEl = document.getElementById('klient-autocomplete');
+    let autocompleteResults = [];
+    let autocompleteIndex = -1;
+    const MAX_PODPOWIEDZI_KLIENT = 8;
+
+    function getUnikalniKlienci() {
+      const historia = wczytajHistorie();
+      const seen = new Set();
+      const wynik = [];
+      historia.forEach(wpis => {
+        const raw = (wpis && (wpis.klient || (wpis.payload && wpis.payload.klient))) || '';
+        const klient = String(raw).trim();
+        if (!klient) return;
+        if (seen.has(klient)) return;
+        seen.add(klient);
+        wynik.push(klient);
+      });
+      return wynik;
+    }
+
+    function renderujAutocompleteKlient(matches) {
+      klientAutocompleteEl.innerHTML = '';
+      matches.forEach((klient, idx) => {
+        const li = document.createElement('li');
+        li.className = 'dropdown-item';
+        li.setAttribute('role', 'option');
+        li.dataset.idx = String(idx);
+        const linie = klient.split('\n').map(s => s.trim()).filter(Boolean);
+        const primary = document.createElement('span');
+        primary.textContent = linie[0] || klient;
+        li.appendChild(primary);
+        if (linie.length > 1) {
+          const meta = document.createElement('span');
+          meta.className = 'dropdown-item-meta';
+          meta.textContent = linie.slice(1).join(' · ');
+          li.appendChild(meta);
+        }
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          wybierzKlientaZAutocomplete(klient);
+        });
+        klientAutocompleteEl.appendChild(li);
+      });
+    }
+
+    function pokazAutocompleteKlient() {
+      klientAutocompleteEl.classList.remove('hidden');
+      if (klientTextarea) klientTextarea.setAttribute('aria-expanded', 'true');
+    }
+
+    function ukryjAutocompleteKlient() {
+      klientAutocompleteEl.classList.add('hidden');
+      autocompleteIndex = -1;
+      if (klientTextarea) klientTextarea.setAttribute('aria-expanded', 'false');
+    }
+
+    function odswiezAutocompleteKlient() {
+      if (!klientTextarea || !klientAutocompleteEl) return;
+      const zapytanie = klientTextarea.value.trim().toLowerCase();
+      if (zapytanie.length < 2) {
+        ukryjAutocompleteKlient();
+        return;
+      }
+      const unikalni = getUnikalniKlienci();
+      const dopasowane = unikalni.filter(k => {
+        const lower = k.toLowerCase();
+        return lower.includes(zapytanie) && lower !== zapytanie;
+      });
+      if (dopasowane.length === 0) {
+        ukryjAutocompleteKlient();
+        return;
+      }
+      autocompleteResults = dopasowane.slice(0, MAX_PODPOWIEDZI_KLIENT);
+      autocompleteIndex = -1;
+      renderujAutocompleteKlient(autocompleteResults);
+      pokazAutocompleteKlient();
+    }
+
+    function wybierzKlientaZAutocomplete(klient) {
+      if (!klientTextarea || !klient) return;
+      klientTextarea.value = klient;
+      ukryjAutocompleteKlient();
+      saveDraft();
+      klientTextarea.focus();
+    }
+
+    function ustawAktywnyItemAutocomplete(idx) {
+      const items = klientAutocompleteEl.querySelectorAll('.dropdown-item');
+      items.forEach((el, i) => {
+        if (i === idx) {
+          el.classList.add('is-active');
+          el.scrollIntoView({ block: 'nearest' });
+        } else {
+          el.classList.remove('is-active');
+        }
+      });
+      autocompleteIndex = idx;
+    }
+
+    if (klientTextarea && klientAutocompleteEl) {
+      klientTextarea.addEventListener('input', odswiezAutocompleteKlient);
+      klientTextarea.addEventListener('focus', odswiezAutocompleteKlient);
+      klientTextarea.addEventListener('keydown', (e) => {
+        if (klientAutocompleteEl.classList.contains('hidden')) return;
+        const items = klientAutocompleteEl.querySelectorAll('.dropdown-item');
+        if (items.length === 0) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const next = (autocompleteIndex + 1) % items.length;
+          ustawAktywnyItemAutocomplete(next);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const prev = autocompleteIndex <= 0 ? items.length - 1 : autocompleteIndex - 1;
+          ustawAktywnyItemAutocomplete(prev);
+        } else if (e.key === 'Enter') {
+          if (autocompleteIndex >= 0 && autocompleteIndex < autocompleteResults.length) {
+            e.preventDefault();
+            wybierzKlientaZAutocomplete(autocompleteResults[autocompleteIndex]);
+          }
+        } else if (e.key === 'Escape') {
+          ukryjAutocompleteKlient();
+        }
+      });
+      document.addEventListener('click', (e) => {
+        if (klientAutocompleteEl.classList.contains('hidden')) return;
+        if (e.target === klientTextarea) return;
+        if (klientAutocompleteEl.contains(e.target)) return;
+        ukryjAutocompleteKlient();
+      });
     }
 
     if (nipInput) {
