@@ -56,8 +56,12 @@
     }
 
     [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(1);
-      opacity: 0.7;
+      filter: invert(1) brightness(1.4);
+      opacity: 0.85;
+      cursor: pointer;
+    }
+    [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
     }
 
     * { box-sizing: border-box; }
