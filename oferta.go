@@ -174,6 +174,38 @@ func resolveFontPath() (string, error) {
 	return "", fmt.Errorf("nie znaleziono czcionki TTF z polskimi znakami; ustaw SUMIT_FONT_PATH")
 }
 
+// resolveBoldFontFile próbuje znaleźć wariant bold czcionki obok pliku
+// regularnego (np. arial.ttf -> arialbd.ttf, DejaVuSans.ttf ->
+// DejaVuSans-Bold.ttf). Zwraca pustą nazwę, gdy nie znajdzie pasującego
+// pliku — w takim wypadku styl "B" rejestruje się tym samym plikiem co
+// regular (tekst nie będzie pogrubiony, ale fpdf nie spanikuje).
+// Można nadpisać zmienną SUMIT_FONT_BOLD_PATH.
+func resolveBoldFontFile(fontDir, regularFile string) string {
+	if p := os.Getenv("SUMIT_FONT_BOLD_PATH"); p != "" {
+		if _, err := os.Stat(p); err == nil {
+			if filepath.Dir(p) == fontDir {
+				return filepath.Base(p)
+			}
+		}
+	}
+	ext := filepath.Ext(regularFile)
+	name := strings.TrimSuffix(regularFile, ext)
+	candidates := []string{
+		name + "bd" + ext,
+		name + "b" + ext,
+		name + "-Bold" + ext,
+		name + "Bold" + ext,
+		name + "_Bold" + ext,
+		name + " Bold" + ext,
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(filepath.Join(fontDir, c)); err == nil {
+			return c
+		}
+	}
+	return ""
+}
+
 func generujOfertePDF(o Oferta, w io.Writer) error {
 	fontPath, err := resolveFontPath()
 	if err != nil {
@@ -185,44 +217,72 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 
 	pdf := fpdf.New("P", "mm", "A4", fontDir)
 	pdf.AddUTF8Font(family, "", fontFile)
+	if boldFile := resolveBoldFontFile(fontDir, fontFile); boldFile != "" {
+		pdf.AddUTF8Font(family, "B", boldFile)
+	} else {
+		// Brak osobnego pliku bold — rejestrujemy ten sam plik pod stylem
+		// "B", aby kolejne SetFont(..., "B", ...) nie panikowały.
+		pdf.AddUTF8Font(family, "B", fontFile)
+	}
 	pdf.SetFont(family, "", 11)
-	pdf.SetMargins(15, 18, 15)
+	pdf.SetMargins(15, 15, 15)
 	pdf.SetAutoPageBreak(true, 18)
 	pdf.AddPage()
 
+	const (
+		marginL = 15.0
+		marginR = 15.0
+		pageW   = 210.0
+		rightX  = pageW - marginR
+		usableW = pageW - marginL - marginR
+	)
+
+	colorDark := func() { pdf.SetTextColor(10, 10, 10) }
+	colorMuted := func() { pdf.SetTextColor(107, 114, 128) }
+	colorLine := func() { pdf.SetDrawColor(220, 220, 220) }
+	colorLineStrong := func() { pdf.SetDrawColor(10, 10, 10) }
+
+	// Nagłówek: logo po lewej, blok "OFERTA / nr / data" po prawej.
+	const logoY = 12.0
+	const logoH = 16.0
 	if strings.TrimSpace(o.Firma.LogoBase64) != "" {
 		if data, imgType, err := dekodujLogoBase64(o.Firma.LogoBase64); err == nil {
 			const nazwaLogo = "oferta_logo"
 			opts := fpdf.ImageOptions{ImageType: imgType, ReadDpi: false}
 			pdf.RegisterImageOptionsReader(nazwaLogo, opts, bytes.NewReader(data))
-			pdf.ImageOptions(nazwaLogo, 15, 10, 0, 20, false, opts, 0, "")
+			pdf.ImageOptions(nazwaLogo, marginL, logoY, 0, logoH, false, opts, 0, "")
 		}
 	}
 
-	pdf.SetFont(family, "", 22)
-	pdf.SetTextColor(30, 30, 30)
-	yTytul := pdf.GetY()
-	pdf.CellFormat(0, 12, "OFERTA HANDLOWA", "", 1, "C", false, 0, "")
+	pdf.SetXY(marginL, logoY)
+	pdf.SetFont(family, "B", 26)
+	colorDark()
+	pdf.CellFormat(usableW, 10, "OFERTA", "", 1, "R", false, 0, "")
+
+	pdf.SetFont(family, "", 10)
+	colorMuted()
 	if s := strings.TrimSpace(o.NumerOferty); s != "" {
-		yPoTytule := pdf.GetY()
-		pdf.SetFont(family, "", 11)
-		pdf.SetTextColor(120, 120, 120)
-		pdf.SetXY(15, yTytul)
-		pdf.CellFormat(0, 12, "Nr "+s, "", 0, "R", false, 0, "")
-		pdf.SetFont(family, "", 22)
-		pdf.SetTextColor(30, 30, 30)
-		pdf.SetY(yPoTytule)
+		pdf.SetX(marginL)
+		pdf.CellFormat(usableW, 5, "Nr "+s, "", 1, "R", false, 0, "")
 	}
-	pdf.SetDrawColor(180, 180, 180)
-	pdf.Line(15, pdf.GetY()+1, 195, pdf.GetY()+1)
-	pdf.Ln(8)
+	pdf.SetX(marginL)
+	pdf.CellFormat(usableW, 5, "Data wystawienia: "+time.Now().Format("2006-01-02"), "", 1, "R", false, 0, "")
 
-	pdf.SetFont(family, "", 11)
-	pdf.SetTextColor(0, 0, 0)
+	headerEnd := maxF(logoY+logoH, pdf.GetY())
+	pdf.SetY(headerEnd)
+	pdf.Ln(12)
 
+	// Sprzedawca / Klient — duże marginesy, etykiety mniejsze i bold.
 	startY := pdf.GetY()
-	pdf.SetXY(15, startY)
-	pdf.MultiCell(85, 6, "Sprzedawca:\n"+o.Firma.Nazwa, "", "L", false)
+
+	pdf.SetXY(marginL, startY)
+	pdf.SetFont(family, "B", 9)
+	colorMuted()
+	pdf.CellFormat(85, 5, "Sprzedawca:", "", 1, "L", false, 0, "")
+	pdf.SetX(marginL)
+	pdf.SetFont(family, "", 11)
+	colorDark()
+	pdf.MultiCell(85, 6, o.Firma.Nazwa, "", "L", false)
 
 	var staleDane []string
 	if s := strings.TrimSpace(o.Firma.NIP); s != "" {
@@ -237,62 +297,100 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	telefon := strings.TrimSpace(o.Firma.Telefon)
 	email := strings.TrimSpace(o.Firma.Email)
 	if len(staleDane) > 0 || telefon != "" || email != "" {
-		pdf.SetX(15)
+		pdf.SetX(marginL)
 		pdf.SetFont(family, "", 8)
-		pdf.SetTextColor(120, 120, 120)
+		colorMuted()
 		if len(staleDane) > 0 {
 			pdf.MultiCell(85, 4, strings.Join(staleDane, "\n"), "", "L", false)
 		}
 		if telefon != "" {
-			pdf.SetX(15)
+			pdf.SetX(marginL)
 			pdf.Write(4, "tel. ")
 			pdf.WriteLinkString(4, telefon, "tel:"+sanitizeTelefonLink(telefon))
 			pdf.Ln(4)
 		}
 		if email != "" {
-			pdf.SetX(15)
+			pdf.SetX(marginL)
 			pdf.Write(4, "e-mail: ")
 			pdf.WriteLinkString(4, email, "mailto:"+email)
 			pdf.Ln(4)
 		}
-		pdf.SetFont(family, "", 11)
-		pdf.SetTextColor(0, 0, 0)
 	}
 	leftEnd := pdf.GetY()
 
 	pdf.SetXY(110, startY)
-	pdf.MultiCell(85, 6, "Klient:\n"+o.Klient, "", "L", false)
+	pdf.SetFont(family, "B", 9)
+	colorMuted()
+	pdf.CellFormat(85, 5, "Klient:", "", 1, "L", false, 0, "")
+	pdf.SetX(110)
+	pdf.SetFont(family, "", 11)
+	colorDark()
+	pdf.MultiCell(85, 6, o.Klient, "", "L", false)
 	rightEnd := pdf.GetY()
 
 	pdf.SetY(maxF(leftEnd, rightEnd))
-	pdf.Ln(4)
+	pdf.Ln(12)
+
+	// Tabela pozycji — bez pionowych linii, jasne poziome separatory.
+	const (
+		colLp    = 10.0
+		colNazwa = 85.0
+		colIlosc = 20.0
+		colCena  = 30.0
+		colWart  = 35.0
+	)
+
+	pdf.SetLineWidth(0.2)
+	colorLine()
+
+	pdf.SetFont(family, "B", 10)
+	pdf.SetFillColor(245, 245, 245)
+	colorDark()
+	pdf.CellFormat(colLp, 8, "Lp.", "", 0, "C", true, 0, "")
+	pdf.CellFormat(colNazwa, 8, "Nazwa", "", 0, "L", true, 0, "")
+	pdf.CellFormat(colIlosc, 8, "Ilość", "", 0, "R", true, 0, "")
+	pdf.CellFormat(colCena, 8, "Cena jedn.", "", 0, "R", true, 0, "")
+	pdf.CellFormat(colWart, 8, "Wartość", "", 1, "R", true, 0, "")
+
+	yLine := pdf.GetY()
+	pdf.SetLineWidth(0.2)
+	colorLine()
+	pdf.Line(marginL, yLine, rightX, yLine)
 
 	pdf.SetFont(family, "", 10)
-	pdf.CellFormat(0, 5, "Data wystawienia: "+time.Now().Format("2006-01-02"), "", 1, "R", false, 0, "")
-	pdf.Ln(4)
-
-	pdf.SetFillColor(230, 230, 230)
-	pdf.SetFont(family, "", 11)
-	pdf.CellFormat(10, 8, "Lp.", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(85, 8, "Nazwa", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(20, 8, "Ilość", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(30, 8, "Cena jedn.", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(35, 8, "Wartość", "1", 1, "C", true, 0, "")
-
-	pdf.SetFont(family, "", 10)
+	colorDark()
 	for i, p := range o.Pozycje {
-		pdf.CellFormat(10, 7, strconv.Itoa(i+1), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(85, 7, p.Nazwa, "1", 0, "L", false, 0, "")
-		pdf.CellFormat(20, 7, formatLiczba(p.Ilosc), "1", 0, "R", false, 0, "")
-		pdf.CellFormat(30, 7, formatPLN(p.CenaJednostkowa), "1", 0, "R", false, 0, "")
-		pdf.CellFormat(35, 7, formatPLN(p.Wartosc()), "1", 1, "R", false, 0, "")
+		pdf.CellFormat(colLp, 7, strconv.Itoa(i+1), "", 0, "C", false, 0, "")
+		pdf.CellFormat(colNazwa, 7, p.Nazwa, "", 0, "L", false, 0, "")
+		pdf.CellFormat(colIlosc, 7, formatLiczba(p.Ilosc), "", 0, "R", false, 0, "")
+		pdf.CellFormat(colCena, 7, formatPLN(p.CenaJednostkowa), "", 0, "R", false, 0, "")
+		pdf.CellFormat(colWart, 7, formatPLN(p.Wartosc()), "", 1, "R", false, 0, "")
+		yRow := pdf.GetY()
+		pdf.SetLineWidth(0.2)
+		colorLine()
+		pdf.Line(marginL, yRow, rightX, yRow)
 	}
 
-	pdf.SetFont(family, "", 12)
-	pdf.SetFillColor(245, 245, 245)
-	pdf.CellFormat(145, 9, "Razem:", "1", 0, "R", true, 0, "")
-	pdf.CellFormat(35, 9, formatPLN(o.Suma()), "1", 1, "R", true, 0, "")
+	// Grubsza linia oddzielająca podsumowanie od listy pozycji.
+	yBeforeRazem := pdf.GetY()
+	pdf.SetLineWidth(0.5)
+	colorLineStrong()
+	pdf.Line(marginL, yBeforeRazem, rightX, yBeforeRazem)
 
+	pdf.SetFont(family, "B", 12)
+	colorDark()
+	pdf.CellFormat(colLp+colNazwa+colIlosc+colCena, 9, "Razem:", "", 0, "R", false, 0, "")
+	pdf.CellFormat(colWart, 9, formatPLN(o.Suma()), "", 1, "R", false, 0, "")
+
+	yAfterRazem := pdf.GetY()
+	pdf.SetLineWidth(0.5)
+	colorLineStrong()
+	pdf.Line(marginL, yAfterRazem, rightX, yAfterRazem)
+
+	pdf.SetLineWidth(0.2)
+	colorLine()
+
+	// QR + dane do przelewu pod tabelą.
 	if nrb := sanitizeNRB(o.Firma.NumerKonta); len(nrb) == 26 {
 		tytulPrzelewu := "Oferta"
 		if s := strings.TrimSpace(o.NumerOferty); s != "" {
@@ -300,18 +398,19 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 		}
 		qrContent := formatPolskiQRPrzelew(nrb, o.Suma(), o.Firma.Nazwa, tytulPrzelewu)
 		if png, err := generujQRPNG(qrContent); err == nil {
-			pdf.Ln(8)
-			startY := pdf.GetY()
+			pdf.Ln(10)
+			yQR := pdf.GetY()
 			const qrRozmiar = 35.0
 
-			pdf.SetXY(15, startY)
-			pdf.SetFont(family, "", 8)
-			pdf.SetTextColor(120, 120, 120)
+			pdf.SetXY(marginL, yQR)
+			pdf.SetFont(family, "B", 8)
+			colorMuted()
 			pdf.CellFormat(0, 4, "ZESKANUJ, ABY ZAPŁACIĆ", "", 1, "L", false, 0, "")
-			pdf.SetX(15)
+			pdf.Ln(1)
+			pdf.SetX(marginL)
 			pdf.SetFont(family, "", 10)
-			pdf.SetTextColor(30, 30, 30)
-			pdf.MultiCell(140, 5,
+			colorDark()
+			pdf.MultiCell(usableW-qrRozmiar-5, 5,
 				"Numer konta: "+formatujNRBzeSpacjami(nrb)+"\n"+
 					"Odbiorca: "+o.Firma.Nazwa+"\n"+
 					"Tytuł: "+tytulPrzelewu+"\n"+
@@ -321,30 +420,33 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 			const nazwaQR = "oferta_qr"
 			opts := fpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}
 			pdf.RegisterImageOptionsReader(nazwaQR, opts, bytes.NewReader(png))
-			pdf.ImageOptions(nazwaQR, 195-qrRozmiar, startY, qrRozmiar, qrRozmiar, false, opts, 0, "")
+			pdf.ImageOptions(nazwaQR, rightX-qrRozmiar, yQR, qrRozmiar, qrRozmiar, false, opts, 0, "")
 
-			koniecQR := startY + qrRozmiar + 2
+			koniecQR := yQR + qrRozmiar + 2
 			if pdf.GetY() < koniecQR {
 				pdf.SetY(koniecQR)
 			}
-			pdf.SetTextColor(0, 0, 0)
 		}
 	}
 
+	// Uwagi do oferty.
 	if uwagi := strings.TrimSpace(o.Uwagi); uwagi != "" {
-		pdf.Ln(8)
-		pdf.SetFont(family, "", 8)
-		pdf.SetTextColor(120, 120, 120)
+		pdf.Ln(10)
+		pdf.SetX(marginL)
+		pdf.SetFont(family, "B", 8)
+		colorMuted()
 		pdf.CellFormat(0, 5, "UWAGI DO OFERTY", "", 1, "L", false, 0, "")
 		pdf.Ln(1)
+		pdf.SetX(marginL)
 		pdf.SetFont(family, "", 10)
-		pdf.SetTextColor(30, 30, 30)
+		colorDark()
 		pdf.MultiCell(0, 5, uwagi, "", "L", false)
 	}
 
+	// Stopka — termin ważności i klauzula.
 	pdf.Ln(10)
 	pdf.SetFont(family, "", 9)
-	pdf.SetTextColor(120, 120, 120)
+	colorMuted()
 	terminWaznosci := "14 dni od daty wystawienia"
 	if s := strings.TrimSpace(o.DataWaznosci); s != "" {
 		terminWaznosci = "do " + s
