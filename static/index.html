@@ -1239,8 +1239,12 @@
         height: 100%;
         border: none;
         opacity: 0;
-        transition: opacity 0.3s ease;
+        transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
         background: transparent;
+        will-change: opacity;
+        transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
       }
       .live-preview-frame iframe.active {
         opacity: 1;
@@ -1257,13 +1261,17 @@
         text-align: center;
         letter-spacing: -0.005em;
         background: #ffffff;
-        z-index: 1;
+        z-index: 2;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+        pointer-events: none;
       }
       [data-theme="dark"] .live-preview-empty {
         background: var(--bg-soft);
       }
       .live-preview-empty[hidden] {
-        display: none;
+        display: flex;
+        opacity: 0;
       }
     }
 
@@ -1949,21 +1957,28 @@
       if (frame !== bufferFrame) return;
       if (!pendingUrl) return;
 
-      bufferFrame.classList.add('active');
-      activeFrame.classList.remove('active');
-      if (liveEmpty) liveEmpty.hidden = true;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (frame !== bufferFrame) return;
+          if (!pendingUrl) return;
 
-      const oldUrl = activeUrl;
-      activeUrl = pendingUrl;
-      pendingUrl = '';
+          bufferFrame.classList.add('active');
+          activeFrame.classList.remove('active');
+          if (liveEmpty) liveEmpty.hidden = true;
 
-      const tmp = activeFrame;
-      activeFrame = bufferFrame;
-      bufferFrame = tmp;
+          const oldUrl = activeUrl;
+          activeUrl = pendingUrl;
+          pendingUrl = '';
 
-      if (oldUrl) {
-        setTimeout(() => URL.revokeObjectURL(oldUrl), 300);
-      }
+          const tmp = activeFrame;
+          activeFrame = bufferFrame;
+          bufferFrame = tmp;
+
+          if (oldUrl) {
+            setTimeout(() => URL.revokeObjectURL(oldUrl), 800);
+          }
+        });
+      });
     }
 
     if (pdfFrame1) pdfFrame1.addEventListener('load', () => onFrameLoad(pdfFrame1));
