@@ -101,15 +101,24 @@
       outline: none;
       border-color: var(--text);
     }
-    .btn-settings .gear {
+    .btn-settings svg {
       width: 16px;
       height: 16px;
       flex: 0 0 16px;
       color: var(--text-muted);
       transition: color 0.15s ease;
     }
-    .btn-settings:hover .gear,
-    .btn-settings:focus-visible .gear { color: var(--text); }
+    .btn-settings:hover svg,
+    .btn-settings:focus-visible svg { color: var(--text); }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .header-actions .btn-settings { margin-top: 0; }
 
     .card {
       background: var(--bg);
@@ -234,7 +243,7 @@
     .col-nazwa { min-width: 180px; }
     .col-ilosc { width: 90px; }
     .col-cena  { width: 140px; }
-    .col-akcja { width: 36px; text-align: right; }
+    .col-akcja { width: 72px; text-align: right; white-space: nowrap; }
 
     button {
       font: inherit;
@@ -287,9 +296,41 @@
       line-height: 1;
       transition: background 0.15s ease, color 0.15s ease;
     }
-    .btn-remove:hover {
+    .btn-remove:hover,
+    .btn-remove:focus-visible {
+      outline: none;
       background: #f5f5f5;
       color: var(--text);
+    }
+
+    .row-actions {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+
+    .btn-duplicate {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      line-height: 1;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .btn-duplicate:hover,
+    .btn-duplicate:focus-visible {
+      outline: none;
+      background: #f5f5f5;
+      color: var(--text);
+    }
+    .btn-duplicate svg {
+      width: 14px;
+      height: 14px;
+      flex: 0 0 14px;
     }
 
     .price-wrap {
@@ -579,6 +620,226 @@
 
     .modal-card.catalog-card { max-width: 560px; }
     .modal-card.settings-card { max-width: 560px; }
+    .modal-card.historia-card { max-width: 560px; }
+
+    .historia-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 60vh;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .historia-empty {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      letter-spacing: -0.005em;
+    }
+
+    .historia-item {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .historia-item:last-child { border-bottom: none; }
+
+    .historia-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .historia-item-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .historia-item-numer {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.005em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .historia-item-suma {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .historia-item-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .historia-item-klient {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .historia-item-data {
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .historia-item-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn-historia-action {
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      letter-spacing: -0.005em;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .btn-historia-action:hover,
+    .btn-historia-action:focus-visible {
+      outline: none;
+      border-color: var(--text);
+      color: var(--text);
+    }
+    .btn-historia-action:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+    .btn-historia-action.is-delete {
+      margin-left: auto;
+    }
+
+    .historia-card .modal-footer #btn-historia-wyczysc {
+      margin-right: auto;
+      margin-top: 0;
+    }
+
+    .stats-section {
+      max-width: 600px;
+      margin: 48px auto 0;
+    }
+
+    .stats-section .section-title {
+      margin: 0 0 16px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stats-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .stats-card-full {
+      grid-column: 1 / -1;
+    }
+
+    .stats-card-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .stats-card-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+    }
+
+    .stats-card-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: -0.005em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stats-card-list {
+      list-style: none;
+      margin: 4px 0 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stats-card-list li {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text);
+      letter-spacing: -0.005em;
+      min-width: 0;
+    }
+
+    .stats-card-list .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .stats-card-list .count {
+      font-variant-numeric: tabular-nums;
+      color: var(--text-muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .stats-empty {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      letter-spacing: -0.005em;
+    }
+
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .stats-section { margin-top: 32px; }
+    }
 
     .settings-form .row {
       margin-bottom: 16px;
@@ -732,7 +993,7 @@
       body { padding: 48px 20px 60px; }
       .header { margin-bottom: 36px; align-items: center; }
       .btn-settings { padding: 8px; }
-      .btn-settings span:not(.gear) { display: none; }
+      .btn-settings span { display: none; }
       .logo { font-size: 26px; }
       .card { padding: 28px 24px; }
       .row { grid-template-columns: 1fr; gap: 16px; }
@@ -763,7 +1024,7 @@
         right: 0;
         text-align: right;
       }
-      tbody td.col-nazwa { padding-right: 80px; }
+      tbody td.col-nazwa { padding-right: 110px; }
       tbody td.col-ilosc::before { content: "Ilość"; }
       tbody td.col-cena::before  { content: "Cena jedn. (zł)"; }
       tbody td.col-ilosc, tbody td.col-cena {
@@ -790,13 +1051,22 @@
         </div>
         <p class="tagline">Twórz oferty PDF w kilka sekund.</p>
       </div>
-      <button type="button" class="btn-settings" id="btn-settings" aria-haspopup="dialog" aria-controls="settings-modal" title="Ustawienia firmy">
-        <svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09c0 .66.39 1.26 1.03 1.51a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87c.25.64.85 1.03 1.51 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.03z"></path>
-        </svg>
-        <span>Ustawienia firmy</span>
-      </button>
+      <div class="header-actions">
+        <button type="button" class="btn-settings" id="btn-historia" aria-haspopup="dialog" aria-controls="historia-modal" title="Historia ofert">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <polyline points="12 7 12 12 15 14"></polyline>
+          </svg>
+          <span>Historia ofert</span>
+        </button>
+        <button type="button" class="btn-settings" id="btn-settings" aria-haspopup="dialog" aria-controls="settings-modal" title="Ustawienia firmy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09c0 .66.39 1.26 1.03 1.51a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87c.25.64.85 1.03 1.51 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.03z"></path>
+          </svg>
+          <span>Ustawienia firmy</span>
+        </button>
+      </div>
     </header>
 
     <div class="card">
@@ -806,7 +1076,7 @@
           <div class="row">
             <div class="field">
               <label for="numer_oferty">Numer oferty</label>
-              <input type="text" id="numer_oferty" name="numer_oferty" placeholder="np. OF/2026/001">
+              <input type="text" id="numer_oferty" name="numer_oferty" placeholder="np. 2026/001">
             </div>
             <div class="field">
               <label for="data_waznosci">Data ważności</label>
@@ -880,6 +1150,8 @@
       </form>
     </div>
 
+    <section class="stats-section" id="stats-section" aria-label="Statystyki ofert"></section>
+
     <p class="footer">© Oferowo</p>
   </div>
 
@@ -894,6 +1166,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" id="btn-zamknij-modal">Zamknij</button>
+        <button type="button" class="btn-secondary" id="btn-drukuj-pdf">Drukuj</button>
         <button type="button" class="btn-primary" id="btn-pobierz-pdf">Pobierz PDF</button>
       </div>
     </div>
@@ -986,6 +1259,22 @@
     </div>
   </div>
 
+  <div class="modal" id="historia-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="historia-modal-title">
+    <div class="modal-backdrop" id="historia-modal-backdrop"></div>
+    <div class="modal-card historia-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="historia-modal-title">Historia ofert</h3>
+      </div>
+      <div class="modal-body">
+        <ul class="historia-list" id="historia-list" aria-label="Zapisane oferty"></ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-clear" id="btn-historia-wyczysc" hidden>Wyczyść historię</button>
+        <button type="button" class="btn-secondary" id="btn-zamknij-historia">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const tbody = document.getElementById('pozycje-tbody');
     const btnDodaj = document.getElementById('btn-dodaj');
@@ -1015,7 +1304,15 @@
           </div>
         </td>
         <td class="col-akcja">
-          <button type="button" class="btn-remove" title="Usuń">&times;</button>
+          <div class="row-actions">
+            <button type="button" class="btn-duplicate" title="Duplikuj wiersz" aria-label="Duplikuj wiersz">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+            <button type="button" class="btn-remove" title="Usuń" aria-label="Usuń wiersz">&times;</button>
+          </div>
         </td>
       `;
       tr.querySelector('.btn-remove').addEventListener('click', () => {
@@ -1026,6 +1323,7 @@
         tr.remove();
         odswiezNumery();
       });
+      tr.querySelector('.btn-duplicate').addEventListener('click', () => duplikujWiersz(tr));
       tr.querySelectorAll('.btn-adjust').forEach(btn => {
         btn.addEventListener('click', () => {
           const pct = parseFloat(btn.dataset.adjust);
@@ -1034,6 +1332,27 @@
       });
       tbody.appendChild(tr);
       odswiezNumery();
+    }
+
+    function duplikujWiersz(originalTr) {
+      if (!originalTr || !tbody.contains(originalTr)) return;
+      const nazwa = originalTr.querySelector('.in-nazwa').value;
+      const ilosc = originalTr.querySelector('.in-ilosc').value;
+      const cena  = originalTr.querySelector('.in-cena').value;
+
+      dodajWiersz();
+      const noweTr = tbody.lastElementChild;
+      if (!noweTr) return;
+      if (noweTr !== originalTr) {
+        originalTr.insertAdjacentElement('afterend', noweTr);
+      }
+
+      noweTr.querySelector('.in-nazwa').value = nazwa;
+      noweTr.querySelector('.in-ilosc').value = ilosc;
+      noweTr.querySelector('.in-cena').value  = cena;
+
+      odswiezNumery();
+      saveDraft();
     }
 
     function applyAdjustment(row, percentage) {
@@ -1195,7 +1514,7 @@
         const url = URL.createObjectURL(blob);
 
         const nazwaPliku = `oferta-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
-        pokazPodgladPdf(url, nazwaPliku);
+        pokazPodgladPdf(url, nazwaPliku, payload);
 
         pokazKomunikat('PDF wygenerowany. Otwórz podgląd, aby pobrać plik.', 'success');
       } catch (err) {
@@ -1210,17 +1529,20 @@
     const pdfModalBackdrop = document.getElementById('pdf-modal-backdrop');
     const pdfPreview = document.getElementById('pdf-preview');
     const btnPobierzPdf = document.getElementById('btn-pobierz-pdf');
+    const btnDrukujPdf = document.getElementById('btn-drukuj-pdf');
     const btnZamknijModal = document.getElementById('btn-zamknij-modal');
 
     let aktualnyPodgladUrl = '';
     let aktualnaNazwaPliku = '';
+    let aktualnyPayload = null;
 
-    function pokazPodgladPdf(url, nazwaPliku) {
+    function pokazPodgladPdf(url, nazwaPliku, payload) {
       if (aktualnyPodgladUrl) {
         URL.revokeObjectURL(aktualnyPodgladUrl);
       }
       aktualnyPodgladUrl = url;
       aktualnaNazwaPliku = nazwaPliku;
+      aktualnyPayload = payload || null;
       pdfPreview.src = url;
       pdfModal.hidden = false;
       pdfModal.setAttribute('aria-hidden', 'false');
@@ -1237,6 +1559,7 @@
         aktualnyPodgladUrl = '';
       }
       aktualnaNazwaPliku = '';
+      aktualnyPayload = null;
     }
 
     btnZamknijModal.addEventListener('click', zamknijPodgladPdf);
@@ -1255,6 +1578,22 @@
       document.body.appendChild(a);
       a.click();
       a.remove();
+      if (aktualnyPayload) {
+        dodajDoHistorii(aktualnyPayload);
+        inkrementujNumeracje();
+        renderStatystyki();
+        aktualnyPayload = null;
+      }
+    });
+
+    btnDrukujPdf.addEventListener('click', () => {
+      if (!aktualnyPodgladUrl) return;
+      try {
+        pdfPreview.contentWindow.focus();
+        pdfPreview.contentWindow.print();
+      } catch (e) {
+        pokazKomunikat('Nie udało się otworzyć dialogu drukowania. Pobierz PDF i wydrukuj z czytnika.', 'error');
+      }
     });
 
     const STORAGE_KEY_CONFIG = 'oferowo_config';
@@ -1436,9 +1775,40 @@
     migrujStaryConfig();
 
     const STORAGE_KEY_DRAFT = 'oferowo_draft';
+    const STORAGE_KEY_NUMERACJA = 'oferowo_numeracja';
     const POLA_DRAFT = [
       'klient', 'numer_oferty', 'data_waznosci', 'uwagi',
     ];
+
+    function wczytajNumeracje() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_NUMERACJA);
+        if (!raw) return { ostatniNumer: 0 };
+        const dane = JSON.parse(raw);
+        const n = Number(dane && dane.ostatniNumer);
+        return { ostatniNumer: Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0 };
+      } catch (e) {
+        return { ostatniNumer: 0 };
+      }
+    }
+
+    function zapiszNumeracje(stan) {
+      try {
+        localStorage.setItem(STORAGE_KEY_NUMERACJA, JSON.stringify(stan));
+      } catch (e) {}
+    }
+
+    function nastepnyNumerOferty() {
+      const { ostatniNumer } = wczytajNumeracje();
+      const rok = new Date().getFullYear();
+      return `${rok}/${String(ostatniNumer + 1).padStart(3, '0')}`;
+    }
+
+    function inkrementujNumeracje() {
+      const stan = wczytajNumeracje();
+      stan.ostatniNumer = (Number(stan.ostatniNumer) || 0) + 1;
+      zapiszNumeracje(stan);
+    }
 
     function debounce(fn, wait) {
       let t;
@@ -1523,12 +1893,21 @@
       dodajWiersz();
 
       ustawDomyslnaDate();
+
+      const numerEl = document.getElementById('numer_oferty');
+      if (numerEl) numerEl.value = nastepnyNumerOferty();
+
       odswiezStanPresetow();
       ukryjKomunikat();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
       wczytajDraft();
+
+      const numerEl = document.getElementById('numer_oferty');
+      if (numerEl && !numerEl.value.trim()) {
+        numerEl.value = nastepnyNumerOferty();
+      }
 
       form.addEventListener('input', saveDraftDebounced);
       btnDodaj.addEventListener('click', saveDraftDebounced);
@@ -1539,6 +1918,8 @@
       });
 
       document.getElementById('btn-wyczysc-formularz').addEventListener('click', wyczyscFormularz);
+
+      renderStatystyki();
     });
 
     const STORAGE_KEY_KATALOG = 'oferowo_katalog';
@@ -1933,6 +2314,397 @@
     catalogSearch.addEventListener('input', () => renderujKatalog());
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !catalogModal.hidden) zamknijKatalog();
+    });
+
+    const STORAGE_KEY_HISTORIA = 'oferowo_historia';
+    const MAX_HISTORIA = 100;
+
+    const historiaModal = document.getElementById('historia-modal');
+    const historiaBackdrop = document.getElementById('historia-modal-backdrop');
+    const historiaList = document.getElementById('historia-list');
+    const btnHistoria = document.getElementById('btn-historia');
+    const btnZamknijHistoria = document.getElementById('btn-zamknij-historia');
+    const btnHistoriaWyczysc = document.getElementById('btn-historia-wyczysc');
+
+    function wczytajHistorie() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_HISTORIA);
+        if (!raw) return [];
+        const dane = JSON.parse(raw);
+        if (!Array.isArray(dane)) return [];
+        return dane.filter(w => w && typeof w === 'object' && w.payload);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function zapiszHistorie(items) {
+      try {
+        localStorage.setItem(STORAGE_KEY_HISTORIA, JSON.stringify(items));
+      } catch (e) {}
+    }
+
+    function obliczSumePozycji(pozycje) {
+      if (!Array.isArray(pozycje)) return 0;
+      let suma = 0;
+      pozycje.forEach(p => {
+        const ilosc = Number(p && p.ilosc);
+        const cena = Number(p && p.cena_jednostkowa);
+        if (Number.isFinite(ilosc) && Number.isFinite(cena)) {
+          suma += ilosc * cena;
+        }
+      });
+      return Math.round(suma * 100) / 100;
+    }
+
+    function dodajDoHistorii(payload) {
+      if (!payload || typeof payload !== 'object') return;
+      const wpis = {
+        id: Date.now(),
+        dataZapisu: new Date().toISOString(),
+        numerOferty: String(payload.numer_oferty || ''),
+        klient: String(payload.klient || ''),
+        suma: obliczSumePozycji(payload.pozycje),
+        payload: payload,
+      };
+      const lista = wczytajHistorie();
+      lista.unshift(wpis);
+      while (lista.length > MAX_HISTORIA) lista.pop();
+      zapiszHistorie(lista);
+    }
+
+    function usunZHistorii(id) {
+      const lista = wczytajHistorie().filter(w => w.id !== id);
+      zapiszHistorie(lista);
+    }
+
+    function formatujDateZapisu(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return String(iso || '');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${dd}.${mm}.${yyyy}, ${hh}:${min}`;
+    }
+
+    function formatujSume(suma) {
+      const n = Number(suma);
+      if (!Number.isFinite(n)) return '0,00 zł';
+      return n.toFixed(2).replace('.', ',') + ' zł';
+    }
+
+    const statsSection = document.getElementById('stats-section');
+
+    function tworzKarteStat(label, value, meta, modCls) {
+      const card = document.createElement('div');
+      card.className = 'stats-card' + (modCls ? ' ' + modCls : '');
+      const l = document.createElement('div');
+      l.className = 'stats-card-label';
+      l.textContent = label;
+      card.appendChild(l);
+      if (value != null) {
+        const v = document.createElement('div');
+        v.className = 'stats-card-value';
+        v.textContent = value;
+        card.appendChild(v);
+      }
+      if (meta != null) {
+        const m = document.createElement('div');
+        m.className = 'stats-card-meta';
+        m.textContent = meta;
+        card.appendChild(m);
+      }
+      return card;
+    }
+
+    function renderStatystyki() {
+      if (!statsSection) return;
+      const lista = wczytajHistorie();
+
+      statsSection.innerHTML = '';
+      const title = document.createElement('h2');
+      title.className = 'section-title';
+      title.textContent = 'Statystyki';
+      statsSection.appendChild(title);
+
+      if (!lista || lista.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'stats-empty';
+        empty.textContent = 'Brak danych — wygeneruj pierwszą ofertę, aby zobaczyć statystyki';
+        statsSection.appendChild(empty);
+        return;
+      }
+
+      const teraz = new Date();
+      const aktMies = teraz.getMonth();
+      const aktRok = teraz.getFullYear();
+
+      const liczbaLacznie = lista.length;
+      let liczbaWMiesiacu = 0;
+      let sumaLacznie = 0;
+      let sumaWMiesiacu = 0;
+      const liczniki = new Map();
+
+      lista.forEach(wpis => {
+        const data = new Date(wpis.dataZapisu);
+        const wMiesiacu = !Number.isNaN(data.getTime())
+          && data.getMonth() === aktMies
+          && data.getFullYear() === aktRok;
+        const suma = Number(wpis.suma) || 0;
+        sumaLacznie += suma;
+        if (wMiesiacu) {
+          liczbaWMiesiacu += 1;
+          sumaWMiesiacu += suma;
+        }
+        const pozycje = (wpis.payload && Array.isArray(wpis.payload.pozycje))
+          ? wpis.payload.pozycje
+          : [];
+        pozycje.forEach(p => {
+          const nazwa = p && typeof p.nazwa === 'string' ? p.nazwa.trim() : '';
+          if (!nazwa) return;
+          liczniki.set(nazwa, (liczniki.get(nazwa) || 0) + 1);
+        });
+      });
+
+      const srednia = liczbaLacznie > 0 ? sumaLacznie / liczbaLacznie : 0;
+      const top5 = Array.from(liczniki.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      const grid = document.createElement('div');
+      grid.className = 'stats-grid';
+
+      grid.appendChild(tworzKarteStat(
+        'Wygenerowane oferty',
+        String(liczbaLacznie),
+        'W tym miesiącu: ' + liczbaWMiesiacu
+      ));
+      grid.appendChild(tworzKarteStat(
+        'Wartość ofert',
+        formatujSume(sumaLacznie),
+        'W tym miesiącu: ' + formatujSume(sumaWMiesiacu)
+      ));
+      grid.appendChild(tworzKarteStat(
+        'Średnia wartość oferty',
+        formatujSume(srednia),
+        'Z ' + liczbaLacznie + ' ' + (liczbaLacznie === 1 ? 'oferty' : 'ofert')
+      ));
+
+      const top5Card = tworzKarteStat('Najczęstsze pozycje', null, null, 'stats-card-full');
+      if (top5.length > 0) {
+        const ul = document.createElement('ul');
+        ul.className = 'stats-card-list';
+        top5.forEach(([nazwa, n]) => {
+          const li = document.createElement('li');
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'name';
+          nameSpan.textContent = nazwa;
+          const countSpan = document.createElement('span');
+          countSpan.className = 'count';
+          countSpan.textContent = n + 'x';
+          li.appendChild(nameSpan);
+          li.appendChild(countSpan);
+          ul.appendChild(li);
+        });
+        top5Card.appendChild(ul);
+      } else {
+        const meta = document.createElement('div');
+        meta.className = 'stats-card-meta';
+        meta.textContent = 'Brak pozycji do zliczenia';
+        top5Card.appendChild(meta);
+      }
+      grid.appendChild(top5Card);
+
+      statsSection.appendChild(grid);
+    }
+
+    function renderujHistorie() {
+      const lista = wczytajHistorie();
+      historiaList.innerHTML = '';
+      btnHistoriaWyczysc.hidden = lista.length === 0;
+
+      if (lista.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'historia-empty';
+        li.textContent = 'Brak zapisanych ofert';
+        historiaList.appendChild(li);
+        return;
+      }
+
+      lista.forEach(wpis => {
+        const li = document.createElement('li');
+        li.className = 'historia-item';
+
+        const info = document.createElement('div');
+        info.className = 'historia-item-info';
+
+        const row1 = document.createElement('div');
+        row1.className = 'historia-item-row';
+        const numer = document.createElement('span');
+        numer.className = 'historia-item-numer';
+        numer.textContent = wpis.numerOferty || 'Bez numeru';
+        const suma = document.createElement('span');
+        suma.className = 'historia-item-suma';
+        suma.textContent = formatujSume(wpis.suma);
+        row1.appendChild(numer);
+        row1.appendChild(suma);
+
+        const row2 = document.createElement('div');
+        row2.className = 'historia-item-row historia-item-meta';
+        const klient = document.createElement('span');
+        klient.className = 'historia-item-klient';
+        klient.textContent = wpis.klient || 'Bez nazwy klienta';
+        const data = document.createElement('span');
+        data.className = 'historia-item-data';
+        data.textContent = formatujDateZapisu(wpis.dataZapisu);
+        row2.appendChild(klient);
+        row2.appendChild(data);
+
+        info.appendChild(row1);
+        info.appendChild(row2);
+
+        const actions = document.createElement('div');
+        actions.className = 'historia-item-actions';
+
+        const btnLoad = document.createElement('button');
+        btnLoad.type = 'button';
+        btnLoad.className = 'btn-historia-action';
+        btnLoad.textContent = 'Wczytaj do formularza';
+        btnLoad.addEventListener('click', () => wczytajWpisDoFormularza(wpis));
+
+        const btnPdf = document.createElement('button');
+        btnPdf.type = 'button';
+        btnPdf.className = 'btn-historia-action';
+        btnPdf.textContent = 'Pobierz PDF ponownie';
+        btnPdf.addEventListener('click', () => pobierzPdfZHistorii(wpis, btnPdf));
+
+        const btnDel = document.createElement('button');
+        btnDel.type = 'button';
+        btnDel.className = 'btn-historia-action is-delete';
+        btnDel.textContent = 'Usuń';
+        btnDel.setAttribute('aria-label', 'Usuń wpis z historii');
+        btnDel.addEventListener('click', () => {
+          usunZHistorii(wpis.id);
+          renderujHistorie();
+          renderStatystyki();
+        });
+
+        actions.appendChild(btnLoad);
+        actions.appendChild(btnPdf);
+        actions.appendChild(btnDel);
+
+        li.appendChild(info);
+        li.appendChild(actions);
+        historiaList.appendChild(li);
+      });
+    }
+
+    function wczytajWpisDoFormularza(wpis) {
+      if (!wpis || !wpis.payload) return;
+      const ok = window.confirm('Wczytanie nadpisze obecny szkic oferty. Kontynuować?');
+      if (!ok) return;
+
+      const p = wpis.payload;
+      const klientEl = document.getElementById('klient');
+      const numerEl = document.getElementById('numer_oferty');
+      const dataEl = document.getElementById('data_waznosci');
+      const uwagiEl = document.getElementById('uwagi');
+
+      if (klientEl) klientEl.value = String(p.klient || '');
+      if (numerEl) numerEl.value = String(p.numer_oferty || '');
+      if (dataEl) dataEl.value = String(p.data_waznosci || '');
+      if (uwagiEl) uwagiEl.value = String(p.uwagi || '');
+
+      tbody.innerHTML = '';
+      if (Array.isArray(p.pozycje) && p.pozycje.length > 0) {
+        p.pozycje.forEach(poz => {
+          dodajWiersz();
+          const tr = tbody.lastElementChild;
+          if (!tr) return;
+          const inN = tr.querySelector('.in-nazwa');
+          const inI = tr.querySelector('.in-ilosc');
+          const inC = tr.querySelector('.in-cena');
+          if (inN && typeof poz.nazwa === 'string') inN.value = poz.nazwa;
+          const ilosc = Number(poz && poz.ilosc);
+          if (inI && Number.isFinite(ilosc)) inI.value = String(ilosc);
+          const cena = Number(poz && poz.cena_jednostkowa);
+          if (inC && Number.isFinite(cena)) inC.value = String(cena);
+        });
+      } else {
+        dodajWiersz();
+      }
+
+      odswiezStanPresetow();
+      saveDraft();
+      zamknijHistorie();
+      pokazKomunikat('Wczytano ofertę z historii.', 'success');
+    }
+
+    async function pobierzPdfZHistorii(wpis, btn) {
+      if (!wpis || !wpis.payload) return;
+      const oryginalnyTekst = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Pobieranie...';
+      try {
+        const res = await fetch('/oferta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(wpis.payload),
+        });
+        if (!res.ok) {
+          const tekst = await res.text();
+          throw new Error(tekst || `Błąd ${res.status}`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const klient = String(wpis.payload.klient || '').replace(/[^a-z0-9-_]+/gi, '_') || 'dokument';
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `oferta-${klient}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      } catch (err) {
+        window.alert('Nie udało się pobrać PDF: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oryginalnyTekst;
+      }
+    }
+
+    function otworzHistorie() {
+      renderujHistorie();
+      historiaModal.hidden = false;
+      historiaModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => {
+        const pierwszaAkcja = historiaList.querySelector('.btn-historia-action');
+        if (pierwszaAkcja) pierwszaAkcja.focus();
+        else if (btnZamknijHistoria) btnZamknijHistoria.focus();
+      }, 0);
+    }
+
+    function zamknijHistorie() {
+      historiaModal.hidden = true;
+      historiaModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    btnHistoria.addEventListener('click', otworzHistorie);
+    btnZamknijHistoria.addEventListener('click', zamknijHistorie);
+    historiaBackdrop.addEventListener('click', zamknijHistorie);
+    btnHistoriaWyczysc.addEventListener('click', () => {
+      const ok = window.confirm('Wyczyścić całą historię ofert? Tej operacji nie można cofnąć.');
+      if (!ok) return;
+      zapiszHistorie([]);
+      renderujHistorie();
+      renderStatystyki();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !historiaModal.hidden) zamknijHistorie();
     });
   </script>
 </body>
