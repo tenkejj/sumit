@@ -152,11 +152,11 @@ func (o Oferta) Waliduj() error {
 }
 
 // resolveFontPath zwraca ścieżkę do TTF obsługującego polskie znaki.
-// Można nadpisać zmienną środowiskową OFEROWO_FONT_PATH.
+// Można nadpisać zmienną środowiskową SUMIT_FONT_PATH.
 func resolveFontPath() (string, error) {
-	if p := os.Getenv("OFEROWO_FONT_PATH"); p != "" {
+	if p := os.Getenv("SUMIT_FONT_PATH"); p != "" {
 		if _, err := os.Stat(p); err != nil {
-			return "", fmt.Errorf("OFEROWO_FONT_PATH=%q nie istnieje: %w", p, err)
+			return "", fmt.Errorf("SUMIT_FONT_PATH=%q nie istnieje: %w", p, err)
 		}
 		return p, nil
 	}
@@ -171,7 +171,7 @@ func resolveFontPath() (string, error) {
 			return c, nil
 		}
 	}
-	return "", fmt.Errorf("nie znaleziono czcionki TTF z polskimi znakami; ustaw OFEROWO_FONT_PATH")
+	return "", fmt.Errorf("nie znaleziono czcionki TTF z polskimi znakami; ustaw SUMIT_FONT_PATH")
 }
 
 func generujOfertePDF(o Oferta, w io.Writer) error {

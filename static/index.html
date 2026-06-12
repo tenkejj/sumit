@@ -7,7 +7,7 @@
   <script>
     (function () {
       try {
-        var zapis = localStorage.getItem('oferowo_theme');
+        var zapis = localStorage.getItem('sumit_theme');
         var motyw = (zapis === 'dark' || zapis === 'light')
           ? zapis
           : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -1897,7 +1897,7 @@
     const form = document.getElementById('oferta-form');
     const message = document.getElementById('message');
 
-    const STORAGE_KEY_THEME = 'oferowo_theme';
+    const STORAGE_KEY_THEME = 'sumit_theme';
     const btnTheme = document.getElementById('btn-theme');
 
     function aktualnyMotyw() {
@@ -2509,8 +2509,8 @@
       window.location.href = mailto;
     });
 
-    const STORAGE_KEY_CONFIG = 'oferowo_config';
-    const STORAGE_KEY_CONFIG_LEGACY = 'oferowo_dane_firmy';
+    const STORAGE_KEY_CONFIG = 'sumit_config';
+    const STORAGE_KEY_CONFIG_LEGACY = 'sumit_dane_firmy';
     const POLA_CONFIG = ['nazwa_firmy', 'nip', 'adres', 'miasto', 'telefon', 'email', 'numer_konta'];
     const MAX_LOGO_BYTES = 200 * 1024;
 
@@ -2702,8 +2702,8 @@
 
     migrujStaryConfig();
 
-    const STORAGE_KEY_DRAFT = 'oferowo_draft';
-    const STORAGE_KEY_NUMERACJA = 'oferowo_numeracja';
+    const STORAGE_KEY_DRAFT = 'sumit_draft';
+    const STORAGE_KEY_NUMERACJA = 'sumit_numeracja';
     const POLA_DRAFT = [
       'klient', 'numer_oferty', 'data_waznosci', 'uwagi',
     ];
@@ -2893,8 +2893,8 @@
       });
     }
 
-    const STORAGE_KEY_KATALOG = 'oferowo_katalog';
-    const STORAGE_KEY_KATALOG_VER = 'oferowo_katalog_v';
+    const STORAGE_KEY_KATALOG = 'sumit_katalog';
+    const STORAGE_KEY_KATALOG_VER = 'sumit_katalog_v';
     const KATALOG_VERSION = 2;
 
     const DOMYSLNY_KATALOG = [
@@ -3287,7 +3287,7 @@
       if (e.key === 'Escape' && !catalogModal.hidden) zamknijKatalog();
     });
 
-    const STORAGE_KEY_HISTORIA = 'oferowo_historia';
+    const STORAGE_KEY_HISTORIA = 'sumit_historia';
     const MAX_HISTORIA = 100;
 
     const historiaModal = document.getElementById('historia-modal');
