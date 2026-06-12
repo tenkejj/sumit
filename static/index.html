@@ -205,11 +205,15 @@
       min-width: 0;
     }
     #app-logo > img {
-      width: 24px;
-      height: 24px;
-      flex: 0 0 24px;
+      max-height: 32px;
+      width: auto;
       object-fit: contain;
       display: block;
+      filter: brightness(0);
+      transition: filter 0.3s ease;
+    }
+    [data-theme="dark"] #app-logo > img {
+      filter: brightness(0) invert(1);
     }
 
     .view-tabs {
@@ -706,6 +710,108 @@
       position: absolute;
       inset: 0;
       background: var(--backdrop);
+    }
+
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 1500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .lightbox[hidden] { display: none; }
+    .lightbox.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .lightbox-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.35);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      backdrop-filter: blur(16px) saturate(140%);
+      cursor: zoom-out;
+    }
+    [data-theme="dark"] .lightbox-backdrop {
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .lightbox-content {
+      position: relative;
+      z-index: 1;
+      height: min(calc(100vh - 64px), 1273px);
+      aspect-ratio: 1 / 1.414;
+      max-width: calc(100vw - 64px);
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      animation: lightboxIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes lightboxIn {
+      from { transform: scale(0.96); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .lightbox-content iframe {
+      position: absolute;
+      top: -5%;
+      left: -5%;
+      width: 110%;
+      height: 110%;
+      border: none;
+      outline: none;
+      background: #ffffff;
+      pointer-events: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 2;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      color: #0a0a0a;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .lightbox-close svg {
+      width: 18px;
+      height: 18px;
+    }
+    .lightbox-close:hover {
+      transform: scale(1.05);
+      background: #ffffff;
+    }
+    .lightbox-close:focus-visible {
+      outline: 2px solid #0a0a0a;
+      outline-offset: 2px;
+    }
+    [data-theme="dark"] .lightbox-close {
+      background: rgba(20, 20, 20, 0.9);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
+    [data-theme="dark"] .lightbox-close:hover {
+      background: rgba(40, 40, 40, 0.95);
     }
 
     .modal-card {
@@ -1263,11 +1369,15 @@
     .stats-card,
     .stats-empty,
     .chart-container {
-      background: rgba(255, 255, 255, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03);
-      -webkit-backdrop-filter: blur(24px);
-      backdrop-filter: blur(24px);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.55) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 16px 40px -12px rgba(15, 23, 42, 0.10);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      backdrop-filter: blur(32px) saturate(180%);
     }
 
     [data-theme="dark"] .card,
@@ -1275,9 +1385,11 @@
     [data-theme="dark"] .stats-card,
     [data-theme="dark"] .stats-empty,
     [data-theme="dark"] .chart-container {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: none;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 8px 32px rgba(0, 0, 0, 0.3);
     }
 
     @media (min-width: 768px) and (max-width: 1023.98px) {
@@ -1317,32 +1429,38 @@
       .live-preview-frame {
         position: relative;
         overflow: hidden;
-        border-radius: 8px;
+        border-radius: 12px;
         aspect-ratio: 1 / 1.414;
         width: 100%;
         max-height: calc(100vh - 48px);
         background: #ffffff;
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+        cursor: default;
+        transition: transform 0.2s ease;
       }
-      [data-theme="dark"] .live-preview-frame {
-        border-color: rgba(255, 255, 255, 0.08);
-        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2);
+      .live-preview-frame.has-pdf {
+        cursor: zoom-in;
+      }
+      .live-preview-frame.has-pdf:hover {
+        transform: translateY(-2px);
       }
       .live-preview-frame iframe {
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        top: -5%;
+        left: -5%;
+        width: 110%;
+        height: 110%;
         border: none;
+        outline: none;
         opacity: 0;
         transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-        background: transparent;
+        background: #ffffff;
         will-change: opacity;
-        transform: translateZ(0);
         -webkit-backface-visibility: hidden;
         backface-visibility: hidden;
+        pointer-events: none;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
       }
       .live-preview-frame iframe.active {
         opacity: 1;
@@ -1578,6 +1696,19 @@
     </div>
 
     <p class="footer">© Oferowo</p>
+  </div>
+
+  <div class="lightbox" id="pdf-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Pełny podgląd oferty">
+    <div class="lightbox-backdrop" id="pdf-lightbox-backdrop"></div>
+    <button type="button" class="lightbox-close" id="pdf-lightbox-close" aria-label="Zamknij podgląd">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    <div class="lightbox-content">
+      <iframe id="pdf-lightbox-frame" title="Pełny podgląd PDF"></iframe>
+    </div>
   </div>
 
   <div class="modal" id="pdf-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pdf-modal-title">
@@ -2024,11 +2155,22 @@
     const pdfFrame1 = document.getElementById('pdf-frame-1');
     const pdfFrame2 = document.getElementById('pdf-frame-2');
     const liveEmpty = document.getElementById('live-pdf-preview-empty');
+    const livePreviewFrame = document.querySelector('.live-preview-frame');
+    const pdfLightbox = document.getElementById('pdf-lightbox');
+    const pdfLightboxBackdrop = document.getElementById('pdf-lightbox-backdrop');
+    const pdfLightboxClose = document.getElementById('pdf-lightbox-close');
+    const pdfLightboxFrame = document.getElementById('pdf-lightbox-frame');
     let activeFrame = pdfFrame1;
     let bufferFrame = pdfFrame2;
     let activeUrl = '';
     let pendingUrl = '';
     let livePodgladAbort = null;
+
+    const PDF_VIEW_PARAMS = '#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=FitH&zoom=page-fit';
+
+    function ustawHasPdf(stan) {
+      if (livePreviewFrame) livePreviewFrame.classList.toggle('has-pdf', stan);
+    }
 
     function pokazPlaceholderLive() {
       if (!activeFrame || !bufferFrame || !liveEmpty) return;
@@ -2039,6 +2181,10 @@
         pendingUrl = '';
       }
       liveEmpty.hidden = false;
+      ustawHasPdf(false);
+      if (pdfLightbox && pdfLightbox.classList.contains('is-open')) {
+        zamknijPdfLightbox();
+      }
     }
 
     function zaladujPdfDoBufora(blob) {
@@ -2048,7 +2194,7 @@
         URL.revokeObjectURL(pendingUrl);
       }
       pendingUrl = nowyUrl;
-      bufferFrame.src = nowyUrl + '#toolbar=0&navpanes=0';
+      bufferFrame.src = nowyUrl + PDF_VIEW_PARAMS;
     }
 
     function onFrameLoad(frame) {
@@ -2063,10 +2209,15 @@
           bufferFrame.classList.add('active');
           activeFrame.classList.remove('active');
           if (liveEmpty) liveEmpty.hidden = true;
+          ustawHasPdf(true);
 
           const oldUrl = activeUrl;
           activeUrl = pendingUrl;
           pendingUrl = '';
+
+          if (pdfLightbox && pdfLightbox.classList.contains('is-open') && pdfLightboxFrame) {
+            pdfLightboxFrame.src = activeUrl + PDF_VIEW_PARAMS;
+          }
 
           const tmp = activeFrame;
           activeFrame = bufferFrame;
@@ -2081,6 +2232,43 @@
 
     if (pdfFrame1) pdfFrame1.addEventListener('load', () => onFrameLoad(pdfFrame1));
     if (pdfFrame2) pdfFrame2.addEventListener('load', () => onFrameLoad(pdfFrame2));
+
+    function otworzPdfLightbox() {
+      if (!activeUrl || !pdfLightbox || !pdfLightboxFrame) return;
+      pdfLightboxFrame.src = activeUrl + PDF_VIEW_PARAMS;
+      pdfLightbox.hidden = false;
+      pdfLightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => pdfLightbox.classList.add('is-open'));
+    }
+
+    function zamknijPdfLightbox() {
+      if (!pdfLightbox) return;
+      pdfLightbox.classList.remove('is-open');
+      pdfLightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      setTimeout(() => {
+        if (pdfLightbox && !pdfLightbox.classList.contains('is-open')) {
+          pdfLightbox.hidden = true;
+          if (pdfLightboxFrame) pdfLightboxFrame.removeAttribute('src');
+        }
+      }, 220);
+    }
+
+    if (livePreviewFrame) {
+      livePreviewFrame.addEventListener('click', () => {
+        if (livePreviewFrame.classList.contains('has-pdf')) {
+          otworzPdfLightbox();
+        }
+      });
+    }
+    if (pdfLightboxBackdrop) pdfLightboxBackdrop.addEventListener('click', zamknijPdfLightbox);
+    if (pdfLightboxClose) pdfLightboxClose.addEventListener('click', zamknijPdfLightbox);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && pdfLightbox && pdfLightbox.classList.contains('is-open')) {
+        zamknijPdfLightbox();
+      }
+    });
 
     function aktualizujTekstPrzyciskuGeneruj() {
       if (!btnGeneruj) return;
