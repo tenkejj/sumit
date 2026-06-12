@@ -428,7 +428,7 @@ func TestHandleQuote_BodyPowyzej1MB(t *testing.T) {
 		t.Fatalf("przygotowany body ma %d B, oczekiwano > %d B", len(body), limit)
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/oferta", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/quote", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 

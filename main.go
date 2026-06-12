@@ -18,7 +18,7 @@ func main() {
 
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	mux.HandleFunc("POST /oferta", handleQuote)
+	mux.HandleFunc("POST /quote", handleQuote)
 
 	const addr = ":8080"
 	log.Printf("SumIt nasłuchuje na http://localhost%s", addr)

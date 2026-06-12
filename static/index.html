@@ -2348,7 +2348,7 @@
       livePodgladAbort = ctrl;
 
       try {
-        const res = await fetch('/oferta', {
+        const res = await fetch('/quote', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -2396,7 +2396,7 @@
       btnGeneruj.textContent = desktopTryb ? 'Pobieranie...' : 'Generowanie...';
 
       try {
-        const res = await fetch('/oferta', {
+        const res = await fetch('/quote', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -3724,7 +3724,7 @@
       btn.disabled = true;
       btn.textContent = 'Pobieranie...';
       try {
-        const res = await fetch('/oferta', {
+        const res = await fetch('/quote', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(wpis.payload),
