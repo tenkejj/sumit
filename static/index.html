@@ -1221,25 +1221,33 @@
         position: sticky;
         top: 24px;
       }
-      .live-preview-wrap iframe {
+      .live-preview-frame {
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+        aspect-ratio: 1 / 1.414;
         width: 100%;
-        height: calc(100vh - 48px);
-        border: 1px solid rgba(10, 10, 10, 0.06);
-        border-radius: 12px;
-        background: var(--bg-soft);
-        display: block;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+        max-height: calc(100vh - 48px);
+        background: #ffffff;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
       }
-      [data-theme="dark"] .live-preview-wrap iframe {
-        border-color: rgba(255, 255, 255, 0.06);
-        background: var(--bg-soft);
-        box-shadow: none;
+      .live-preview-frame iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        background: transparent;
+      }
+      .live-preview-frame iframe.active {
+        opacity: 1;
       }
       .live-preview-empty {
-        width: 100%;
-        height: calc(100vh - 48px);
-        border: 1px dashed rgba(10, 10, 10, 0.12);
-        border-radius: 12px;
+        position: absolute;
+        inset: 0;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1248,15 +1256,12 @@
         font-size: 13px;
         text-align: center;
         letter-spacing: -0.005em;
-        background: rgba(255, 255, 255, 0.4);
-        -webkit-backdrop-filter: blur(16px);
-        backdrop-filter: blur(16px);
+        background: #ffffff;
+        z-index: 1;
       }
       [data-theme="dark"] .live-preview-empty {
-        border-color: rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.02);
+        background: var(--bg-soft);
       }
-      .live-preview-wrap iframe[hidden],
       .live-preview-empty[hidden] {
         display: none;
       }
@@ -1453,8 +1458,11 @@
       </form>
     </div>
       <aside class="live-preview-wrap" aria-label="Podgląd PDF na żywo">
-        <iframe id="live-pdf-preview" title="Podgląd PDF na żywo" hidden></iframe>
-        <div id="live-pdf-preview-empty" class="live-preview-empty">Wypełnij dane oferty (nazwa firmy, klient i&nbsp;przynajmniej jedna pozycja), aby zobaczyć podgląd.</div>
+        <div class="live-preview-frame">
+          <iframe id="pdf-frame-1" class="active" title="Podgląd PDF na żywo"></iframe>
+          <iframe id="pdf-frame-2" title="Podgląd PDF na żywo (bufor)"></iframe>
+          <div id="live-pdf-preview-empty" class="live-preview-empty">Wypełnij dane oferty (nazwa firmy, klient i&nbsp;przynajmniej jedna pozycja), aby zobaczyć podgląd.</div>
+        </div>
       </aside>
     </div>
     </div>
@@ -1907,17 +1915,59 @@
     }
 
     const livePodgladMql = (window.matchMedia && window.matchMedia('(min-width: 1024px)')) || { matches: false, addEventListener() {}, addListener() {} };
-    const liveIframe = document.getElementById('live-pdf-preview');
+    const pdfFrame1 = document.getElementById('pdf-frame-1');
+    const pdfFrame2 = document.getElementById('pdf-frame-2');
     const liveEmpty = document.getElementById('live-pdf-preview-empty');
-    let livePodgladUrl = '';
+    let activeFrame = pdfFrame1;
+    let bufferFrame = pdfFrame2;
+    let activeUrl = '';
+    let pendingUrl = '';
     let livePodgladAbort = null;
 
     function pokazPlaceholderLive() {
-      if (!liveIframe || !liveEmpty) return;
-      liveIframe.removeAttribute('src');
-      liveIframe.hidden = true;
+      if (!activeFrame || !bufferFrame || !liveEmpty) return;
+      activeFrame.classList.remove('active');
+      bufferFrame.classList.remove('active');
+      if (pendingUrl) {
+        URL.revokeObjectURL(pendingUrl);
+        pendingUrl = '';
+      }
       liveEmpty.hidden = false;
     }
+
+    function zaladujPdfDoBufora(blob) {
+      if (!activeFrame || !bufferFrame) return;
+      const nowyUrl = URL.createObjectURL(blob);
+      if (pendingUrl) {
+        URL.revokeObjectURL(pendingUrl);
+      }
+      pendingUrl = nowyUrl;
+      bufferFrame.src = nowyUrl + '#toolbar=0&navpanes=0';
+    }
+
+    function onFrameLoad(frame) {
+      if (frame !== bufferFrame) return;
+      if (!pendingUrl) return;
+
+      bufferFrame.classList.add('active');
+      activeFrame.classList.remove('active');
+      if (liveEmpty) liveEmpty.hidden = true;
+
+      const oldUrl = activeUrl;
+      activeUrl = pendingUrl;
+      pendingUrl = '';
+
+      const tmp = activeFrame;
+      activeFrame = bufferFrame;
+      bufferFrame = tmp;
+
+      if (oldUrl) {
+        setTimeout(() => URL.revokeObjectURL(oldUrl), 300);
+      }
+    }
+
+    if (pdfFrame1) pdfFrame1.addEventListener('load', () => onFrameLoad(pdfFrame1));
+    if (pdfFrame2) pdfFrame2.addEventListener('load', () => onFrameLoad(pdfFrame2));
 
     function aktualizujTekstPrzyciskuGeneruj() {
       if (!btnGeneruj) return;
@@ -1927,7 +1977,7 @@
 
     async function aktualizujLivePodglad() {
       if (!livePodgladMql.matches) return;
-      if (!liveIframe) return;
+      if (!activeFrame || !bufferFrame) return;
 
       const { gotowy, payload } = budujPayloadZFormularza();
       if (!gotowy) {
@@ -1951,15 +2001,7 @@
         const blob = await res.blob();
         if (ctrl.signal.aborted) return;
 
-        const nowyUrl = URL.createObjectURL(blob);
-        const stary = livePodgladUrl;
-        livePodgladUrl = nowyUrl;
-        liveIframe.src = nowyUrl + '#toolbar=0&navpanes=0';
-        liveIframe.hidden = false;
-        if (liveEmpty) liveEmpty.hidden = true;
-        if (stary) {
-          setTimeout(() => URL.revokeObjectURL(stary), 1500);
-        }
+        zaladujPdfDoBufora(blob);
       } catch (err) {
         if (err && err.name === 'AbortError') return;
       } finally {
@@ -2012,15 +2054,7 @@
         const nazwaPliku = `oferta-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
 
         if (desktopTryb) {
-          if (liveIframe) {
-            const podgladUrl = URL.createObjectURL(blob);
-            const stary = livePodgladUrl;
-            livePodgladUrl = podgladUrl;
-            liveIframe.src = podgladUrl + '#toolbar=0&navpanes=0';
-            liveIframe.hidden = false;
-            if (liveEmpty) liveEmpty.hidden = true;
-            if (stary) setTimeout(() => URL.revokeObjectURL(stary), 1500);
-          }
+          zaladujPdfDoBufora(blob);
 
           const dlUrl = URL.createObjectURL(blob);
           const a = document.createElement('a');
