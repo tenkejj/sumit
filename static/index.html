@@ -335,6 +335,48 @@
       letter-spacing: -0.01em;
     }
 
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .label-row label { margin-bottom: 0; }
+
+    .btn-link-nip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: -0.005em;
+      transition: color 0.15s ease;
+    }
+    .btn-link-nip:hover { color: var(--text); }
+    .btn-link-nip:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+    .btn-link-nip svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+    }
+    .btn-link-nip[aria-busy="true"] {
+      color: var(--text-muted);
+      cursor: progress;
+      opacity: 0.7;
+    }
+
     input[type="text"],
     input[type="number"],
     input[type="date"],
@@ -1681,8 +1723,17 @@
         <section class="section">
           <h2 class="section-title">Klient</h2>
           <div class="field">
-            <label for="klient">Nazwa klienta</label>
-            <input type="text" id="klient" name="klient" placeholder="Nazwa klienta" required>
+            <div class="label-row">
+              <label for="klient">Nazwa klienta</label>
+              <button type="button" class="btn-link-nip" id="btn-pobierz-nip" aria-label="Pobierz dane klienta po NIP z Białej Listy MF">
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <circle cx="7" cy="7" r="4.5"></circle>
+                  <line x1="10.5" y1="10.5" x2="14" y2="14"></line>
+                </svg>
+                <span class="btn-link-nip-label">Pobierz po NIP</span>
+              </button>
+            </div>
+            <textarea id="klient" name="klient" rows="3" placeholder="Nazwa klienta&#10;Adres&#10;NIP: 1234567890" required></textarea>
           </div>
         </section>
 
@@ -2862,6 +2913,65 @@
       aktualizujLivePodglad();
     }
 
+    function oczyscNIPWejscie(s) {
+      return String(s || '').replace(/\D/g, '');
+    }
+
+    async function pobierzKlientaPoNIP() {
+      const btn = document.getElementById('btn-pobierz-nip');
+      const klientEl = document.getElementById('klient');
+      if (!btn || !klientEl) return;
+
+      const wejscie = window.prompt('Podaj NIP klienta:');
+      if (wejscie === null) return;
+
+      const nip = oczyscNIPWejscie(wejscie);
+      if (nip.length !== 10) {
+        window.alert('Nieprawidłowy NIP — musi zawierać dokładnie 10 cyfr.');
+        return;
+      }
+
+      const labelEl = btn.querySelector('.btn-link-nip-label');
+      const oryginalnyTekst = labelEl ? labelEl.textContent : '';
+      btn.setAttribute('aria-busy', 'true');
+      btn.disabled = true;
+      if (labelEl) labelEl.textContent = 'Pobieram…';
+
+      try {
+        const resp = await fetch('/api/nip?nip=' + encodeURIComponent(nip), {
+          headers: { 'Accept': 'application/json' },
+        });
+        let dane = null;
+        try { dane = await resp.json(); } catch (e) { dane = null; }
+
+        if (!resp.ok) {
+          const msg = (dane && dane.error) ? dane.error : 'Nie udało się pobrać danych z Białej Listy MF.';
+          window.alert(msg);
+          return;
+        }
+
+        const linie = [];
+        if (dane && dane.nazwa) linie.push(String(dane.nazwa));
+        if (dane && dane.adres) linie.push(String(dane.adres));
+        if (dane && dane.nip)   linie.push('NIP: ' + String(dane.nip));
+
+        if (linie.length === 0) {
+          window.alert('Białej Listy MF nie zwróciła danych firmy.');
+          return;
+        }
+
+        klientEl.value = linie.join('\n');
+        saveDraft();
+        klientEl.focus();
+      } catch (err) {
+        window.alert('Błąd sieci: nie udało się połączyć z serwerem.');
+      } finally {
+        btn.removeAttribute('aria-busy');
+        btn.disabled = false;
+        if (labelEl) labelEl.textContent = oryginalnyTekst || 'Pobierz po NIP';
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       wczytajDraft();
 
@@ -2879,6 +2989,9 @@
       });
 
       document.getElementById('btn-wyczysc-formularz').addEventListener('click', wyczyscFormularz);
+
+      const btnPobierzNIP = document.getElementById('btn-pobierz-nip');
+      if (btnPobierzNIP) btnPobierzNIP.addEventListener('click', pobierzKlientaPoNIP);
 
       renderStatystyki();
       initViewTabs();
