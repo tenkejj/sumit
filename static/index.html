@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oferowo — generator ofert PDF</title>
+  <title>SumIt — generator ofert PDF</title>
   <script>
     (function () {
       try {
@@ -202,17 +202,19 @@
     .header-actions .btn-settings { margin-top: 0; }
 
     #app-logo {
+      display: flex;
+      align-items: center;
       min-width: 0;
     }
-    #app-logo > img {
-      max-height: 32px;
+    #app-logo img {
+      height: 32px;
       width: auto;
       object-fit: contain;
       display: block;
       filter: brightness(0);
       transition: filter 0.3s ease;
     }
-    [data-theme="dark"] #app-logo > img {
+    [data-theme="dark"] #app-logo img {
       filter: brightness(0) invert(1);
     }
 
@@ -1553,9 +1555,8 @@
     <header class="header">
       <div class="header-brand">
         <div class="logo">
-          <div id="app-logo" style="display: flex; align-items: center; gap: 8px;">
-            <span class="logo-dot"></span>
-            <span>Oferowo</span>
+          <div id="app-logo">
+            <img src="sumit-logo.png" alt="SumIt">
           </div>
         </div>
         <p class="tagline">Twórz oferty PDF w kilka sekund.</p>
@@ -1695,7 +1696,7 @@
       <section class="stats-section" id="stats-section" aria-label="Statystyki ofert"></section>
     </div>
 
-    <p class="footer">© Oferowo</p>
+    <p class="footer">© SumIt</p>
   </div>
 
   <div class="lightbox" id="pdf-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Pełny podgląd oferty">
@@ -3196,7 +3197,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'moje_uslugi_oferowo.csv';
+      a.download = 'moje_uslugi_sumit.csv';
       document.body.appendChild(a);
       a.click();
       a.remove();

@@ -19,7 +19,7 @@ func main() {
 	mux.HandleFunc("POST /oferta", handleOferta)
 
 	const addr = ":8080"
-	log.Printf("Oferowo nasłuchuje na http://localhost%s", addr)
+	log.Printf("SumIt nasłuchuje na http://localhost%s", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("błąd serwera: %v", err)
 	}
