@@ -224,27 +224,37 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	pdf.SetXY(15, startY)
 	pdf.MultiCell(85, 6, "Sprzedawca:\n"+o.Firma.Nazwa, "", "L", false)
 
-	var daneFirmy []string
+	var staleDane []string
 	if s := strings.TrimSpace(o.Firma.NIP); s != "" {
-		daneFirmy = append(daneFirmy, "NIP: "+s)
+		staleDane = append(staleDane, "NIP: "+s)
 	}
 	if s := strings.TrimSpace(o.Firma.Adres); s != "" {
-		daneFirmy = append(daneFirmy, s)
+		staleDane = append(staleDane, s)
 	}
 	if s := strings.TrimSpace(o.Firma.Miasto); s != "" {
-		daneFirmy = append(daneFirmy, s)
+		staleDane = append(staleDane, s)
 	}
-	if s := strings.TrimSpace(o.Firma.Telefon); s != "" {
-		daneFirmy = append(daneFirmy, "tel. "+s)
-	}
-	if s := strings.TrimSpace(o.Firma.Email); s != "" {
-		daneFirmy = append(daneFirmy, "e-mail: "+s)
-	}
-	if len(daneFirmy) > 0 {
+	telefon := strings.TrimSpace(o.Firma.Telefon)
+	email := strings.TrimSpace(o.Firma.Email)
+	if len(staleDane) > 0 || telefon != "" || email != "" {
 		pdf.SetX(15)
 		pdf.SetFont(family, "", 8)
 		pdf.SetTextColor(120, 120, 120)
-		pdf.MultiCell(85, 4, strings.Join(daneFirmy, "\n"), "", "L", false)
+		if len(staleDane) > 0 {
+			pdf.MultiCell(85, 4, strings.Join(staleDane, "\n"), "", "L", false)
+		}
+		if telefon != "" {
+			pdf.SetX(15)
+			pdf.Write(4, "tel. ")
+			pdf.WriteLinkString(4, telefon, "tel:"+sanitizeTelefonLink(telefon))
+			pdf.Ln(4)
+		}
+		if email != "" {
+			pdf.SetX(15)
+			pdf.Write(4, "e-mail: ")
+			pdf.WriteLinkString(4, email, "mailto:"+email)
+			pdf.Ln(4)
+		}
 		pdf.SetFont(family, "", 11)
 		pdf.SetTextColor(0, 0, 0)
 	}
@@ -405,6 +415,15 @@ func dekodujLogoBase64(s string) ([]byte, string, error) {
 	}
 
 	return data, imgType, nil
+}
+
+// sanitizeTelefonLink przygotowuje wartość dla schematu URI tel:.
+// Usuwa wyłącznie spacje i myślniki — pozostałe znaki (m.in. wiodące "+"
+// dla numerów międzynarodowych) muszą zostać zachowane.
+func sanitizeTelefonLink(s string) string {
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, "-", "")
+	return s
 }
 
 // sanitizeNRB normalizuje numer rachunku: usuwa białe znaki, myślniki, opcjonalny
