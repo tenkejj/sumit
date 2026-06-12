@@ -20,10 +20,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f5f5f7;
+      --bg: #eef0f4;
       --bg-soft: #ffffff;
-      --bg-hover: #ececef;
-      --bg-chip: #e5e5e5;
+      --bg-hover: #e4e6eb;
+      --bg-chip: #e1e3ea;
       --text: #0a0a0a;
       --text-muted: #6b7280;
       --border: #e5e5e5;
@@ -80,13 +80,21 @@
       position: relative;
     }
 
+    [data-theme="light"] body {
+      background: radial-gradient(circle at 50% -10%, #ffffff 0%, transparent 60%), #eef0f4;
+      background-attachment: fixed;
+    }
+
     body::before {
       content: "";
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: -1;
-      background: radial-gradient(circle at 50% -20%, rgba(255, 255, 255, 0.9), transparent 55%);
+    }
+
+    [data-theme="light"] body::before {
+      display: none;
     }
 
     [data-theme="dark"] body::before {
@@ -1255,11 +1263,11 @@
     .stats-card,
     .stats-empty,
     .chart-container {
-      background: rgba(255, 255, 255, 0.7);
-      border-color: rgba(10, 10, 10, 0.06);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
-      -webkit-backdrop-filter: blur(16px);
-      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03);
+      -webkit-backdrop-filter: blur(24px);
+      backdrop-filter: blur(24px);
     }
 
     [data-theme="dark"] .card,
@@ -1268,12 +1276,9 @@
     [data-theme="dark"] .stats-empty,
     [data-theme="dark"] .chart-container {
       background: rgba(255, 255, 255, 0.02);
-      border-color: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       box-shadow: none;
     }
-
-    .view-tabs { border: 1px solid rgba(10, 10, 10, 0.06); }
-    [data-theme="dark"] .view-tabs { border: 1px solid rgba(255, 255, 255, 0.06); }
 
     @media (min-width: 768px) and (max-width: 1023.98px) {
       #oferta-form {
@@ -1317,7 +1322,12 @@
         width: 100%;
         max-height: calc(100vh - 48px);
         background: #ffffff;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+      }
+      [data-theme="dark"] .live-preview-frame {
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2);
       }
       .live-preview-frame iframe {
         position: absolute;
