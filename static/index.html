@@ -109,9 +109,9 @@
 
     .header {
       margin-bottom: 24px;
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
       align-items: center;
-      justify-content: space-between;
       gap: 16px;
     }
 
@@ -121,7 +121,7 @@
       align-items: center;
       gap: 16px;
       min-width: 0;
-      flex: 0 0 auto;
+      justify-self: start;
     }
 
     .logo {
@@ -194,7 +194,7 @@
       justify-content: flex-end;
       gap: 8px;
       margin-top: 0;
-      flex: 0 0 auto;
+      justify-self: end;
     }
     .header-actions .btn-settings { margin-top: 0; }
 
@@ -223,7 +223,7 @@
       padding: 4px;
       width: max-content;
       margin: 0;
-      flex: 0 0 auto;
+      justify-self: center;
     }
 
     .view-tab {
