@@ -928,27 +928,39 @@
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    @media (min-width: 1024px) {
+      .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
     }
 
     .stats-card {
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: 10px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 4px;
       min-width: 0;
     }
 
     .stats-card-full {
       grid-column: 1 / -1;
+      padding: 18px 20px;
+      gap: 8px;
+    }
+
+    .stats-card-standalone {
+      margin-top: 16px;
     }
 
     .stats-card-label {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -956,7 +968,7 @@
     }
 
     .stats-card-value {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 700;
       color: var(--text);
       letter-spacing: -0.02em;
@@ -964,11 +976,83 @@
       line-height: 1.2;
     }
 
+    .stats-card-full .stats-card-label { font-size: 11px; }
+
     .stats-card-meta {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
       letter-spacing: -0.005em;
       font-variant-numeric: tabular-nums;
+    }
+
+    .chart-container {
+      margin-top: 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .chart-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin: 0 0 16px;
+    }
+
+    #stat-chart {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      height: 200px;
+      gap: 8px;
+    }
+
+    #stat-chart .chart-bar {
+      flex: 1;
+      min-width: 0;
+      background: var(--text);
+      opacity: 0.8;
+      border-radius: 4px 4px 0 0;
+      transition: opacity 0.15s ease;
+      cursor: default;
+      min-height: 2px;
+    }
+
+    #stat-chart .chart-bar:hover { opacity: 1; }
+
+    #stat-chart .chart-bar.is-empty {
+      background: var(--border);
+      opacity: 0.6;
+      min-height: 2px;
+    }
+
+    #stat-chart .chart-bar.is-empty:hover { opacity: 0.8; }
+
+    #stat-chart-labels {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    #stat-chart-labels > div {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: -0.005em;
+      min-width: 0;
+      text-transform: capitalize;
+    }
+
+    @media (max-width: 600px) {
+      #stat-chart { height: 160px; gap: 4px; }
+      #stat-chart-labels { gap: 4px; }
+      #stat-chart-labels > div { font-size: 10px; }
+      .chart-container { padding: 16px; }
     }
 
     .stats-card-list {
@@ -1019,6 +1103,8 @@
     @media (max-width: 600px) {
       .stats-grid { grid-template-columns: 1fr; }
       .stats-section { margin-top: 32px; }
+      .stats-card { padding: 12px 14px; }
+      .stats-card-value { font-size: 18px; }
     }
 
     .settings-form .row {
@@ -1167,7 +1253,8 @@
     .card,
     .view-tabs,
     .stats-card,
-    .stats-empty {
+    .stats-empty,
+    .chart-container {
       background: rgba(255, 255, 255, 0.7);
       border-color: rgba(10, 10, 10, 0.06);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
@@ -1178,7 +1265,8 @@
     [data-theme="dark"] .card,
     [data-theme="dark"] .view-tabs,
     [data-theme="dark"] .stats-card,
-    [data-theme="dark"] .stats-empty {
+    [data-theme="dark"] .stats-empty,
+    [data-theme="dark"] .chart-container {
       background: rgba(255, 255, 255, 0.02);
       border-color: rgba(255, 255, 255, 0.06);
       box-shadow: none;
@@ -3079,6 +3167,55 @@
       return card;
     }
 
+    const NAZWY_MIESIECY = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+
+    function agregujMiesiacami(lista, ileMiesiecy) {
+      const teraz = new Date();
+      const buckets = [];
+      for (let i = ileMiesiecy - 1; i >= 0; i--) {
+        const d = new Date(teraz.getFullYear(), teraz.getMonth() - i, 1);
+        buckets.push({
+          key: d.getFullYear() + '-' + d.getMonth(),
+          label: NAZWY_MIESIECY[d.getMonth()],
+          suma: 0,
+          liczba: 0
+        });
+      }
+      const mapa = new Map(buckets.map(b => [b.key, b]));
+      lista.forEach(wpis => {
+        const data = new Date(wpis.dataZapisu);
+        if (Number.isNaN(data.getTime())) return;
+        const key = data.getFullYear() + '-' + data.getMonth();
+        const b = mapa.get(key);
+        if (!b) return;
+        b.suma += Number(wpis.suma) || 0;
+        b.liczba += 1;
+      });
+      return buckets;
+    }
+
+    function renderujWykres(buckets) {
+      const chart = document.getElementById('stat-chart');
+      const labels = document.getElementById('stat-chart-labels');
+      if (!chart || !labels) return;
+      chart.innerHTML = '';
+      labels.innerHTML = '';
+      const max = buckets.reduce((m, b) => Math.max(m, b.suma), 0);
+      buckets.forEach(b => {
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar' + (b.suma === 0 ? ' is-empty' : '');
+        const pct = max > 0 ? (b.suma / max) * 100 : 0;
+        bar.style.height = b.suma === 0 ? '2px' : Math.max(pct, 2) + '%';
+        const sufiks = b.liczba === 1 ? 'oferta' : (b.liczba >= 2 && b.liczba <= 4 ? 'oferty' : 'ofert');
+        bar.title = b.label + ': ' + formatujSume(b.suma) + ' (' + b.liczba + ' ' + sufiks + ')';
+        chart.appendChild(bar);
+
+        const lbl = document.createElement('div');
+        lbl.textContent = b.label;
+        labels.appendChild(lbl);
+      });
+    }
+
     function renderStatystyki() {
       if (!statsSection) return;
       const lista = wczytajHistorie();
@@ -3105,6 +3242,7 @@
       let liczbaWMiesiacu = 0;
       let sumaLacznie = 0;
       let sumaWMiesiacu = 0;
+      let pozycjiLacznie = 0;
       const liczniki = new Map();
 
       lista.forEach(wpis => {
@@ -3125,10 +3263,12 @@
           const nazwa = p && typeof p.nazwa === 'string' ? p.nazwa.trim() : '';
           if (!nazwa) return;
           liczniki.set(nazwa, (liczniki.get(nazwa) || 0) + 1);
+          pozycjiLacznie += 1;
         });
       });
 
       const srednia = liczbaLacznie > 0 ? sumaLacznie / liczbaLacznie : 0;
+      const sredniaPozycji = liczbaLacznie > 0 ? (pozycjiLacznie / liczbaLacznie) : 0;
       const top5 = Array.from(liczniki.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
@@ -3151,8 +3291,32 @@
         formatujSume(srednia),
         'Z ' + liczbaLacznie + ' ' + (liczbaLacznie === 1 ? 'oferty' : 'ofert')
       ));
+      grid.appendChild(tworzKarteStat(
+        'Pozycji łącznie',
+        String(pozycjiLacznie),
+        'Średnio ' + sredniaPozycji.toFixed(1).replace('.', ',') + ' na ofertę'
+      ));
 
-      const top5Card = tworzKarteStat('Najczęstsze pozycje', null, null, 'stats-card-full');
+      statsSection.appendChild(grid);
+
+      const chartContainer = document.createElement('div');
+      chartContainer.className = 'chart-container';
+      const chartTitle = document.createElement('h3');
+      chartTitle.className = 'chart-title';
+      chartTitle.textContent = 'Wartość ofert (ostatnie 6 miesięcy)';
+      chartContainer.appendChild(chartTitle);
+      const chartBars = document.createElement('div');
+      chartBars.id = 'stat-chart';
+      chartContainer.appendChild(chartBars);
+      const chartLabels = document.createElement('div');
+      chartLabels.id = 'stat-chart-labels';
+      chartContainer.appendChild(chartLabels);
+      statsSection.appendChild(chartContainer);
+
+      const buckets = agregujMiesiacami(lista, 6);
+      renderujWykres(buckets);
+
+      const top5Card = tworzKarteStat('Najczęstsze pozycje', null, null, 'stats-card-full stats-card-standalone');
       if (top5.length > 0) {
         const ul = document.createElement('ul');
         ul.className = 'stats-card-list';
@@ -3175,9 +3339,7 @@
         meta.textContent = 'Brak pozycji do zliczenia';
         top5Card.appendChild(meta);
       }
-      grid.appendChild(top5Card);
-
-      statsSection.appendChild(grid);
+      statsSection.appendChild(top5Card);
     }
 
     function renderujHistorie() {
