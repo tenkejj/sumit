@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="static/sumit-logo.png" alt="SumIt Logo" width="320" style="background-color: #ffffff; padding: 24px; border-radius: 12px;">
+  <img src="static/logoo.png" alt="SumIt Logo" width="320" style="background-color: #ffffff; padding: 24px; border-radius: 12px;">
 </p>
 
 # SumIt - Your Valuation Standard
