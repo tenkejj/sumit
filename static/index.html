@@ -299,7 +299,7 @@
       font-size: 13px;
     }
     .col-nazwa { min-width: 180px; }
-    .col-ilosc { width: 90px; }
+    .col-ilosc { width: 120px; }
     .col-cena  { width: 140px; }
     .col-akcja { width: 72px; text-align: right; white-space: nowrap; }
 
@@ -386,6 +386,41 @@
       color: var(--text);
     }
     .btn-duplicate svg {
+      width: 14px;
+      height: 14px;
+      flex: 0 0 14px;
+    }
+
+    .ilosc-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+    }
+    .ilosc-wrap .in-ilosc {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .btn-calc {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      line-height: 1;
+      flex: 0 0 28px;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .btn-calc:hover,
+    .btn-calc:focus-visible {
+      outline: none;
+      background: var(--bg-hover);
+      color: var(--text);
+    }
+    .btn-calc svg {
       width: 14px;
       height: 14px;
       flex: 0 0 14px;
@@ -642,6 +677,7 @@
 
     .modal-footer {
       display: flex;
+      flex-wrap: wrap;
       justify-content: flex-end;
       gap: 12px;
       padding: 16px 24px;
@@ -679,6 +715,21 @@
     .modal-card.catalog-card { max-width: 560px; }
     .modal-card.settings-card { max-width: 560px; }
     .modal-card.historia-card { max-width: 560px; }
+    .modal-card.kalkulator-card { max-width: 440px; }
+
+    .kalkulator-wynik {
+      margin-top: 20px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-soft);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.005em;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
 
     .historia-list {
       list-style: none;
@@ -1241,6 +1292,7 @@
       <div class="modal-footer">
         <button type="button" class="btn-secondary" id="btn-zamknij-modal">Zamknij</button>
         <button type="button" class="btn-secondary" id="btn-drukuj-pdf">Drukuj</button>
+        <button type="button" class="btn-secondary" id="btn-przygotuj-email" title="Otworzy klienta poczty z gotowym tematem i treścią. Pamiętaj o dołączeniu pobranego PDF jako załącznika.">Przygotuj e-mail</button>
         <button type="button" class="btn-primary" id="btn-pobierz-pdf">Pobierz PDF</button>
       </div>
     </div>
@@ -1337,6 +1389,35 @@
     </div>
   </div>
 
+  <div class="modal" id="kalkulator-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="kalkulator-modal-title">
+    <div class="modal-backdrop" id="kalkulator-modal-backdrop"></div>
+    <div class="modal-card kalkulator-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="kalkulator-modal-title">Kalkulator powierzchni</h3>
+      </div>
+      <div class="modal-body">
+        <p class="settings-hint">Wpisz wymiary, by obliczyć powierzchnię w m² i wstawić wynik do pola „Ilość".</p>
+        <form id="kalkulator-form" autocomplete="off" onsubmit="return false;">
+          <div class="row">
+            <div class="field">
+              <label for="kalk-dlugosc">Długość (m)</label>
+              <input type="number" id="kalk-dlugosc" step="0.01" min="0" placeholder="0,00" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="kalk-szerokosc">Szerokość (m)</label>
+              <input type="number" id="kalk-szerokosc" step="0.01" min="0" placeholder="0,00" inputmode="decimal">
+            </div>
+          </div>
+          <div class="kalkulator-wynik" id="kalk-wynik" aria-live="polite">Powierzchnia: 0,00 m²</div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btn-kalk-zamknij">Anuluj</button>
+        <button type="button" class="btn-primary" id="btn-kalk-wstaw">Wstaw do Ilości</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal" id="historia-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="historia-modal-title">
     <div class="modal-backdrop" id="historia-modal-backdrop"></div>
     <div class="modal-card historia-card">
@@ -1415,7 +1496,24 @@
       tr.innerHTML = `
         <td class="col-lp"></td>
         <td class="col-nazwa"><input type="text" class="in-nazwa" placeholder="np. Usługa konsultingowa" required></td>
-        <td class="col-ilosc"><input type="number" class="in-ilosc" step="any" min="0" placeholder="1" required></td>
+        <td class="col-ilosc">
+          <div class="ilosc-wrap">
+            <input type="number" class="in-ilosc" step="any" min="0" placeholder="1" required>
+            <button type="button" class="btn-calc" title="Kalkulator powierzchni (m²)" aria-label="Otwórz kalkulator powierzchni" aria-haspopup="dialog" aria-controls="kalkulator-modal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                <line x1="8" y1="6" x2="16" y2="6"></line>
+                <line x1="8" y1="10" x2="8" y2="10"></line>
+                <line x1="12" y1="10" x2="12" y2="10"></line>
+                <line x1="16" y1="10" x2="16" y2="10"></line>
+                <line x1="8" y1="14" x2="8" y2="14"></line>
+                <line x1="12" y1="14" x2="12" y2="14"></line>
+                <line x1="16" y1="14" x2="16" y2="18"></line>
+                <line x1="8" y1="18" x2="12" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </td>
         <td class="col-cena">
           <div class="price-wrap">
             <input type="number" class="in-cena" step="0.01" min="0" placeholder="0,00" required>
@@ -1446,6 +1544,7 @@
         odswiezNumery();
       });
       tr.querySelector('.btn-duplicate').addEventListener('click', () => duplikujWiersz(tr));
+      tr.querySelector('.btn-calc').addEventListener('click', () => otworzKalkulator(tr));
       tr.querySelectorAll('.btn-adjust').forEach(btn => {
         btn.addEventListener('click', () => {
           const pct = parseFloat(btn.dataset.adjust);
@@ -1653,11 +1752,13 @@
     const pdfPreview = document.getElementById('pdf-preview');
     const btnPobierzPdf = document.getElementById('btn-pobierz-pdf');
     const btnDrukujPdf = document.getElementById('btn-drukuj-pdf');
+    const btnPrzygotujEmail = document.getElementById('btn-przygotuj-email');
     const btnZamknijModal = document.getElementById('btn-zamknij-modal');
 
     let aktualnyPodgladUrl = '';
     let aktualnaNazwaPliku = '';
     let aktualnyPayload = null;
+    let aktualnyPayloadEmail = null;
 
     function pokazPodgladPdf(url, nazwaPliku, payload) {
       if (aktualnyPodgladUrl) {
@@ -1666,6 +1767,7 @@
       aktualnyPodgladUrl = url;
       aktualnaNazwaPliku = nazwaPliku;
       aktualnyPayload = payload || null;
+      aktualnyPayloadEmail = payload || null;
       pdfPreview.src = url;
       pdfModal.hidden = false;
       pdfModal.setAttribute('aria-hidden', 'false');
@@ -1683,6 +1785,7 @@
       }
       aktualnaNazwaPliku = '';
       aktualnyPayload = null;
+      aktualnyPayloadEmail = null;
     }
 
     btnZamknijModal.addEventListener('click', zamknijPodgladPdf);
@@ -1717,6 +1820,28 @@
       } catch (e) {
         pokazKomunikat('Nie udało się otworzyć dialogu drukowania. Pobierz PDF i wydrukuj z czytnika.', 'error');
       }
+    });
+
+    btnPrzygotujEmail.addEventListener('click', () => {
+      if (!aktualnyPayloadEmail) {
+        pokazKomunikat('Najpierw wygeneruj ofertę, aby przygotować e-mail.', 'error');
+        return;
+      }
+      const p = aktualnyPayloadEmail;
+      const numer = String(p.numer_oferty || '').trim();
+      const firma = String(p.nazwa_firmy || '').trim();
+      const sumaNum = obliczSumePozycji(p.pozycje);
+      const sumaTxt = (Number.isFinite(sumaNum) ? sumaNum : 0).toFixed(2).replace('.', ',');
+
+      const numerTxt = numer || 'bez numeru';
+      const subject = firma
+        ? `Oferta ${numerTxt} - ${firma}`
+        : `Oferta ${numerTxt}`;
+      const podpis = firma ? `Pozdrawiam,\n${firma}` : 'Pozdrawiam';
+      const body = `Dzień dobry,\n\nw załączniku przesyłam ofertę ${numerTxt} na kwotę ${sumaTxt} zł. W razie pytań jestem do dyspozycji.\n\n${podpis}`;
+
+      const mailto = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      window.location.href = mailto;
     });
 
     const STORAGE_KEY_CONFIG = 'oferowo_config';
@@ -2843,6 +2968,89 @@
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !historiaModal.hidden) zamknijHistorie();
+    });
+
+    const kalkulatorModal = document.getElementById('kalkulator-modal');
+    const kalkulatorBackdrop = document.getElementById('kalkulator-modal-backdrop');
+    const kalkDlugoscEl = document.getElementById('kalk-dlugosc');
+    const kalkSzerokoscEl = document.getElementById('kalk-szerokosc');
+    const kalkWynikEl = document.getElementById('kalk-wynik');
+    const btnKalkWstaw = document.getElementById('btn-kalk-wstaw');
+    const btnKalkZamknij = document.getElementById('btn-kalk-zamknij');
+
+    let aktywnyWierszKalkulatora = null;
+
+    function parsujLiczbeKalk(raw) {
+      const s = String(raw == null ? '' : raw).replace(',', '.').trim();
+      if (!s) return NaN;
+      return parseFloat(s);
+    }
+
+    function obliczPowierzchnieKalk() {
+      const d = parsujLiczbeKalk(kalkDlugoscEl.value);
+      const s = parsujLiczbeKalk(kalkSzerokoscEl.value);
+      if (!Number.isFinite(d) || !Number.isFinite(s) || d <= 0 || s <= 0) return NaN;
+      return Math.round(d * s * 100) / 100;
+    }
+
+    function formatujPowierzchnie(n) {
+      return n.toFixed(2).replace('.', ',');
+    }
+
+    function odswiezKalkulatorWynik() {
+      const wynik = obliczPowierzchnieKalk();
+      if (Number.isFinite(wynik) && wynik > 0) {
+        kalkWynikEl.textContent = 'Powierzchnia: ' + formatujPowierzchnie(wynik) + ' m²';
+        btnKalkWstaw.disabled = false;
+      } else {
+        kalkWynikEl.textContent = 'Powierzchnia: 0,00 m²';
+        btnKalkWstaw.disabled = true;
+      }
+    }
+
+    function otworzKalkulator(tr) {
+      if (!tr || !tbody.contains(tr)) return;
+      aktywnyWierszKalkulatora = tr;
+      kalkDlugoscEl.value = '';
+      kalkSzerokoscEl.value = '';
+      odswiezKalkulatorWynik();
+      kalkulatorModal.hidden = false;
+      kalkulatorModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => kalkDlugoscEl.focus(), 0);
+    }
+
+    function zamknijKalkulator() {
+      kalkulatorModal.hidden = true;
+      kalkulatorModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      aktywnyWierszKalkulatora = null;
+    }
+
+    function wstawWynikKalkulatora() {
+      const wynik = obliczPowierzchnieKalk();
+      if (!Number.isFinite(wynik) || wynik <= 0) return;
+      const tr = aktywnyWierszKalkulatora;
+      if (!tr || !tbody.contains(tr)) {
+        zamknijKalkulator();
+        return;
+      }
+      const inIlosc = tr.querySelector('.in-ilosc');
+      if (inIlosc) {
+        inIlosc.value = String(wynik);
+        inIlosc.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      zamknijKalkulator();
+      saveDraft();
+    }
+
+    kalkDlugoscEl.addEventListener('input', odswiezKalkulatorWynik);
+    kalkSzerokoscEl.addEventListener('input', odswiezKalkulatorWynik);
+    btnKalkWstaw.addEventListener('click', wstawWynikKalkulatora);
+    btnKalkZamknij.addEventListener('click', zamknijKalkulator);
+    kalkulatorBackdrop.addEventListener('click', zamknijKalkulator);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !kalkulatorModal.hidden) zamknijKalkulator();
     });
   </script>
 </body>
