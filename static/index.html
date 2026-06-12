@@ -781,6 +781,7 @@
       padding: 24px;
     }
     .modal[hidden] { display: none; }
+    .modal.hidden { display: none; }
 
     .modal-backdrop {
       position: absolute;
@@ -978,6 +979,16 @@
     .modal-card.settings-card { max-width: 560px; }
     .modal-card.historia-card { max-width: 560px; }
     .modal-card.kalkulator-card { max-width: 440px; }
+    .modal-card.nip-card { max-width: 440px; }
+
+    .nip-card #nip-input {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.05em;
+    }
+    .nip-card #nip-input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
 
     .kalkulator-wynik {
       margin-top: 20px;
@@ -1972,6 +1983,28 @@
     </div>
   </div>
 
+  <div class="modal hidden" id="modal-nip" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-nip-title">
+    <div class="modal-backdrop" id="modal-nip-backdrop"></div>
+    <div class="modal-card nip-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-nip-title">Pobierz dane z GUS</h3>
+      </div>
+      <div class="modal-body">
+        <p class="settings-hint">Pobiera nazwę, adres i NIP z Białej Listy Ministerstwa Finansów.</p>
+        <form id="modal-nip-form" autocomplete="off" onsubmit="return false;">
+          <div class="field">
+            <label for="nip-input">NIP klienta</label>
+            <input type="text" id="nip-input" placeholder="Wpisz 10 cyfr NIP" maxlength="10" inputmode="numeric" autocomplete="off">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btn-nip-anuluj">Anuluj</button>
+        <button type="button" class="btn-primary" id="btn-nip-pobierz">Pobierz</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const tbody = document.getElementById('pozycje-tbody');
     const btnDodaj = document.getElementById('btn-dodaj');
@@ -2917,29 +2950,62 @@
       return String(s || '').replace(/\D/g, '');
     }
 
-    async function pobierzKlientaPoNIP() {
-      const btn = document.getElementById('btn-pobierz-nip');
+    const modalNIP = document.getElementById('modal-nip');
+    const modalNIPBackdrop = document.getElementById('modal-nip-backdrop');
+    const nipInput = document.getElementById('nip-input');
+    const btnNipAnuluj = document.getElementById('btn-nip-anuluj');
+    const btnNipPobierz = document.getElementById('btn-nip-pobierz');
+
+    let nipFetchController = null;
+
+    function ustawStanLadowaniaNIP(loading) {
+      if (!btnNipPobierz || !nipInput) return;
+      btnNipPobierz.disabled = loading;
+      btnNipPobierz.textContent = loading ? 'Pobieram…' : 'Pobierz';
+      btnNipPobierz.setAttribute('aria-busy', loading ? 'true' : 'false');
+      nipInput.disabled = loading;
+    }
+
+    function otworzModalNIP() {
+      if (!modalNIP || !nipInput) return;
+      nipInput.value = '';
+      ustawStanLadowaniaNIP(false);
+      modalNIP.classList.remove('hidden');
+      modalNIP.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => nipInput.focus(), 0);
+    }
+
+    function zamknijModalNIP() {
+      if (!modalNIP) return;
+      if (nipFetchController) {
+        nipFetchController.abort();
+        nipFetchController = null;
+      }
+      modalNIP.classList.add('hidden');
+      modalNIP.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      ustawStanLadowaniaNIP(false);
+    }
+
+    async function wyslijZapytanieNIP() {
       const klientEl = document.getElementById('klient');
-      if (!btn || !klientEl) return;
+      if (!nipInput || !klientEl) return;
 
-      const wejscie = window.prompt('Podaj NIP klienta:');
-      if (wejscie === null) return;
-
-      const nip = oczyscNIPWejscie(wejscie);
+      const nip = oczyscNIPWejscie(nipInput.value);
       if (nip.length !== 10) {
         window.alert('Nieprawidłowy NIP — musi zawierać dokładnie 10 cyfr.');
+        nipInput.focus();
         return;
       }
 
-      const labelEl = btn.querySelector('.btn-link-nip-label');
-      const oryginalnyTekst = labelEl ? labelEl.textContent : '';
-      btn.setAttribute('aria-busy', 'true');
-      btn.disabled = true;
-      if (labelEl) labelEl.textContent = 'Pobieram…';
+      ustawStanLadowaniaNIP(true);
+      nipFetchController = new AbortController();
 
       try {
         const resp = await fetch('/api/nip?nip=' + encodeURIComponent(nip), {
           headers: { 'Accept': 'application/json' },
+          signal: nipFetchController.signal,
         });
         let dane = null;
         try { dane = await resp.json(); } catch (e) { dane = null; }
@@ -2956,21 +3022,49 @@
         if (dane && dane.nip)   linie.push('NIP: ' + String(dane.nip));
 
         if (linie.length === 0) {
-          window.alert('Białej Listy MF nie zwróciła danych firmy.');
+          window.alert('Biała Lista MF nie zwróciła danych firmy.');
           return;
         }
 
         klientEl.value = linie.join('\n');
+        zamknijModalNIP();
         saveDraft();
         klientEl.focus();
       } catch (err) {
+        if (err && err.name === 'AbortError') return;
         window.alert('Błąd sieci: nie udało się połączyć z serwerem.');
       } finally {
-        btn.removeAttribute('aria-busy');
-        btn.disabled = false;
-        if (labelEl) labelEl.textContent = oryginalnyTekst || 'Pobierz po NIP';
+        nipFetchController = null;
+        if (!modalNIP.classList.contains('hidden')) {
+          ustawStanLadowaniaNIP(false);
+        }
       }
     }
+
+    function pobierzKlientaPoNIP() {
+      otworzModalNIP();
+    }
+
+    if (nipInput) {
+      nipInput.addEventListener('input', () => {
+        const cleaned = nipInput.value.replace(/\D/g, '');
+        if (cleaned !== nipInput.value) nipInput.value = cleaned;
+      });
+      nipInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (!btnNipPobierz.disabled) wyslijZapytanieNIP();
+        }
+      });
+    }
+    if (btnNipPobierz) btnNipPobierz.addEventListener('click', wyslijZapytanieNIP);
+    if (btnNipAnuluj) btnNipAnuluj.addEventListener('click', zamknijModalNIP);
+    if (modalNIPBackdrop) modalNIPBackdrop.addEventListener('click', zamknijModalNIP);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalNIP && !modalNIP.classList.contains('hidden')) {
+        zamknijModalNIP();
+      }
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
       wczytajDraft();
