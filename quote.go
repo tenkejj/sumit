@@ -18,105 +18,105 @@ import (
 	qrcode "github.com/skip2/go-qrcode"
 )
 
-type Pozycja struct {
-	Nazwa           string  `json:"nazwa"`
-	Ilosc           float64 `json:"ilosc"`
-	CenaJednostkowa float64 `json:"cena_jednostkowa"`
+type LineItem struct {
+	Name      string  `json:"nazwa"`
+	Quantity  float64 `json:"ilosc"`
+	UnitPrice float64 `json:"cena_jednostkowa"`
 }
 
-func (p Pozycja) Wartosc() float64 {
-	return p.Ilosc * p.CenaJednostkowa
+func (li LineItem) Total() float64 {
+	return li.Quantity * li.UnitPrice
 }
 
-// FirmaDane zawiera dane sprzedawcy renderowane w nagłówku PDF.
+// Company zawiera dane sprzedawcy renderowane w nagłówku PDF.
 // Pola są deserializowane z płaskiego JSON-a wysyłanego przez frontend
-// (patrz Oferta.UnmarshalJSON).
-type FirmaDane struct {
-	Nazwa      string `json:"nazwa_firmy"`
-	NIP        string `json:"nip"`
-	Adres      string `json:"adres"`
-	Miasto     string `json:"miasto"`
-	Telefon    string `json:"telefon"`
-	Email      string `json:"email"`
-	LogoBase64 string `json:"logo_base64"`
-	NumerKonta string `json:"numer_konta"`
+// (patrz Quote.UnmarshalJSON).
+type Company struct {
+	Name        string `json:"nazwa_firmy"`
+	NIP         string `json:"nip"`
+	Address     string `json:"adres"`
+	City        string `json:"miasto"`
+	Phone       string `json:"telefon"`
+	Email       string `json:"email"`
+	LogoBase64  string `json:"logo_base64"`
+	BankAccount string `json:"numer_konta"`
 }
 
-type Oferta struct {
-	Firma        FirmaDane `json:"-"`
-	Klient       string    `json:"klient"`
-	NumerOferty  string    `json:"numer_oferty"`
-	DataWaznosci string    `json:"data_waznosci"`
-	Uwagi        string    `json:"uwagi"`
-	Pozycje      []Pozycja `json:"pozycje"`
+type Quote struct {
+	Company    Company    `json:"-"`
+	Client     string     `json:"klient"`
+	Number     string     `json:"numer_oferty"`
+	ValidUntil string     `json:"data_waznosci"`
+	Notes      string     `json:"uwagi"`
+	Items      []LineItem `json:"pozycje"`
 }
 
-// ofertaJSON to wewnętrzna reprezentacja serializacji przyjmująca płaski
+// quoteJSON to wewnętrzna reprezentacja serializacji przyjmująca płaski
 // JSON, jaki wysyła frontend (pola firmy obok klient/pozycji na jednym
-// poziomie). Mapowanie do zagnieżdżonej Oferta.Firma odbywa się w
+// poziomie). Mapowanie do zagnieżdżonej Quote.Company odbywa się w
 // (Un)MarshalJSON, dzięki czemu kontrakt JSON pozostaje niezmieniony.
-type ofertaJSON struct {
-	FirmaDane
-	Klient       string    `json:"klient"`
-	NumerOferty  string    `json:"numer_oferty"`
-	DataWaznosci string    `json:"data_waznosci"`
-	Uwagi        string    `json:"uwagi"`
-	Pozycje      []Pozycja `json:"pozycje"`
+type quoteJSON struct {
+	Company
+	Client     string     `json:"klient"`
+	Number     string     `json:"numer_oferty"`
+	ValidUntil string     `json:"data_waznosci"`
+	Notes      string     `json:"uwagi"`
+	Items      []LineItem `json:"pozycje"`
 }
 
-func (o *Oferta) UnmarshalJSON(data []byte) error {
-	var raw ofertaJSON
+func (q *Quote) UnmarshalJSON(data []byte) error {
+	var raw quoteJSON
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
-	*o = Oferta{
-		Firma:        raw.FirmaDane,
-		Klient:       raw.Klient,
-		NumerOferty:  raw.NumerOferty,
-		DataWaznosci: raw.DataWaznosci,
-		Uwagi:        raw.Uwagi,
-		Pozycje:      raw.Pozycje,
+	*q = Quote{
+		Company:    raw.Company,
+		Client:     raw.Client,
+		Number:     raw.Number,
+		ValidUntil: raw.ValidUntil,
+		Notes:      raw.Notes,
+		Items:      raw.Items,
 	}
 	return nil
 }
 
-func (o Oferta) MarshalJSON() ([]byte, error) {
-	return json.Marshal(ofertaJSON{
-		FirmaDane:    o.Firma,
-		Klient:       o.Klient,
-		NumerOferty:  o.NumerOferty,
-		DataWaznosci: o.DataWaznosci,
-		Uwagi:        o.Uwagi,
-		Pozycje:      o.Pozycje,
+func (q Quote) MarshalJSON() ([]byte, error) {
+	return json.Marshal(quoteJSON{
+		Company:    q.Company,
+		Client:     q.Client,
+		Number:     q.Number,
+		ValidUntil: q.ValidUntil,
+		Notes:      q.Notes,
+		Items:      q.Items,
 	})
 }
 
-func (o Oferta) Suma() float64 {
+func (q Quote) Total() float64 {
 	var s float64
-	for _, p := range o.Pozycje {
-		s += p.Wartosc()
+	for _, li := range q.Items {
+		s += li.Total()
 	}
 	return s
 }
 
-func handleOferta(w http.ResponseWriter, r *http.Request) {
+func handleQuote(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	dec := json.NewDecoder(r.Body)
 
-	var o Oferta
-	if err := dec.Decode(&o); err != nil {
+	var q Quote
+	if err := dec.Decode(&q); err != nil {
 		http.Error(w, "nieprawidłowy JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := o.Waliduj(); err != nil {
+	if err := q.Validate(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	var buf bytes.Buffer
-	if err := generujOfertePDF(o, &buf); err != nil {
+	if err := GeneratePDF(q, &buf); err != nil {
 		http.Error(w, "błąd generowania PDF: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -127,25 +127,25 @@ func handleOferta(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.Copy(w, &buf)
 }
 
-func (o Oferta) Waliduj() error {
-	if strings.TrimSpace(o.Firma.Nazwa) == "" {
+func (q Quote) Validate() error {
+	if strings.TrimSpace(q.Company.Name) == "" {
 		return fmt.Errorf("pole nazwa_firmy jest wymagane")
 	}
-	if strings.TrimSpace(o.Klient) == "" {
+	if strings.TrimSpace(q.Client) == "" {
 		return fmt.Errorf("pole klient jest wymagane")
 	}
-	if len(o.Pozycje) == 0 {
+	if len(q.Items) == 0 {
 		return fmt.Errorf("lista pozycji nie może być pusta")
 	}
-	for i, p := range o.Pozycje {
-		if strings.TrimSpace(p.Nazwa) == "" {
+	for i, li := range q.Items {
+		if strings.TrimSpace(li.Name) == "" {
 			return fmt.Errorf("pozycja #%d: brak nazwy", i+1)
 		}
-		if p.Ilosc <= 0 {
-			return fmt.Errorf("pozycja #%d (%s): ilość musi być > 0", i+1, p.Nazwa)
+		if li.Quantity <= 0 {
+			return fmt.Errorf("pozycja #%d (%s): ilość musi być > 0", i+1, li.Name)
 		}
-		if p.CenaJednostkowa < 0 {
-			return fmt.Errorf("pozycja #%d (%s): cena_jednostkowa nie może być ujemna", i+1, p.Nazwa)
+		if li.UnitPrice < 0 {
+			return fmt.Errorf("pozycja #%d (%s): cena_jednostkowa nie może być ujemna", i+1, li.Name)
 		}
 	}
 	return nil
@@ -206,7 +206,7 @@ func resolveBoldFontFile(fontDir, regularFile string) string {
 	return ""
 }
 
-func generujOfertePDF(o Oferta, w io.Writer) error {
+func GeneratePDF(q Quote, w io.Writer) error {
 	fontPath, err := resolveFontPath()
 	if err != nil {
 		return err
@@ -245,12 +245,12 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	// Nagłówek: logo po lewej, blok "OFERTA / nr / data" po prawej.
 	const logoY = 12.0
 	const logoH = 16.0
-	if strings.TrimSpace(o.Firma.LogoBase64) != "" {
-		if data, imgType, err := dekodujLogoBase64(o.Firma.LogoBase64); err == nil {
-			const nazwaLogo = "oferta_logo"
+	if strings.TrimSpace(q.Company.LogoBase64) != "" {
+		if data, imgType, err := decodeLogoBase64(q.Company.LogoBase64); err == nil {
+			const logoName = "oferta_logo"
 			opts := fpdf.ImageOptions{ImageType: imgType, ReadDpi: false}
-			pdf.RegisterImageOptionsReader(nazwaLogo, opts, bytes.NewReader(data))
-			pdf.ImageOptions(nazwaLogo, marginL, logoY, 0, logoH, false, opts, 0, "")
+			pdf.RegisterImageOptionsReader(logoName, opts, bytes.NewReader(data))
+			pdf.ImageOptions(logoName, marginL, logoY, 0, logoH, false, opts, 0, "")
 		}
 	}
 
@@ -261,7 +261,7 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 
 	pdf.SetFont(family, "", 10)
 	colorMuted()
-	if s := strings.TrimSpace(o.NumerOferty); s != "" {
+	if s := strings.TrimSpace(q.Number); s != "" {
 		pdf.SetX(marginL)
 		pdf.CellFormat(usableW, 5, "Nr "+s, "", 1, "R", false, 0, "")
 	}
@@ -282,31 +282,31 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	pdf.SetX(marginL)
 	pdf.SetFont(family, "", 11)
 	colorDark()
-	pdf.MultiCell(85, 6, o.Firma.Nazwa, "", "L", false)
+	pdf.MultiCell(85, 6, q.Company.Name, "", "L", false)
 
-	var staleDane []string
-	if s := strings.TrimSpace(o.Firma.NIP); s != "" {
-		staleDane = append(staleDane, "NIP: "+s)
+	var companyDetails []string
+	if s := strings.TrimSpace(q.Company.NIP); s != "" {
+		companyDetails = append(companyDetails, "NIP: "+s)
 	}
-	if s := strings.TrimSpace(o.Firma.Adres); s != "" {
-		staleDane = append(staleDane, s)
+	if s := strings.TrimSpace(q.Company.Address); s != "" {
+		companyDetails = append(companyDetails, s)
 	}
-	if s := strings.TrimSpace(o.Firma.Miasto); s != "" {
-		staleDane = append(staleDane, s)
+	if s := strings.TrimSpace(q.Company.City); s != "" {
+		companyDetails = append(companyDetails, s)
 	}
-	telefon := strings.TrimSpace(o.Firma.Telefon)
-	email := strings.TrimSpace(o.Firma.Email)
-	if len(staleDane) > 0 || telefon != "" || email != "" {
+	phone := strings.TrimSpace(q.Company.Phone)
+	email := strings.TrimSpace(q.Company.Email)
+	if len(companyDetails) > 0 || phone != "" || email != "" {
 		pdf.SetX(marginL)
 		pdf.SetFont(family, "", 8)
 		colorMuted()
-		if len(staleDane) > 0 {
-			pdf.MultiCell(85, 4, strings.Join(staleDane, "\n"), "", "L", false)
+		if len(companyDetails) > 0 {
+			pdf.MultiCell(85, 4, strings.Join(companyDetails, "\n"), "", "L", false)
 		}
-		if telefon != "" {
+		if phone != "" {
 			pdf.SetX(marginL)
 			pdf.Write(4, "tel. ")
-			pdf.WriteLinkString(4, telefon, "tel:"+sanitizeTelefonLink(telefon))
+			pdf.WriteLinkString(4, phone, "tel:"+sanitizePhoneLink(phone))
 			pdf.Ln(4)
 		}
 		if email != "" {
@@ -325,7 +325,7 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	pdf.SetX(110)
 	pdf.SetFont(family, "", 11)
 	colorDark()
-	pdf.MultiCell(85, 6, o.Klient, "", "L", false)
+	pdf.MultiCell(85, 6, q.Client, "", "L", false)
 	rightEnd := pdf.GetY()
 
 	pdf.SetY(maxF(leftEnd, rightEnd))
@@ -359,12 +359,12 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 
 	pdf.SetFont(family, "", 10)
 	colorDark()
-	for i, p := range o.Pozycje {
+	for i, li := range q.Items {
 		pdf.CellFormat(colLp, 7, strconv.Itoa(i+1), "", 0, "C", false, 0, "")
-		pdf.CellFormat(colNazwa, 7, p.Nazwa, "", 0, "L", false, 0, "")
-		pdf.CellFormat(colIlosc, 7, formatLiczba(p.Ilosc), "", 0, "R", false, 0, "")
-		pdf.CellFormat(colCena, 7, formatPLN(p.CenaJednostkowa), "", 0, "R", false, 0, "")
-		pdf.CellFormat(colWart, 7, formatPLN(p.Wartosc()), "", 1, "R", false, 0, "")
+		pdf.CellFormat(colNazwa, 7, li.Name, "", 0, "L", false, 0, "")
+		pdf.CellFormat(colIlosc, 7, formatNumber(li.Quantity), "", 0, "R", false, 0, "")
+		pdf.CellFormat(colCena, 7, formatPLN(li.UnitPrice), "", 0, "R", false, 0, "")
+		pdf.CellFormat(colWart, 7, formatPLN(li.Total()), "", 1, "R", false, 0, "")
 		yRow := pdf.GetY()
 		pdf.SetLineWidth(0.2)
 		colorLine()
@@ -380,7 +380,7 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	pdf.SetFont(family, "B", 12)
 	colorDark()
 	pdf.CellFormat(colLp+colNazwa+colIlosc+colCena, 9, "Razem:", "", 0, "R", false, 0, "")
-	pdf.CellFormat(colWart, 9, formatPLN(o.Suma()), "", 1, "R", false, 0, "")
+	pdf.CellFormat(colWart, 9, formatPLN(q.Total()), "", 1, "R", false, 0, "")
 
 	yAfterRazem := pdf.GetY()
 	pdf.SetLineWidth(0.5)
@@ -391,16 +391,16 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 	colorLine()
 
 	// QR + dane do przelewu pod tabelą.
-	if nrb := sanitizeNRB(o.Firma.NumerKonta); len(nrb) == 26 {
-		tytulPrzelewu := "Oferta"
-		if s := strings.TrimSpace(o.NumerOferty); s != "" {
-			tytulPrzelewu = "Oferta " + s
+	if nrb := sanitizeNRB(q.Company.BankAccount); len(nrb) == 26 {
+		paymentTitle := "Oferta"
+		if s := strings.TrimSpace(q.Number); s != "" {
+			paymentTitle = "Oferta " + s
 		}
-		qrContent := formatPolskiQRPrzelew(nrb, o.Suma(), o.Firma.Nazwa, tytulPrzelewu)
-		if png, err := generujQRPNG(qrContent); err == nil {
+		qrContent := formatPolishPaymentQR(nrb, q.Total(), q.Company.Name, paymentTitle)
+		if png, err := generateQRPNG(qrContent); err == nil {
 			pdf.Ln(10)
 			yQR := pdf.GetY()
-			const qrRozmiar = 35.0
+			const qrSize = 35.0
 
 			pdf.SetXY(marginL, yQR)
 			pdf.SetFont(family, "B", 8)
@@ -410,27 +410,27 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 			pdf.SetX(marginL)
 			pdf.SetFont(family, "", 10)
 			colorDark()
-			pdf.MultiCell(usableW-qrRozmiar-5, 5,
-				"Numer konta: "+formatujNRBzeSpacjami(nrb)+"\n"+
-					"Odbiorca: "+o.Firma.Nazwa+"\n"+
-					"Tytuł: "+tytulPrzelewu+"\n"+
-					"Kwota: "+formatPLN(o.Suma()),
+			pdf.MultiCell(usableW-qrSize-5, 5,
+				"Numer konta: "+formatNRBWithSpaces(nrb)+"\n"+
+					"Odbiorca: "+q.Company.Name+"\n"+
+					"Tytuł: "+paymentTitle+"\n"+
+					"Kwota: "+formatPLN(q.Total()),
 				"", "L", false)
 
-			const nazwaQR = "oferta_qr"
+			const qrName = "oferta_qr"
 			opts := fpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}
-			pdf.RegisterImageOptionsReader(nazwaQR, opts, bytes.NewReader(png))
-			pdf.ImageOptions(nazwaQR, rightX-qrRozmiar, yQR, qrRozmiar, qrRozmiar, false, opts, 0, "")
+			pdf.RegisterImageOptionsReader(qrName, opts, bytes.NewReader(png))
+			pdf.ImageOptions(qrName, rightX-qrSize, yQR, qrSize, qrSize, false, opts, 0, "")
 
-			koniecQR := yQR + qrRozmiar + 2
-			if pdf.GetY() < koniecQR {
-				pdf.SetY(koniecQR)
+			qrEnd := yQR + qrSize + 2
+			if pdf.GetY() < qrEnd {
+				pdf.SetY(qrEnd)
 			}
 		}
 	}
 
 	// Uwagi do oferty.
-	if uwagi := strings.TrimSpace(o.Uwagi); uwagi != "" {
+	if notes := strings.TrimSpace(q.Notes); notes != "" {
 		pdf.Ln(10)
 		pdf.SetX(marginL)
 		pdf.SetFont(family, "B", 8)
@@ -440,19 +440,19 @@ func generujOfertePDF(o Oferta, w io.Writer) error {
 		pdf.SetX(marginL)
 		pdf.SetFont(family, "", 10)
 		colorDark()
-		pdf.MultiCell(0, 5, uwagi, "", "L", false)
+		pdf.MultiCell(0, 5, notes, "", "L", false)
 	}
 
 	// Stopka — termin ważności i klauzula.
 	pdf.Ln(10)
 	pdf.SetFont(family, "", 9)
 	colorMuted()
-	terminWaznosci := "14 dni od daty wystawienia"
-	if s := strings.TrimSpace(o.DataWaznosci); s != "" {
-		terminWaznosci = "do " + s
+	validityPeriod := "14 dni od daty wystawienia"
+	if s := strings.TrimSpace(q.ValidUntil); s != "" {
+		validityPeriod = "do " + s
 	}
 	pdf.MultiCell(0, 5,
-		"Oferta ważna "+terminWaznosci+". Ceny są cenami netto, do których należy doliczyć podatek VAT zgodnie z obowiązującymi przepisami. "+
+		"Oferta ważna "+validityPeriod+". Ceny są cenami netto, do których należy doliczyć podatek VAT zgodnie z obowiązującymi przepisami. "+
 			"Dziękujemy za zainteresowanie naszą ofertą.",
 		"", "L", false)
 
@@ -463,7 +463,7 @@ func formatPLN(v float64) string {
 	return fmt.Sprintf("%.2f zł", v)
 }
 
-func formatLiczba(v float64) string {
+func formatNumber(v float64) string {
 	if v == float64(int64(v)) {
 		return strconv.FormatInt(int64(v), 10)
 	}
@@ -477,10 +477,10 @@ func maxF(a, b float64) float64 {
 	return b
 }
 
-// dekodujLogoBase64 przyjmuje data URL (np. "data:image/png;base64,...") lub
+// decodeLogoBase64 przyjmuje data URL (np. "data:image/png;base64,...") lub
 // surowy base64 i zwraca zdekodowane bajty obrazu wraz z typem ("PNG" / "JPG")
 // rozpoznanym z prefiksu MIME lub magicznych bajtów obrazu.
-func dekodujLogoBase64(s string) ([]byte, string, error) {
+func decodeLogoBase64(s string) ([]byte, string, error) {
 	s = strings.TrimSpace(s)
 	raw := s
 	imgType := ""
@@ -519,10 +519,10 @@ func dekodujLogoBase64(s string) ([]byte, string, error) {
 	return data, imgType, nil
 }
 
-// sanitizeTelefonLink przygotowuje wartość dla schematu URI tel:.
+// sanitizePhoneLink przygotowuje wartość dla schematu URI tel:.
 // Usuwa wyłącznie spacje i myślniki — pozostałe znaki (m.in. wiodące "+"
 // dla numerów międzynarodowych) muszą zostać zachowane.
-func sanitizeTelefonLink(s string) string {
+func sanitizePhoneLink(s string) string {
 	s = strings.ReplaceAll(s, " ", "")
 	s = strings.ReplaceAll(s, "-", "")
 	return s
@@ -542,9 +542,9 @@ func sanitizeNRB(s string) string {
 	return b.String()
 }
 
-// skrocPole przycina łańcuch do co najwyżej max znaków (runów),
+// truncateField przycina łańcuch do co najwyżej max znaków (runów),
 // z uwzględnieniem polskich znaków diakrytycznych.
-func skrocPole(s string, max int) string {
+func truncateField(s string, max int) string {
 	s = strings.TrimSpace(s)
 	runes := []rune(s)
 	if len(runes) > max {
@@ -553,7 +553,7 @@ func skrocPole(s string, max int) string {
 	return s
 }
 
-// formatPolskiQRPrzelew buduje payload QR zgodny z Rekomendacją Związku Banków
+// formatPolishPaymentQR buduje payload QR zgodny z Rekomendacją Związku Banków
 // Polskich dla kodów dwuwymiarowych ("Standard 2D" / "Standard 2012"). Format
 // pól rozdzielonych pionową kreską:
 //
@@ -565,33 +565,33 @@ func skrocPole(s string, max int) string {
 //
 // TODO: zweryfikować z prawdziwą apką bankową (mBank/IKO/ING) po podpięciu
 // pierwszego klienta — różne banki bywają wrażliwe na końcowe separatory.
-func formatPolskiQRPrzelew(nrb string, kwotaPLN float64, nazwa, tytul string) string {
-	kwotaGrosze := int64(math.Round(kwotaPLN * 100))
-	if kwotaGrosze < 0 {
-		kwotaGrosze = 0
+func formatPolishPaymentQR(nrb string, amountPLN float64, name, title string) string {
+	amountGrosze := int64(math.Round(amountPLN * 100))
+	if amountGrosze < 0 {
+		amountGrosze = 0
 	}
 	return strings.Join([]string{
 		"",
 		"PL",
 		nrb,
-		strconv.FormatInt(kwotaGrosze, 10),
-		skrocPole(nazwa, 20),
-		skrocPole(tytul, 32),
+		strconv.FormatInt(amountGrosze, 10),
+		truncateField(name, 20),
+		truncateField(title, 32),
 		"",
 		"",
 		"",
 	}, "|")
 }
 
-// generujQRPNG zwraca obraz PNG kodu QR (256 px) z poziomem korekcji błędów M.
-func generujQRPNG(content string) ([]byte, error) {
+// generateQRPNG zwraca obraz PNG kodu QR (256 px) z poziomem korekcji błędów M.
+func generateQRPNG(content string) ([]byte, error) {
 	return qrcode.Encode(content, qrcode.Medium, 256)
 }
 
-// formatujNRBzeSpacjami zwraca 26-cyfrowy NRB w czytelnej postaci
+// formatNRBWithSpaces zwraca 26-cyfrowy NRB w czytelnej postaci
 // "CC RRRR RRRR RRRR RRRR RRRR RRRR" (jak w drukowanym formacie polskim).
 // Wejście, które nie jest dokładnie 26 cyfr, zwraca bez zmian.
-func formatujNRBzeSpacjami(nrb string) string {
+func formatNRBWithSpaces(nrb string) string {
 	if len(nrb) != 26 {
 		return nrb
 	}
