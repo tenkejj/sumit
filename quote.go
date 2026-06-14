@@ -2,22 +2,30 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-	"runtime"	
 
 	"github.com/go-pdf/fpdf"
 	qrcode "github.com/skip2/go-qrcode"
 )
+
+// Liberation Sans (SIL Open Font License) — metryczny zamiennik Arial
+// z pełnym wsparciem polskich znaków. Wbudowany w binarkę przez //go:embed,
+// dzięki czemu generator PDF nie zależy od czcionek systemowych.
+//
+//go:embed LiberationSans-Regular.ttf
+var fontRegular []byte
+
+//go:embed LiberationSans-Bold.ttf
+var fontBold []byte
 
 type LineItem struct {
 	Name      string  `json:"nazwa"`
@@ -152,111 +160,12 @@ func (q Quote) Validate() error {
 	return nil
 }
 
-// resolveFontPath zwraca ścieżkę do TTF obsługującego polskie znaki.
-// Można nadpisać zmienną środowiskową SUMIT_FONT_PATH.
-func resolveFontPath() (string, error) {
-	if p := os.Getenv("SUMIT_FONT_PATH"); p != "" {
-		if _, err := os.Stat(p); err == nil {
-			return p, nil
-		}
-		//return "", fmt.Errorf("SUMIT_FONT_PATH=%q nie istnieje: %w", p, err)
-	}
-
-	candidates := []string{}
-
-	switch runtime.GOOS {
-	case "windows":
-		winDir := os.Getenv("WINDIR")
-		if winDir == "" {
-			winDir = `C:\Windows`
-		}
-		candidates = append(candidates,
-			filepath.Join(winDir, "Fonts", "arial.ttf"),
-			filepath.Join(winDir, "Fonts", "calibri.ttf"),
-			filepath.Join(winDir, "Fonts", "segoeui.ttf"),
-		)
-	case "darwin":
-		candidates = append(candidates,
-			"/System/Library/Fonts/SFPro.ttf",
-			"/Library/Fonts/Arial.ttf",
-			"/System/Library/Fonts/Helvetica.ttc",
-		)
-	default: // linux
-		candidates = append(candidates,
-			"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-			"/usr/share/fonts/TTF/DejaVuSans.ttf",
-			"/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-			"/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-		)
-	}
-
-	for _, path := range candidates {
-		if path != "" {
-			if _, err := os.Stat(path); err == nil {
-				return path, nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("nie znaleziono odpowiedniej czcionki systemowej. Ustaw SUMIT_FONT_PATH")
-}
-
-// resolveBoldFontFile próbuje znaleźć wariant bold czcionki obok pliku
-// regularnego (np. arial.ttf -> arialbd.ttf, DejaVuSans.ttf ->
-// DejaVuSans-Bold.ttf). Zwraca pustą nazwę, gdy nie znajdzie pasującego
-// pliku — w takim wypadku styl "B" rejestruje się tym samym plikiem co
-// regular (tekst nie będzie pogrubiony, ale fpdf nie spanikuje).
-// Można nadpisać zmienną SUMIT_FONT_BOLD_PATH.
-func resolveBoldFontFile(fontDir, regularFile string) string {
-	if p := os.Getenv("SUMIT_FONT_BOLD_PATH"); p != "" {
-		if _, err := os.Stat(p); err == nil {
-			if filepath.Dir(p) == fontDir {
-				return filepath.Base(p)
-			}
-		}
-	}
-	ext := filepath.Ext(regularFile)
-	name := strings.TrimSuffix(regularFile, ext)
-	candidates := []string{
-		name + "bd" + ext,
-		name + "b" + ext,
-		name + "-Bold" + ext,
-		name + "Bold" + ext,
-		name + "_Bold" + ext,
-		name + " Bold" + ext,
-	}
-	for _, c := range candidates {
-		if _, err := os.Stat(filepath.Join(fontDir, c)); err == nil {
-			return c
-		}
-	}
-	return ""
-}
-
-
-
-
 func GeneratePDF(q Quote, w io.Writer) error {
-
-	fontFile := "abc.ttf"
-	family := strings.TrimSuffix(fontFile, ".ttf") // Poprawiono odcinanie rozszerzenia z kropką
+	const family = "LiberationSans"
 
 	pdf := fpdf.New("P", "mm", "A4", "")
-	
-	// 1. Rejestracja czcionki regularnej
-	pdf.AddUTF8Font(family, "", fontFile)
-	
-	// 2. Automatyczne szukanie i rejestracja czcionki pogrubionej (Bold)
-	// Sprawdzamy obecny katalog aplikacji (".") w poszukiwaniu np. abcbd.ttf lub abc-Bold.ttf
-	boldFile := resolveBoldFontFile(".", fontFile)
-	if boldFile != "" {
-		pdf.AddUTF8Font(family, "B", boldFile)
-	} else {
-		// Jeśli brak dedykowanego pliku bold, rejestrujemy zwykły plik pod stylem "B",
-		// dzięki czemu fpdf nie wywali błędu "undefined font"
-		pdf.AddUTF8Font(family, "B", fontFile)
-	}
-	
+	pdf.AddUTF8FontFromBytes(family, "", fontRegular)
+	pdf.AddUTF8FontFromBytes(family, "B", fontBold)
 	pdf.SetFont(family, "", 11)
 	pdf.SetMargins(15, 15, 15)
 	pdf.SetAutoPageBreak(true, 18)
