@@ -1197,6 +1197,25 @@
       margin: 0 0 16px;
     }
 
+    .stats-okres-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0 0 16px;
+    }
+
+    .stats-okres-bar .chip[aria-pressed="true"],
+    .stats-okres-bar .chip.is-active {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+
+    .stats-trend-positive { color: #16a34a; }
+    .stats-trend-negative { color: #dc2626; }
+    [data-theme="dark"] .stats-trend-positive { color: #4ade80; }
+    [data-theme="dark"] .stats-trend-negative { color: #f87171; }
+
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -1262,6 +1281,7 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 20px;
+      position: relative;
     }
 
     .chart-title {
@@ -1287,12 +1307,16 @@
       background: var(--text);
       opacity: 0.8;
       border-radius: 4px 4px 0 0;
-      transition: opacity 0.15s ease;
+      transition: opacity 0.15s ease, transform 0.15s ease, height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: bottom;
       cursor: default;
       min-height: 2px;
     }
 
-    #stat-chart .chart-bar:hover { opacity: 1; }
+    #stat-chart .chart-bar:hover {
+      opacity: 1;
+      transform: scaleY(1.02);
+    }
 
     #stat-chart .chart-bar.is-empty {
       background: var(--border);
@@ -1300,7 +1324,54 @@
       min-height: 2px;
     }
 
-    #stat-chart .chart-bar.is-empty:hover { opacity: 0.8; }
+    #stat-chart .chart-bar.is-empty:hover {
+      opacity: 0.8;
+      transform: scaleY(1.02);
+    }
+
+    .chart-tooltip {
+      position: absolute;
+      pointer-events: none;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--text);
+      letter-spacing: -0.005em;
+      white-space: nowrap;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.55) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 16px 40px -12px rgba(15, 23, 42, 0.10);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      backdrop-filter: blur(32px) saturate(180%);
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      z-index: 5;
+    }
+    .chart-tooltip.is-visible { opacity: 1; }
+    .chart-tooltip-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .chart-tooltip-amount {
+      font-variant-numeric: tabular-nums;
+    }
+    .chart-tooltip-count {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+    [data-theme="dark"] .chart-tooltip {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+    }
 
     #stat-chart-labels {
       display: flex;
@@ -3834,6 +3905,134 @@
     }
 
     const NAZWY_MIESIECY = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+    const NAZWY_DNI = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    const KOLEJNOSC_DNI_TYGODNIA = [1, 2, 3, 4, 5, 6, 0];
+
+    const STATS_OKRES_KEY = 'sumit_stats_okres';
+    const STATS_OKRES_DEFAULT = '30';
+    const STATS_OKRESY = [
+      { id: '7', label: '7 dni', dni: 7 },
+      { id: '30', label: '30 dni', dni: 30 },
+      { id: '90', label: '90 dni', dni: 90 },
+      { id: '365', label: 'Rok', dni: 365 },
+      { id: 'all', label: 'Wszystko', dni: null }
+    ];
+
+    function wczytajOkresStat() {
+      try {
+        const v = localStorage.getItem(STATS_OKRES_KEY);
+        if (STATS_OKRESY.some(o => o.id === v)) return v;
+      } catch (e) {}
+      return STATS_OKRES_DEFAULT;
+    }
+
+    function zapiszOkresStat(okres) {
+      try { localStorage.setItem(STATS_OKRES_KEY, okres); } catch (e) {}
+    }
+
+    function filtrujHistoriePoOkresie(lista, okres) {
+      if (!Array.isArray(lista)) return [];
+      const def = STATS_OKRESY.find(o => o.id === okres);
+      if (!def || def.dni == null) return lista.slice();
+      const odKiedy = Date.now() - def.dni * 24 * 60 * 60 * 1000;
+      return lista.filter(wpis => {
+        const data = new Date(wpis.dataZapisu);
+        if (Number.isNaN(data.getTime())) return false;
+        return data.getTime() >= odKiedy;
+      });
+    }
+
+    function policzTrendWzrostu(lista) {
+      const teraz = new Date();
+      const aktMies = teraz.getMonth();
+      const aktRok = teraz.getFullYear();
+      let prevMies = aktMies - 1;
+      let prevRok = aktRok;
+      if (prevMies < 0) { prevMies = 11; prevRok = aktRok - 1; }
+      let sumaAkt = 0;
+      let sumaPrev = 0;
+      lista.forEach(wpis => {
+        const data = new Date(wpis.dataZapisu);
+        if (Number.isNaN(data.getTime())) return;
+        const m = data.getMonth();
+        const r = data.getFullYear();
+        const suma = Number(wpis.suma) || 0;
+        if (m === aktMies && r === aktRok) sumaAkt += suma;
+        else if (m === prevMies && r === prevRok) sumaPrev += suma;
+      });
+      if (sumaPrev <= 0) {
+        return { dostepny: false, sumaAkt: sumaAkt, sumaPrev: sumaPrev };
+      }
+      const procent = ((sumaAkt - sumaPrev) / sumaPrev) * 100;
+      return { dostepny: true, procent: procent, sumaAkt: sumaAkt, sumaPrev: sumaPrev };
+    }
+
+    function policzTopDzienTygodnia(lista) {
+      const liczniki = [0, 0, 0, 0, 0, 0, 0];
+      lista.forEach(wpis => {
+        const data = new Date(wpis.dataZapisu);
+        if (Number.isNaN(data.getTime())) return;
+        liczniki[data.getDay()] += 1;
+      });
+      let najlepszy = -1;
+      let najwiecej = 0;
+      KOLEJNOSC_DNI_TYGODNIA.forEach(d => {
+        if (liczniki[d] > najwiecej) {
+          najwiecej = liczniki[d];
+          najlepszy = d;
+        }
+      });
+      return { indeks: najlepszy, liczba: najwiecej };
+    }
+
+    function sufiksOferty(n) {
+      if (n === 1) return 'oferta';
+      if (n >= 2 && n <= 4) return 'oferty';
+      return 'ofert';
+    }
+
+    let chartTooltip = null;
+
+    function pokazTooltipWykresu(bar) {
+      const chartContainer = bar.closest('.chart-container');
+      if (!chartContainer) return;
+      if (!chartTooltip || chartTooltip.parentElement !== chartContainer) {
+        if (chartTooltip && chartTooltip.parentElement) {
+          chartTooltip.parentElement.removeChild(chartTooltip);
+        }
+        chartTooltip = document.createElement('div');
+        chartTooltip.className = 'chart-tooltip';
+        chartContainer.appendChild(chartTooltip);
+      }
+      const label = bar.dataset.label || '';
+      const suma = Number(bar.dataset.suma) || 0;
+      const liczba = parseInt(bar.dataset.liczba || '0', 10) || 0;
+
+      chartTooltip.innerHTML = '';
+      const t = document.createElement('div');
+      t.className = 'chart-tooltip-title';
+      t.textContent = label;
+      const a = document.createElement('div');
+      a.className = 'chart-tooltip-amount';
+      a.textContent = formatujSume(suma);
+      const c = document.createElement('div');
+      c.className = 'chart-tooltip-count';
+      c.textContent = liczba + ' ' + sufiksOferty(liczba);
+      chartTooltip.appendChild(t);
+      chartTooltip.appendChild(a);
+      chartTooltip.appendChild(c);
+
+      const barRect = bar.getBoundingClientRect();
+      const containerRect = chartContainer.getBoundingClientRect();
+      chartTooltip.style.left = (barRect.left - containerRect.left + barRect.width / 2) + 'px';
+      chartTooltip.style.top = (barRect.top - containerRect.top - 8) + 'px';
+      chartTooltip.style.transform = 'translate(-50%, -100%)';
+      chartTooltip.classList.add('is-visible');
+    }
+
+    function ukryjTooltipWykresu() {
+      if (chartTooltip) chartTooltip.classList.remove('is-visible');
+    }
 
     function agregujMiesiacami(lista, ileMiesiecy) {
       const teraz = new Date();
@@ -3864,27 +4063,48 @@
       const chart = document.getElementById('stat-chart');
       const labels = document.getElementById('stat-chart-labels');
       if (!chart || !labels) return;
+      ukryjTooltipWykresu();
       chart.innerHTML = '';
       labels.innerHTML = '';
       const max = buckets.reduce((m, b) => Math.max(m, b.suma), 0);
+      const slupki = [];
       buckets.forEach(b => {
         const bar = document.createElement('div');
         bar.className = 'chart-bar' + (b.suma === 0 ? ' is-empty' : '');
         const pct = max > 0 ? (b.suma / max) * 100 : 0;
-        bar.style.height = b.suma === 0 ? '2px' : Math.max(pct, 2) + '%';
-        const sufiks = b.liczba === 1 ? 'oferta' : (b.liczba >= 2 && b.liczba <= 4 ? 'oferty' : 'ofert');
-        bar.title = b.label + ': ' + formatujSume(b.suma) + ' (' + b.liczba + ' ' + sufiks + ')';
+        const docelowa = b.suma === 0 ? '2px' : Math.max(pct, 2) + '%';
+        bar.dataset.docelowa = docelowa;
+        bar.dataset.label = b.label;
+        bar.dataset.suma = String(b.suma);
+        bar.dataset.liczba = String(b.liczba);
+        bar.style.height = '0%';
+        bar.style.minHeight = '0';
+
+        bar.addEventListener('mouseenter', () => pokazTooltipWykresu(bar));
+        bar.addEventListener('mouseleave', ukryjTooltipWykresu);
+
         chart.appendChild(bar);
+        slupki.push(bar);
 
         const lbl = document.createElement('div');
         lbl.textContent = b.label;
         labels.appendChild(lbl);
       });
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          slupki.forEach(bar => {
+            bar.style.height = bar.dataset.docelowa;
+            bar.style.minHeight = '';
+          });
+        });
+      });
     }
 
-    function renderStatystyki() {
+    function renderStatystyki(okresArg) {
       if (!statsSection) return;
-      const lista = wczytajHistorie();
+      ukryjTooltipWykresu();
+      const calaHistoria = wczytajHistorie();
 
       statsSection.innerHTML = '';
       const title = document.createElement('h2');
@@ -3892,10 +4112,44 @@
       title.textContent = 'Statystyki';
       statsSection.appendChild(title);
 
-      if (!lista || lista.length === 0) {
+      if (!calaHistoria || calaHistoria.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'stats-empty';
         empty.textContent = 'Brak danych — wygeneruj pierwszą ofertę, aby zobaczyć statystyki';
+        statsSection.appendChild(empty);
+        return;
+      }
+
+      const aktywnyOkres = STATS_OKRESY.some(o => o.id === okresArg)
+        ? okresArg
+        : wczytajOkresStat();
+      zapiszOkresStat(aktywnyOkres);
+
+      const okresBar = document.createElement('div');
+      okresBar.className = 'stats-okres-bar';
+      okresBar.setAttribute('role', 'tablist');
+      okresBar.setAttribute('aria-label', 'Filtr okresu statystyk');
+      STATS_OKRESY.forEach(o => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip' + (o.id === aktywnyOkres ? ' is-active' : '');
+        chip.textContent = o.label;
+        chip.setAttribute('aria-pressed', o.id === aktywnyOkres ? 'true' : 'false');
+        chip.dataset.okres = o.id;
+        chip.addEventListener('click', () => {
+          if (o.id === aktywnyOkres) return;
+          renderStatystyki(o.id);
+        });
+        okresBar.appendChild(chip);
+      });
+      statsSection.appendChild(okresBar);
+
+      const lista = filtrujHistoriePoOkresie(calaHistoria, aktywnyOkres);
+
+      if (lista.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'stats-empty';
+        empty.textContent = 'Brak ofert w wybranym okresie';
         statsSection.appendChild(empty);
         return;
       }
@@ -3908,7 +4162,6 @@
       let liczbaWMiesiacu = 0;
       let sumaLacznie = 0;
       let sumaWMiesiacu = 0;
-      let pozycjiLacznie = 0;
       const liczniki = new Map();
 
       lista.forEach(wpis => {
@@ -3929,15 +4182,15 @@
           const nazwa = p && typeof p.nazwa === 'string' ? p.nazwa.trim() : '';
           if (!nazwa) return;
           liczniki.set(nazwa, (liczniki.get(nazwa) || 0) + 1);
-          pozycjiLacznie += 1;
         });
       });
 
-      const srednia = liczbaLacznie > 0 ? sumaLacznie / liczbaLacznie : 0;
-      const sredniaPozycji = liczbaLacznie > 0 ? (pozycjiLacznie / liczbaLacznie) : 0;
       const top5 = Array.from(liczniki.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
+
+      const trend = policzTrendWzrostu(lista);
+      const topDzien = policzTopDzienTygodnia(lista);
 
       const grid = document.createElement('div');
       grid.className = 'stats-grid';
@@ -3952,15 +4205,37 @@
         formatujSume(sumaLacznie),
         'W tym miesiącu: ' + formatujSume(sumaWMiesiacu)
       ));
+
+      const trendCard = document.createElement('div');
+      trendCard.className = 'stats-card';
+      const trendLabel = document.createElement('div');
+      trendLabel.className = 'stats-card-label';
+      trendLabel.textContent = 'Trend wzrostu';
+      trendCard.appendChild(trendLabel);
+      const trendValue = document.createElement('div');
+      trendValue.className = 'stats-card-value';
+      if (trend.dostepny) {
+        const znak = trend.procent >= 0 ? '+' : '';
+        trendValue.textContent = znak + trend.procent.toFixed(0) + '%';
+        trendValue.classList.add(trend.procent >= 0 ? 'stats-trend-positive' : 'stats-trend-negative');
+      } else {
+        trendValue.textContent = '—';
+      }
+      trendCard.appendChild(trendValue);
+      const trendMeta = document.createElement('div');
+      trendMeta.className = 'stats-card-meta';
+      trendMeta.textContent = trend.dostepny ? 'vs poprzedni miesiąc' : 'Brak danych do porównania';
+      trendCard.appendChild(trendMeta);
+      grid.appendChild(trendCard);
+
+      const topDzienValue = topDzien.indeks >= 0 ? NAZWY_DNI[topDzien.indeks] : '—';
+      const topDzienMeta = topDzien.indeks >= 0
+        ? topDzien.liczba + ' ' + sufiksOferty(topDzien.liczba)
+        : 'Brak danych';
       grid.appendChild(tworzKarteStat(
-        'Średnia wartość oferty',
-        formatujSume(srednia),
-        'Z ' + liczbaLacznie + ' ' + (liczbaLacznie === 1 ? 'oferty' : 'ofert')
-      ));
-      grid.appendChild(tworzKarteStat(
-        'Pozycji łącznie',
-        String(pozycjiLacznie),
-        'Średnio ' + sredniaPozycji.toFixed(1).replace('.', ',') + ' na ofertę'
+        'Top dzień tygodnia',
+        topDzienValue,
+        topDzienMeta
       ));
 
       statsSection.appendChild(grid);
