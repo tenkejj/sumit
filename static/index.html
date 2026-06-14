@@ -25,6 +25,7 @@
       --bg-hover: #e4e6eb;
       --bg-chip: #e1e3ea;
       --text: #0a0a0a;
+      --text-rgb: 15, 23, 42;
       --text-muted: #6b7280;
       --border: #e5e5e5;
       --border-hover: #d4d4d4;
@@ -43,6 +44,7 @@
       --bg-hover: #1f1f1f;
       --bg-chip: #2a2a2a;
       --text: #ffffff;
+      --text-rgb: 255, 255, 255;
       --text-muted: #9ca3af;
       --border: #2a2a2a;
       --border-hover: #3a3a3a;
@@ -1447,6 +1449,188 @@
       .stats-section { margin-top: 32px; }
       .stats-card { padding: 12px 14px; }
       .stats-card-value { font-size: 18px; }
+    }
+
+    .stats-klienci-wrap {
+      overflow-x: auto;
+      margin-top: 4px;
+    }
+
+    .stats-klienci-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .stats-klienci-table thead th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: -0.005em;
+      padding: 0 10px 10px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .stats-klienci-table thead th:first-child { padding-left: 0; }
+    .stats-klienci-table thead th:last-child { padding-right: 0; }
+
+    .stats-klienci-table tbody td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+    .stats-klienci-table tbody td:first-child { padding-left: 0; }
+    .stats-klienci-table tbody td:last-child { padding-right: 0; }
+    .stats-klienci-table tbody tr:last-child td { border-bottom: none; }
+    .stats-klienci-table tbody tr {
+      transition: background-color 0.12s ease;
+    }
+    .stats-klienci-table tbody tr:hover { background: var(--bg-hover); }
+
+    .stats-klienci-table .col-num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .stats-klienci-table .col-klient {
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stats-klienci-empty {
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 4px 0 0;
+    }
+
+    @media (max-width: 600px) {
+      .stats-klienci-table,
+      .stats-klienci-table thead,
+      .stats-klienci-table tbody,
+      .stats-klienci-table tr,
+      .stats-klienci-table th,
+      .stats-klienci-table td { display: revert; }
+      .stats-klienci-table { display: table; }
+      .stats-klienci-table thead { display: table-header-group; }
+      .stats-klienci-table tbody { display: table-row-group; }
+      .stats-klienci-table tr { display: table-row; }
+      .stats-klienci-table th,
+      .stats-klienci-table td { display: table-cell; width: auto !important; }
+      .stats-klienci-table thead th { padding: 0 8px 8px; font-size: 11px; }
+      .stats-klienci-table tbody td {
+        padding: 8px;
+        font-size: 12px;
+        border: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .stats-klienci-table tbody tr:last-child td { border-bottom: none; }
+      .stats-klienci-table .col-klient { max-width: 140px; }
+    }
+
+    .heatmap-card { gap: 10px; }
+
+    .heatmap-scroll {
+      overflow-x: auto;
+      margin: 4px -4px 0;
+      padding: 0 4px 4px;
+    }
+
+    .heatmap-wrap {
+      --hm-cell: 12px;
+      --hm-gap: 3px;
+      --hm-step: 15px;
+      display: grid;
+      grid-template-columns: 26px max-content;
+      grid-template-rows: 14px auto;
+      gap: 4px 6px;
+      width: max-content;
+      min-width: 100%;
+    }
+
+    .heatmap-month-labels {
+      grid-column: 2;
+      grid-row: 1;
+      position: relative;
+      height: 14px;
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+      width: calc(52 * var(--hm-cell) + 51 * var(--hm-gap));
+    }
+    .heatmap-month-labels span {
+      position: absolute;
+      top: 0;
+      left: calc(var(--hm-col, 0) * var(--hm-step));
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .heatmap-day-labels {
+      grid-column: 1;
+      grid-row: 2;
+      display: grid;
+      grid-template-rows: repeat(7, var(--hm-cell));
+      gap: var(--hm-gap);
+      font-size: 10px;
+      color: var(--text-muted);
+      align-content: start;
+    }
+    .heatmap-day-labels > span {
+      line-height: var(--hm-cell);
+      text-align: right;
+      padding-right: 4px;
+    }
+
+    .heatmap-grid {
+      grid-column: 2;
+      grid-row: 2;
+      display: grid;
+      grid-template-columns: repeat(52, var(--hm-cell));
+      grid-template-rows: repeat(7, var(--hm-cell));
+      grid-auto-flow: column;
+      gap: var(--hm-gap);
+    }
+
+    .heatmap-cell {
+      width: var(--hm-cell);
+      height: var(--hm-cell);
+      border-radius: 2px;
+      background: var(--border);
+      transition: transform 0.12s ease;
+    }
+    .heatmap-cell.l1 { background: rgba(var(--text-rgb), 0.2); }
+    .heatmap-cell.l2 { background: rgba(var(--text-rgb), 0.5); }
+    .heatmap-cell.l3 { background: var(--text); }
+    .heatmap-cell.is-future { opacity: 0.35; }
+    .heatmap-cell:hover { transform: scale(1.35); }
+
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-end;
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+      margin-top: 6px;
+    }
+    .heatmap-legend .heatmap-cell { transition: none; }
+    .heatmap-legend .heatmap-cell:hover { transform: none; }
+
+    @media (max-width: 600px) {
+      .heatmap-wrap {
+        --hm-cell: 10px;
+        --hm-gap: 2px;
+        --hm-step: 12px;
+        grid-template-columns: max-content;
+      }
+      .heatmap-month-labels,
+      .heatmap-grid { grid-column: 1; }
+      .heatmap-day-labels { display: none; }
     }
 
     .settings-form .row {
@@ -4101,6 +4285,247 @@
       });
     }
 
+    function nazwaKlientaPrimary(s) {
+      if (!s || typeof s !== 'string') return '';
+      return s.split('\n')[0].trim();
+    }
+
+    function agregujKlientow(lista) {
+      const mapa = new Map();
+      lista.forEach(wpis => {
+        const klient = nazwaKlientaPrimary(wpis && wpis.klient);
+        if (!klient) return;
+        const suma = Number(wpis.suma) || 0;
+        const dataMs = (() => {
+          const d = new Date(wpis.dataZapisu);
+          return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+        })();
+        let agg = mapa.get(klient);
+        if (!agg) {
+          agg = { klient: klient, liczba: 0, suma: 0, ostatniaMs: 0 };
+          mapa.set(klient, agg);
+        }
+        agg.liczba += 1;
+        agg.suma += suma;
+        if (dataMs > agg.ostatniaMs) agg.ostatniaMs = dataMs;
+      });
+      return Array.from(mapa.values()).map(a => ({
+        klient: a.klient,
+        liczba: a.liczba,
+        suma: a.suma,
+        srednia: a.liczba > 0 ? a.suma / a.liczba : 0,
+        ostatniaMs: a.ostatniaMs
+      })).sort((a, b) => b.suma - a.suma);
+    }
+
+    function formatujDateKrotka(ms) {
+      if (!ms) return '—';
+      const d = new Date(ms);
+      if (Number.isNaN(d.getTime())) return '—';
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      return dd + '.' + mm + '.' + d.getFullYear();
+    }
+
+    function renderujKarteTopKlienci(lista, okresLabel) {
+      const card = tworzKarteStat('Top klienci', null, null, 'stats-card-full stats-card-standalone');
+      const klienci = agregujKlientow(lista).slice(0, 5);
+
+      if (klienci.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'stats-klienci-empty';
+        empty.textContent = 'Brak danych klientów w wybranym okresie';
+        card.appendChild(empty);
+        return card;
+      }
+
+      const wrap = document.createElement('div');
+      wrap.className = 'stats-klienci-wrap';
+
+      const table = document.createElement('table');
+      table.className = 'stats-klienci-table';
+
+      const thead = document.createElement('thead');
+      const trh = document.createElement('tr');
+      [
+        { txt: 'Klient', cls: '' },
+        { txt: 'Liczba ofert', cls: 'col-num' },
+        { txt: 'Łączna wartość', cls: 'col-num' },
+        { txt: 'Średnia wartość', cls: 'col-num' },
+        { txt: 'Ostatnia oferta', cls: 'col-num' }
+      ].forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h.txt;
+        if (h.cls) th.className = h.cls;
+        trh.appendChild(th);
+      });
+      thead.appendChild(trh);
+      table.appendChild(thead);
+
+      const tbodyEl = document.createElement('tbody');
+      klienci.forEach(k => {
+        const tr = document.createElement('tr');
+
+        const tdK = document.createElement('td');
+        tdK.className = 'col-klient';
+        tdK.textContent = k.klient;
+        tdK.title = k.klient;
+        tr.appendChild(tdK);
+
+        const tdL = document.createElement('td');
+        tdL.className = 'col-num';
+        tdL.textContent = String(k.liczba);
+        tr.appendChild(tdL);
+
+        const tdS = document.createElement('td');
+        tdS.className = 'col-num';
+        tdS.textContent = formatujSume(k.suma);
+        tr.appendChild(tdS);
+
+        const tdA = document.createElement('td');
+        tdA.className = 'col-num';
+        tdA.textContent = formatujSume(k.srednia);
+        tr.appendChild(tdA);
+
+        const tdD = document.createElement('td');
+        tdD.className = 'col-num';
+        tdD.textContent = formatujDateKrotka(k.ostatniaMs);
+        tr.appendChild(tdD);
+
+        tbodyEl.appendChild(tr);
+      });
+      table.appendChild(tbodyEl);
+      wrap.appendChild(table);
+      card.appendChild(wrap);
+      return card;
+    }
+
+    const HEATMAPA_DNI_SKROTY = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
+    const HEATMAPA_NAZWY_DNI = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    const HEATMAPA_MIESIACE_PELNE = [
+      'Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze',
+      'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'
+    ];
+
+    function startTygodniaPnUTC(d) {
+      const out = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const day = out.getDay();
+      const offset = day === 0 ? 6 : day - 1;
+      out.setDate(out.getDate() - offset);
+      return out;
+    }
+
+    function dataKluczLokalna(d) {
+      const yy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return yy + '-' + mm + '-' + dd;
+    }
+
+    function agregujDniHeatmapy(historiaPelna) {
+      const mapa = new Map();
+      historiaPelna.forEach(wpis => {
+        const d = new Date(wpis.dataZapisu);
+        if (Number.isNaN(d.getTime())) return;
+        const klucz = dataKluczLokalna(d);
+        mapa.set(klucz, (mapa.get(klucz) || 0) + 1);
+      });
+      return mapa;
+    }
+
+    function poziomHeatmapy(n) {
+      if (n <= 0) return 0;
+      if (n === 1) return 1;
+      if (n <= 3) return 2;
+      return 3;
+    }
+
+    function renderujKarteHeatmapy(historiaPelna) {
+      const card = tworzKarteStat('Aktywność (ostatnie 52 tygodnie)', null, null, 'stats-card-full stats-card-standalone heatmap-card');
+
+      const mapa = agregujDniHeatmapy(historiaPelna);
+
+      const dzis = new Date();
+      const dzisLokalne = new Date(dzis.getFullYear(), dzis.getMonth(), dzis.getDate());
+      const dzisMs = dzisLokalne.getTime();
+      const lastMon = startTygodniaPnUTC(dzisLokalne);
+      const firstMon = new Date(lastMon.getFullYear(), lastMon.getMonth(), lastMon.getDate() - 51 * 7);
+
+      const scroll = document.createElement('div');
+      scroll.className = 'heatmap-scroll';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'heatmap-wrap';
+
+      const monthLabels = document.createElement('div');
+      monthLabels.className = 'heatmap-month-labels';
+
+      const dayLabels = document.createElement('div');
+      dayLabels.className = 'heatmap-day-labels';
+      [0, 1, 2, 3, 4, 5, 6].forEach(rowIdx => {
+        const span = document.createElement('span');
+        if (rowIdx === 0) span.textContent = 'Pn';
+        else if (rowIdx === 2) span.textContent = 'Śr';
+        else if (rowIdx === 4) span.textContent = 'Pt';
+        else span.textContent = '';
+        dayLabels.appendChild(span);
+      });
+
+      const grid = document.createElement('div');
+      grid.className = 'heatmap-grid';
+
+      let prevMonth = -1;
+      for (let w = 0; w < 52; w++) {
+        const tygStart = new Date(firstMon.getFullYear(), firstMon.getMonth(), firstMon.getDate() + w * 7);
+        if (tygStart.getMonth() !== prevMonth) {
+          const lbl = document.createElement('span');
+          lbl.textContent = HEATMAPA_MIESIACE_PELNE[tygStart.getMonth()];
+          lbl.style.setProperty('--hm-col', String(w));
+          monthLabels.appendChild(lbl);
+          prevMonth = tygStart.getMonth();
+        }
+
+        for (let d = 0; d < 7; d++) {
+          const dzien = new Date(tygStart.getFullYear(), tygStart.getMonth(), tygStart.getDate() + d);
+          const klucz = dataKluczLokalna(dzien);
+          const liczba = mapa.get(klucz) || 0;
+          const cell = document.createElement('div');
+          const poz = poziomHeatmapy(liczba);
+          cell.className = 'heatmap-cell' + (poz > 0 ? ' l' + poz : '');
+          if (dzien.getTime() > dzisMs) cell.classList.add('is-future');
+
+          const dataFmt = formatujDateKrotka(dzien.getTime());
+          const sufiks = liczba === 1 ? 'oferta' : (liczba >= 2 && liczba <= 4 ? 'oferty' : 'ofert');
+          const dzienNazwa = HEATMAPA_NAZWY_DNI[dzien.getDay()];
+          cell.title = dzienNazwa + ', ' + dataFmt + ' — ' + liczba + ' ' + sufiks;
+          grid.appendChild(cell);
+        }
+      }
+
+      wrap.appendChild(monthLabels);
+      wrap.appendChild(dayLabels);
+      wrap.appendChild(grid);
+      scroll.appendChild(wrap);
+      card.appendChild(scroll);
+
+      const legend = document.createElement('div');
+      legend.className = 'heatmap-legend';
+      const lblMniej = document.createElement('span');
+      lblMniej.textContent = 'mniej';
+      legend.appendChild(lblMniej);
+      [0, 1, 2, 3].forEach(p => {
+        const c = document.createElement('div');
+        c.className = 'heatmap-cell' + (p > 0 ? ' l' + p : '');
+        legend.appendChild(c);
+      });
+      const lblWiecej = document.createElement('span');
+      lblWiecej.textContent = 'więcej';
+      legend.appendChild(lblWiecej);
+      card.appendChild(legend);
+
+      return card;
+    }
+
     function renderStatystyki(okresArg) {
       if (!statsSection) return;
       ukryjTooltipWykresu();
@@ -4281,6 +4706,12 @@
         top5Card.appendChild(meta);
       }
       statsSection.appendChild(top5Card);
+
+      const klienciCard = renderujKarteTopKlienci(lista, aktywnyOkres);
+      statsSection.appendChild(klienciCard);
+
+      const heatmapCard = renderujKarteHeatmapy(calaHistoria);
+      statsSection.appendChild(heatmapCard);
     }
 
     function renderujHistorie() {
