@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"runtime"	
 
 	"github.com/go-pdf/fpdf"
 	qrcode "github.com/skip2/go-qrcode"
@@ -155,23 +156,49 @@ func (q Quote) Validate() error {
 // Można nadpisać zmienną środowiskową SUMIT_FONT_PATH.
 func resolveFontPath() (string, error) {
 	if p := os.Getenv("SUMIT_FONT_PATH"); p != "" {
-		if _, err := os.Stat(p); err != nil {
-			return "", fmt.Errorf("SUMIT_FONT_PATH=%q nie istnieje: %w", p, err)
+		if _, err := os.Stat(p); err == nil {
+			return p, nil
 		}
-		return p, nil
+		//return "", fmt.Errorf("SUMIT_FONT_PATH=%q nie istnieje: %w", p, err)
 	}
-	candidates := []string{
-		`C:\Windows\Fonts\arial.ttf`,
-		`C:\Windows\Fonts\calibri.ttf`,
-		`/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf`,
-		`/Library/Fonts/Arial.ttf`,
+
+	candidates := []string{}
+
+	switch runtime.GOOS {
+	case "windows":
+		winDir := os.Getenv("WINDIR")
+		if winDir == "" {
+			winDir = `C:\Windows`
+		}
+		candidates = append(candidates,
+			filepath.Join(winDir, "Fonts", "arial.ttf"),
+			filepath.Join(winDir, "Fonts", "calibri.ttf"),
+			filepath.Join(winDir, "Fonts", "segoeui.ttf"),
+		)
+	case "darwin":
+		candidates = append(candidates,
+			"/System/Library/Fonts/SFPro.ttf",
+			"/Library/Fonts/Arial.ttf",
+			"/System/Library/Fonts/Helvetica.ttc",
+		)
+	default: // linux
+		candidates = append(candidates,
+			"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+			"/usr/share/fonts/TTF/DejaVuSans.ttf",
+			"/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+			"/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+		)
 	}
-	for _, c := range candidates {
-		if _, err := os.Stat(c); err == nil {
-			return c, nil
+
+	for _, path := range candidates {
+		if path != "" {
+			if _, err := os.Stat(path); err == nil {
+				return path, nil
+			}
 		}
 	}
-	return "", fmt.Errorf("nie znaleziono czcionki TTF z polskimi znakami; ustaw SUMIT_FONT_PATH")
+
+	return "", fmt.Errorf("nie znaleziono odpowiedniej czcionki systemowej. Ustaw SUMIT_FONT_PATH")
 }
 
 // resolveBoldFontFile próbuje znaleźć wariant bold czcionki obok pliku
@@ -206,24 +233,30 @@ func resolveBoldFontFile(fontDir, regularFile string) string {
 	return ""
 }
 
-func GeneratePDF(q Quote, w io.Writer) error {
-	fontPath, err := resolveFontPath()
-	if err != nil {
-		return err
-	}
-	fontDir := filepath.Dir(fontPath)
-	fontFile := filepath.Base(fontPath)
-	family := strings.TrimSuffix(fontFile, filepath.Ext(fontFile))
 
-	pdf := fpdf.New("P", "mm", "A4", fontDir)
+
+
+func GeneratePDF(q Quote, w io.Writer) error {
+
+	fontFile := "abc.ttf"
+	family := strings.TrimSuffix(fontFile, ".ttf") // Poprawiono odcinanie rozszerzenia z kropką
+
+	pdf := fpdf.New("P", "mm", "A4", "")
+	
+	// 1. Rejestracja czcionki regularnej
 	pdf.AddUTF8Font(family, "", fontFile)
-	if boldFile := resolveBoldFontFile(fontDir, fontFile); boldFile != "" {
+	
+	// 2. Automatyczne szukanie i rejestracja czcionki pogrubionej (Bold)
+	// Sprawdzamy obecny katalog aplikacji (".") w poszukiwaniu np. abcbd.ttf lub abc-Bold.ttf
+	boldFile := resolveBoldFontFile(".", fontFile)
+	if boldFile != "" {
 		pdf.AddUTF8Font(family, "B", boldFile)
 	} else {
-		// Brak osobnego pliku bold — rejestrujemy ten sam plik pod stylem
-		// "B", aby kolejne SetFont(..., "B", ...) nie panikowały.
+		// Jeśli brak dedykowanego pliku bold, rejestrujemy zwykły plik pod stylem "B",
+		// dzięki czemu fpdf nie wywali błędu "undefined font"
 		pdf.AddUTF8Font(family, "B", fontFile)
 	}
+	
 	pdf.SetFont(family, "", 11)
 	pdf.SetMargins(15, 15, 15)
 	pdf.SetAutoPageBreak(true, 18)
