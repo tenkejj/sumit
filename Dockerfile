@@ -11,5 +11,6 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/sumit .
 COPY --from=builder /app/static ./static
+RUN apk --no-cache add ca-certificates
 EXPOSE 8080
 CMD ["./sumit"]
