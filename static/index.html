@@ -2134,6 +2134,7 @@
             </thead>
             <tbody id="pozycje-tbody"></tbody>
           </table>
+          <datalist id="szablony-pozycji-datalist"></datalist>
 
           <div class="items-actions">
             <button type="button" class="btn-add" id="btn-dodaj">
@@ -2462,7 +2463,7 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="col-lp"></td>
-        <td class="col-nazwa"><input type="text" class="in-nazwa" placeholder="np. Usługa konsultingowa" required></td>
+        <td class="col-nazwa"><input type="text" class="in-nazwa" placeholder="np. Usługa konsultingowa" list="szablony-pozycji-datalist" autocomplete="off" required></td>
         <td class="col-ilosc">
           <div class="ilosc-wrap">
             <input type="number" class="in-ilosc" step="any" min="0" placeholder="1" required>
@@ -2518,6 +2519,10 @@
           if (Number.isFinite(pct)) applyAdjustment(tr, pct);
         });
       });
+      const nazwaInput = tr.querySelector('.in-nazwa');
+      if (nazwaInput) {
+        nazwaInput.addEventListener('input', () => aplikujSzablonDoWiersza(tr));
+      }
       tbody.appendChild(tr);
       odswiezNumery();
     }
@@ -4215,7 +4220,104 @@
       lista.unshift(wpis);
       while (lista.length > MAX_HISTORIA) lista.pop();
       zapiszHistorie(lista);
+      zapiszSzablonyZPayloadu(payload);
     }
+
+    const STORAGE_KEY_SZABLONY = 'sumit_szablony_pozycji';
+    const MAX_SZABLONY_POZYCJI = 200;
+    let _szablonyPozycjiCache = null;
+
+    function wczytajSzablonyPozycji() {
+      if (_szablonyPozycjiCache) return _szablonyPozycjiCache;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_SZABLONY);
+        if (!raw) { _szablonyPozycjiCache = []; return _szablonyPozycjiCache; }
+        const dane = JSON.parse(raw);
+        if (!Array.isArray(dane)) { _szablonyPozycjiCache = []; return _szablonyPozycjiCache; }
+        _szablonyPozycjiCache = dane
+          .filter(s => s && typeof s === 'object' && typeof s.nazwa === 'string' && s.nazwa.trim())
+          .map(s => ({
+            nazwa: String(s.nazwa).trim(),
+            jednostka: typeof s.jednostka === 'string' ? s.jednostka : '',
+            cena: Number(s.cena),
+          }))
+          .filter(s => Number.isFinite(s.cena) && s.cena >= 0);
+        return _szablonyPozycjiCache;
+      } catch (e) {
+        _szablonyPozycjiCache = [];
+        return _szablonyPozycjiCache;
+      }
+    }
+
+    function zapiszSzablonyPozycji(items) {
+      try {
+        localStorage.setItem(STORAGE_KEY_SZABLONY, JSON.stringify(items));
+        _szablonyPozycjiCache = items.slice();
+      } catch (e) {}
+    }
+
+    function zapiszSzablonyZPayloadu(payload) {
+      if (!payload || !Array.isArray(payload.pozycje)) return;
+      const mapa = new Map();
+      wczytajSzablonyPozycji().forEach(it => mapa.set(it.nazwa.toLowerCase(), it));
+
+      let zmienione = false;
+      payload.pozycje.forEach(p => {
+        const nazwa = String((p && p.nazwa) || '').trim();
+        const cena = Number(p && p.cena_jednostkowa);
+        if (!nazwa || !Number.isFinite(cena) || cena < 0) return;
+        const klucz = nazwa.toLowerCase();
+        const wpis = { nazwa, jednostka: '', cena: Math.round(cena * 100) / 100 };
+        mapa.delete(klucz);
+        mapa.set(klucz, wpis);
+        zmienione = true;
+      });
+
+      if (!zmienione) return;
+      const noweKolejne = Array.from(mapa.values()).reverse().slice(0, MAX_SZABLONY_POZYCJI);
+      zapiszSzablonyPozycji(noweKolejne);
+      odswiezDatalistSzablony();
+    }
+
+    function odswiezDatalistSzablony() {
+      const datalist = document.getElementById('szablony-pozycji-datalist');
+      if (!datalist) return;
+      const szablony = wczytajSzablonyPozycji();
+      datalist.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      szablony.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.nazwa;
+        const cenaFmt = (Number(s.cena) || 0).toFixed(2).replace('.', ',') + ' zł';
+        opt.label = 'Ostatnio: ' + cenaFmt;
+        frag.appendChild(opt);
+      });
+      datalist.appendChild(frag);
+    }
+
+    function aplikujSzablonDoWiersza(tr) {
+      if (!tr) return;
+      const nazwaInput = tr.querySelector('.in-nazwa');
+      const cenaInput = tr.querySelector('.in-cena');
+      if (!nazwaInput || !cenaInput) return;
+      const wartosc = String(nazwaInput.value || '').trim();
+      if (!wartosc) {
+        tr.dataset.szablonNazwa = '';
+        return;
+      }
+      const klucz = wartosc.toLowerCase();
+      const szablon = wczytajSzablonyPozycji().find(s => s.nazwa.toLowerCase() === klucz);
+      if (!szablon) {
+        tr.dataset.szablonNazwa = '';
+        return;
+      }
+      if (tr.dataset.szablonNazwa === szablon.nazwa) return;
+      cenaInput.value = String(szablon.cena);
+      cenaInput.dispatchEvent(new Event('input', { bubbles: true }));
+      tr.dataset.szablonNazwa = szablon.nazwa;
+    }
+
+    odswiezDatalistSzablony();
 
     function usunZHistorii(id) {
       const lista = wczytajHistorie().filter(w => w.id !== id);
