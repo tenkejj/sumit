@@ -790,41 +790,57 @@
     .submit-actions {
       display: flex;
       justify-content: center;
-      align-items: center;
-      gap: 18px;
       margin-top: 12px;
     }
     .submit-actions .btn-clear { margin-top: 0; }
-    .submit-actions .btn-share-link { margin-top: 0; }
 
-    .btn-share-link {
+    .cta-row {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      width: 100%;
+    }
+    .cta-row .btn-primary {
+      flex: 1;
+      width: auto;
+    }
+
+    .btn-cta-secondary {
+      flex: 1;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      margin-top: 16px;
-      padding: 0;
-      font-size: 12px;
-      font-weight: 400;
-      color: var(--text-muted);
-      letter-spacing: -0.005em;
-      transition: color 0.15s ease;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
     }
-    .btn-share-link:hover { color: var(--text); }
-    .btn-share-link:focus-visible {
+    .btn-cta-secondary:hover:not(:disabled) {
+      border-color: var(--text);
+      background: var(--bg-hover);
+    }
+    .btn-cta-secondary:focus-visible {
       outline: 2px solid var(--text);
-      outline-offset: 3px;
-      border-radius: 4px;
+      outline-offset: 2px;
     }
-    .btn-share-link svg {
-      width: 12px;
-      height: 12px;
+    .btn-cta-secondary:disabled {
+      cursor: progress;
+      opacity: 0.6;
+    }
+    .btn-cta-secondary svg {
+      width: 16px;
+      height: 16px;
       stroke: currentColor;
-      stroke-width: 1.8;
       flex-shrink: 0;
     }
-    .btn-share-link[disabled] {
-      opacity: 0.5;
-      cursor: progress;
+    @media (max-width: 600px) {
+      .cta-row { flex-direction: column; gap: 8px; }
     }
 
     .btn-primary {
@@ -2115,7 +2131,7 @@
             </div>
             <div class="klient-wrapper">
               <textarea id="klient" name="klient" rows="3" placeholder="Nazwa klienta&#10;Adres&#10;NIP: 1234567890" autocomplete="off" required aria-autocomplete="list" aria-controls="klient-autocomplete" aria-expanded="false"></textarea>
-              <ul id="klient-autocomplete" class="dropdown-menu hidden" role="listbox" aria-label="Powracający klienci z historii"></ul>
+              <ul id="klient-autocomplete" class="dropdown-menu hidden" role="listbox" aria-label="Powracający klienci z książki adresowej i historii"></ul>
             </div>
           </div>
         </section>
@@ -2163,19 +2179,18 @@
         </section>
 
         <div class="submit-wrap">
-          <button type="submit" class="btn-primary" id="btn-generuj">Wygeneruj wycenę</button>
+          <div class="cta-row">
+            <button type="submit" class="btn-primary" id="btn-generuj">Wygeneruj wycenę</button>
+            <button type="button" class="btn-cta-secondary" id="btn-udostepnij-pdf-desktop" hidden aria-label="Wyślij ofertę klientowi przez aplikację natywną">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 2 11 13"/>
+                <path d="M22 2 15 22l-4-9-9-4 20-7z"/>
+              </svg>
+              <span>Wyślij klientowi</span>
+            </button>
+          </div>
           <div class="submit-actions">
             <button type="button" class="btn-clear" id="btn-wyczysc-formularz">Wyczyść formularz</button>
-            <button type="button" class="btn-share-link" id="btn-udostepnij-pdf-desktop" hidden aria-label="Udostępnij ofertę przez aplikację natywną">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="18" cy="5" r="3"/>
-                <circle cx="6" cy="12" r="3"/>
-                <circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-              </svg>
-              <span>Udostępnij</span>
-            </button>
           </div>
         </div>
 
@@ -2225,15 +2240,12 @@
         <button type="button" class="btn-secondary" id="btn-zamknij-modal">Zamknij</button>
         <button type="button" class="btn-secondary" id="btn-drukuj-pdf">Drukuj</button>
         <button type="button" class="btn-secondary" id="btn-przygotuj-email" title="Otworzy klienta poczty z gotowym tematem i treścią. Pamiętaj o dołączeniu pobranego PDF jako załącznika.">Przygotuj e-mail</button>
-        <button type="button" class="btn-secondary btn-with-icon" id="btn-udostepnij-pdf" hidden aria-label="Udostępnij ofertę przez komunikator">
+        <button type="button" class="btn-secondary btn-with-icon" id="btn-udostepnij-pdf" hidden aria-label="Wyślij ofertę klientowi przez komunikator">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="18" cy="5" r="3"/>
-            <circle cx="6" cy="12" r="3"/>
-            <circle cx="18" cy="19" r="3"/>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            <path d="M22 2 11 13"/>
+            <path d="M22 2 15 22l-4-9-9-4 20-7z"/>
           </svg>
-          <span>Udostępnij</span>
+          <span>Wyślij klientowi</span>
         </button>
         <button type="button" class="btn-primary" id="btn-pobierz-pdf">Pobierz PDF</button>
       </div>
@@ -2906,7 +2918,7 @@
           const file = new File([blob], nazwaPliku, { type: 'application/pdf' });
 
           if (!navigator.canShare({ files: [file] })) {
-            pokazKomunikat('Ta przeglądarka nie wspiera udostępniania plików PDF. Użyj „Pobierz PDF" i załącz ręcznie.', 'error');
+            pokazKomunikat('Ta przeglądarka nie wspiera wysyłania plików PDF. Użyj „Pobierz PDF" i załącz ręcznie.', 'error');
             return;
           }
 
@@ -2925,13 +2937,13 @@
           const numerEl = document.getElementById('numer_oferty');
           if (numerEl) numerEl.value = nastepnyNumerOferty();
           aktualnyPayloadEmail = payload;
-          pokazKomunikat('Oferta udostępniona. Wycena zapisana w historii.', 'success');
+          pokazKomunikat('Oferta wysłana do klienta. Wycena zapisana w historii.', 'success');
         } catch (err) {
           if (err && err.name === 'AbortError') return;
-          pokazKomunikat('Nie udało się udostępnić pliku: ' + err.message, 'error');
+          pokazKomunikat('Nie udało się wysłać pliku: ' + err.message, 'error');
         } finally {
           btnUdostepnijPdfDesktop.disabled = false;
-          if (originalLabel) originalLabel.textContent = originalText || 'Udostępnij';
+          if (originalLabel) originalLabel.textContent = originalText || 'Wyślij klientowi';
         }
       });
     }
@@ -3076,27 +3088,27 @@
       btnUdostepnijPdf.addEventListener('click', async () => {
         if (!aktualnyBlobPdf) return;
         const file = new File([aktualnyBlobPdf], aktualnaNazwaPliku || 'Oferta.pdf', { type: 'application/pdf' });
-        if (!navigator.canShare({ files: [file] })) {
-          pokazKomunikat('Ta przeglądarka nie wspiera udostępniania plików PDF.', 'error');
-          return;
-        }
-        try {
-          await navigator.share({
-            files: [file],
-            title: 'Wycena PDF',
-            text: 'Wycena w załączniku.',
-          });
-          if (aktualnyPayload) {
-            dodajDoHistorii(aktualnyPayload);
-            inkrementujNumeracje();
-            renderStatystyki();
-            aktualnyPayload = null;
+          if (!navigator.canShare({ files: [file] })) {
+            pokazKomunikat('Ta przeglądarka nie wspiera wysyłania plików PDF.', 'error');
+            return;
           }
-          pokazKomunikat('Oferta udostępniona.', 'success');
-        } catch (err) {
-          if (err && err.name === 'AbortError') return;
-          pokazKomunikat('Nie udało się udostępnić pliku: ' + err.message, 'error');
-        }
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'Wycena PDF',
+              text: 'Wycena w załączniku.',
+            });
+            if (aktualnyPayload) {
+              dodajDoHistorii(aktualnyPayload);
+              inkrementujNumeracje();
+              renderStatystyki();
+              aktualnyPayload = null;
+            }
+            pokazKomunikat('Oferta wysłana do klienta.', 'success');
+          } catch (err) {
+            if (err && err.name === 'AbortError') return;
+            pokazKomunikat('Nie udało się wysłać pliku: ' + err.message, 'error');
+          }
       });
     }
 
@@ -3560,16 +3572,18 @@
     const MAX_PODPOWIEDZI_KLIENT = 8;
 
     function getUnikalniKlienci() {
-      const historia = wczytajHistorie();
       const seen = new Set();
       const wynik = [];
-      historia.forEach(wpis => {
+      const push = (blok) => {
+        const klucz = String(blok || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        if (!klucz || seen.has(klucz)) return;
+        seen.add(klucz);
+        wynik.push(blok);
+      };
+      wczytajKlientow().forEach(k => push(formatKlientBlok(k)));
+      wczytajHistorie().forEach(wpis => {
         const raw = (wpis && (wpis.klient || (wpis.payload && wpis.payload.klient))) || '';
-        const klient = String(raw).trim();
-        if (!klient) return;
-        if (seen.has(klient)) return;
-        seen.add(klient);
-        wynik.push(klient);
+        push(String(raw).trim());
       });
       return wynik;
     }
@@ -3634,10 +3648,38 @@
 
     function wybierzKlientaZAutocomplete(klient) {
       if (!klientTextarea || !klient) return;
+      klientTextarea.dataset.klientAutofill = '1';
       klientTextarea.value = klient;
+      delete klientTextarea.dataset.klientAutofill;
       ukryjAutocompleteKlient();
       saveDraft();
       klientTextarea.focus();
+    }
+
+    function sprobujAutofillKlientaZKsiazki() {
+      if (!klientTextarea) return false;
+      if (klientTextarea.dataset.klientAutofill === '1') return false;
+      const raw = klientTextarea.value;
+      const linie = raw.split('\n').map(s => s.trim()).filter(Boolean);
+      if (linie.length !== 1) return false;
+      const trafiony = znajdzKlientaPoZapytaniu(linie[0]);
+      if (!trafiony) return false;
+      const blok = formatKlientBlok(trafiony);
+      if (!blok || blok === raw) return false;
+      klientTextarea.dataset.klientAutofill = '1';
+      klientTextarea.value = blok;
+      delete klientTextarea.dataset.klientAutofill;
+      saveDraft();
+      return true;
+    }
+
+    function obsluzInputKlienta() {
+      if (klientTextarea && klientTextarea.dataset.klientAutofill === '1') return;
+      if (sprobujAutofillKlientaZKsiazki()) {
+        ukryjAutocompleteKlient();
+        return;
+      }
+      odswiezAutocompleteKlient();
     }
 
     function ustawAktywnyItemAutocomplete(idx) {
@@ -3654,7 +3696,7 @@
     }
 
     if (klientTextarea && klientAutocompleteEl) {
-      klientTextarea.addEventListener('input', odswiezAutocompleteKlient);
+      klientTextarea.addEventListener('input', obsluzInputKlienta);
       klientTextarea.addEventListener('focus', odswiezAutocompleteKlient);
       klientTextarea.addEventListener('keydown', (e) => {
         if (klientAutocompleteEl.classList.contains('hidden')) return;
@@ -4221,6 +4263,126 @@
       while (lista.length > MAX_HISTORIA) lista.pop();
       zapiszHistorie(lista);
       zapiszSzablonyZPayloadu(payload);
+      upsertKlientaZTekstu(payload.klient || '');
+    }
+
+    const STORAGE_KEY_KLIENCI = 'sumit_klienci';
+    const MAX_KLIENCI = 100;
+
+    function _canonNip(v) {
+      return String(v || '').replace(/\D/g, '').slice(0, 10);
+    }
+
+    function _canonNazwa(v) {
+      return String(v || '').trim().toLowerCase();
+    }
+
+    function wczytajKlientow() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_KLIENCI);
+        if (!raw) return [];
+        const dane = JSON.parse(raw);
+        if (!Array.isArray(dane)) return [];
+        return dane
+          .filter(k => k && typeof k === 'object')
+          .map(k => ({
+            nip: String(k.nip || '').trim(),
+            nazwa: String(k.nazwa || '').trim(),
+            adres: String(k.adres || '').trim(),
+          }))
+          .filter(k => k.nip || k.nazwa);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function zapiszKlientow(items) {
+      try {
+        localStorage.setItem(STORAGE_KEY_KLIENCI, JSON.stringify(items));
+      } catch (e) {}
+    }
+
+    function parseKlientBlok(text) {
+      const linie = String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
+      let nip = '';
+      const reszta = [];
+      linie.forEach(l => {
+        if (!nip) {
+          const m = l.match(/^NIP[\s:.-]*([\d\s-]+)$/i);
+          if (m) {
+            const cyfry = m[1].replace(/\D/g, '');
+            if (cyfry.length === 10) { nip = cyfry; return; }
+          }
+        }
+        reszta.push(l);
+      });
+      const nazwa = reszta.shift() || '';
+      const adres = reszta.join('\n');
+      return { nip, nazwa, adres };
+    }
+
+    function formatKlientBlok(rekord) {
+      if (!rekord) return '';
+      const linie = [];
+      if (rekord.nazwa) linie.push(String(rekord.nazwa));
+      if (rekord.adres) linie.push(String(rekord.adres));
+      if (rekord.nip)   linie.push('NIP: ' + String(rekord.nip));
+      return linie.join('\n');
+    }
+
+    function upsertKlienta(rekord) {
+      if (!rekord) return;
+      const r = {
+        nip: _canonNip(rekord.nip),
+        nazwa: String(rekord.nazwa || '').trim(),
+        adres: String(rekord.adres || '').trim(),
+      };
+      if (!r.nazwa && !r.nip) return;
+
+      const lista = wczytajKlientow();
+      let idx = -1;
+      if (r.nip) {
+        idx = lista.findIndex(k => _canonNip(k.nip) === r.nip);
+      }
+      if (idx === -1 && r.nazwa) {
+        const nz = _canonNazwa(r.nazwa);
+        idx = lista.findIndex(k => _canonNazwa(k.nazwa) === nz);
+      }
+
+      let scalony = r;
+      if (idx !== -1) {
+        const stary = lista[idx];
+        scalony = {
+          nip:   r.nip   || stary.nip   || '',
+          nazwa: r.nazwa || stary.nazwa || '',
+          adres: r.adres || stary.adres || '',
+        };
+        lista.splice(idx, 1);
+      }
+      lista.unshift(scalony);
+      while (lista.length > MAX_KLIENCI) lista.pop();
+      zapiszKlientow(lista);
+    }
+
+    function upsertKlientaZTekstu(text) {
+      const parsed = parseKlientBlok(text);
+      if (!parsed.nazwa && !parsed.nip) return;
+      upsertKlienta(parsed);
+    }
+
+    function znajdzKlientaPoZapytaniu(zapytanie) {
+      const raw = String(zapytanie || '').trim();
+      if (!raw) return null;
+      const lista = wczytajKlientow();
+      if (lista.length === 0) return null;
+      const cyfry = raw.replace(/\D/g, '');
+      if (cyfry.length === 10) {
+        const trafioneNip = lista.find(k => _canonNip(k.nip) === cyfry);
+        if (trafioneNip) return trafioneNip;
+      }
+      const nz = raw.toLowerCase();
+      const trafioneNazwa = lista.find(k => k.nazwa && k.nazwa.toLowerCase() === nz);
+      return trafioneNazwa || null;
     }
 
     const STORAGE_KEY_SZABLONY = 'sumit_szablony_pozycji';
