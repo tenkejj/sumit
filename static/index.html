@@ -790,9 +790,42 @@
     .submit-actions {
       display: flex;
       justify-content: center;
+      align-items: center;
+      gap: 18px;
       margin-top: 12px;
     }
     .submit-actions .btn-clear { margin-top: 0; }
+    .submit-actions .btn-share-link { margin-top: 0; }
+
+    .btn-share-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      padding: 0;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: -0.005em;
+      transition: color 0.15s ease;
+    }
+    .btn-share-link:hover { color: var(--text); }
+    .btn-share-link:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+    .btn-share-link svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      flex-shrink: 0;
+    }
+    .btn-share-link[disabled] {
+      opacity: 0.5;
+      cursor: progress;
+    }
 
     .btn-primary {
       width: 100%;
@@ -2132,6 +2165,16 @@
           <button type="submit" class="btn-primary" id="btn-generuj">Wygeneruj wycenę</button>
           <div class="submit-actions">
             <button type="button" class="btn-clear" id="btn-wyczysc-formularz">Wyczyść formularz</button>
+            <button type="button" class="btn-share-link" id="btn-udostepnij-pdf-desktop" hidden aria-label="Udostępnij ofertę przez aplikację natywną">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+              <span>Udostępnij</span>
+            </button>
           </div>
         </div>
 
@@ -2360,6 +2403,10 @@
     const btnGeneruj = document.getElementById('btn-generuj');
     const form = document.getElementById('oferta-form');
     const message = document.getElementById('message');
+
+    const shareSupported = typeof navigator !== 'undefined'
+      && typeof navigator.canShare === 'function'
+      && typeof navigator.share === 'function';
 
     const STORAGE_KEY_THEME = 'sumit_theme';
     const btnTheme = document.getElementById('btn-theme');
@@ -2799,8 +2846,17 @@
       }
     }
 
+    const btnUdostepnijPdfDesktop = document.getElementById('btn-udostepnij-pdf-desktop');
+
+    function aktualizujWidocznoscShareDesktop() {
+      if (!btnUdostepnijPdfDesktop) return;
+      btnUdostepnijPdfDesktop.hidden = !(shareSupported && livePodgladMql.matches);
+    }
+    aktualizujWidocznoscShareDesktop();
+
     const livePodgladMqlHandler = () => {
       aktualizujTekstPrzyciskuGeneruj();
+      aktualizujWidocznoscShareDesktop();
       if (livePodgladMql.matches) {
         aktualizujLivePodglad();
       } else if (livePodgladAbort) {
@@ -2810,6 +2866,70 @@
     };
     if (livePodgladMql.addEventListener) livePodgladMql.addEventListener('change', livePodgladMqlHandler);
     else if (livePodgladMql.addListener) livePodgladMql.addListener(livePodgladMqlHandler);
+
+    if (shareSupported && btnUdostepnijPdfDesktop) {
+      btnUdostepnijPdfDesktop.addEventListener('click', async () => {
+        ukryjKomunikat();
+
+        const cfg = wczytajConfig();
+        if (!String(cfg.nazwa_firmy || '').trim()) {
+          pokazKomunikat('Uzupełnij nazwę firmy w Ustawieniach firmy (ikona koła zębatego).', 'error');
+          otworzSettings();
+          return;
+        }
+
+        const { payload } = budujPayloadZFormularza();
+        const originalLabel = btnUdostepnijPdfDesktop.querySelector('span');
+        const originalText = originalLabel ? originalLabel.textContent : '';
+        btnUdostepnijPdfDesktop.disabled = true;
+        if (originalLabel) originalLabel.textContent = 'Przygotowuję…';
+
+        try {
+          const res = await fetch('/quote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) {
+            const tekst = await res.text();
+            throw new Error(tekst || `Błąd ${res.status}`);
+          }
+
+          const blob = await res.blob();
+          const nazwaPliku = `oferta-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
+          const file = new File([blob], nazwaPliku, { type: 'application/pdf' });
+
+          if (!navigator.canShare({ files: [file] })) {
+            pokazKomunikat('Ta przeglądarka nie wspiera udostępniania plików PDF. Użyj „Pobierz PDF" i załącz ręcznie.', 'error');
+            return;
+          }
+
+          await navigator.share({
+            files: [file],
+            title: 'Wycena PDF',
+            text: 'Wycena w załączniku.',
+          });
+
+          if (livePodgladMql.matches) {
+            zaladujPdfDoBufora(blob);
+          }
+          dodajDoHistorii(payload);
+          inkrementujNumeracje();
+          renderStatystyki();
+          const numerEl = document.getElementById('numer_oferty');
+          if (numerEl) numerEl.value = nastepnyNumerOferty();
+          aktualnyPayloadEmail = payload;
+          pokazKomunikat('Oferta udostępniona. Wycena zapisana w historii.', 'success');
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          pokazKomunikat('Nie udało się udostępnić pliku: ' + err.message, 'error');
+        } finally {
+          btnUdostepnijPdfDesktop.disabled = false;
+          if (originalLabel) originalLabel.textContent = originalText || 'Udostępnij';
+        }
+      });
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -2945,9 +3065,6 @@
     });
 
     const btnUdostepnijPdf = document.getElementById('btn-udostepnij-pdf');
-    const shareSupported = typeof navigator !== 'undefined'
-      && typeof navigator.canShare === 'function'
-      && typeof navigator.share === 'function';
 
     if (shareSupported && btnUdostepnijPdf) {
       btnUdostepnijPdf.hidden = false;
