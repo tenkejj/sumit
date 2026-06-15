@@ -1038,6 +1038,17 @@
     }
     .btn-secondary:hover { border-color: var(--text); }
 
+    .btn-secondary.btn-with-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-secondary.btn-with-icon svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
     .items-actions {
       display: flex;
       align-items: center;
@@ -2170,6 +2181,16 @@
         <button type="button" class="btn-secondary" id="btn-zamknij-modal">Zamknij</button>
         <button type="button" class="btn-secondary" id="btn-drukuj-pdf">Drukuj</button>
         <button type="button" class="btn-secondary" id="btn-przygotuj-email" title="Otworzy klienta poczty z gotowym tematem i treścią. Pamiętaj o dołączeniu pobranego PDF jako załącznika.">Przygotuj e-mail</button>
+        <button type="button" class="btn-secondary btn-with-icon" id="btn-udostepnij-pdf" hidden aria-label="Udostępnij ofertę przez komunikator">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          <span>Udostępnij</span>
+        </button>
         <button type="button" class="btn-primary" id="btn-pobierz-pdf">Pobierz PDF</button>
       </div>
     </div>
@@ -2844,7 +2865,7 @@
           pokazKomunikat('PDF pobrany. Wycena zapisana w historii.', 'success');
         } else {
           const url = URL.createObjectURL(blob);
-          pokazPodgladPdf(url, nazwaPliku, payload);
+          pokazPodgladPdf(url, nazwaPliku, payload, blob);
           pokazKomunikat('PDF wygenerowany. Otwórz podgląd, aby pobrać plik.', 'success');
         }
       } catch (err) {
@@ -2867,8 +2888,9 @@
     let aktualnaNazwaPliku = '';
     let aktualnyPayload = null;
     let aktualnyPayloadEmail = null;
+    let aktualnyBlobPdf = null;
 
-    function pokazPodgladPdf(url, nazwaPliku, payload) {
+    function pokazPodgladPdf(url, nazwaPliku, payload, blob) {
       if (aktualnyPodgladUrl) {
         URL.revokeObjectURL(aktualnyPodgladUrl);
       }
@@ -2876,6 +2898,7 @@
       aktualnaNazwaPliku = nazwaPliku;
       aktualnyPayload = payload || null;
       aktualnyPayloadEmail = payload || null;
+      aktualnyBlobPdf = blob || null;
       pdfPreview.src = url;
       pdfModal.hidden = false;
       pdfModal.setAttribute('aria-hidden', 'false');
@@ -2894,6 +2917,7 @@
       aktualnaNazwaPliku = '';
       aktualnyPayload = null;
       aktualnyPayloadEmail = null;
+      aktualnyBlobPdf = null;
     }
 
     btnZamknijModal.addEventListener('click', zamknijPodgladPdf);
@@ -2919,6 +2943,40 @@
         aktualnyPayload = null;
       }
     });
+
+    const btnUdostepnijPdf = document.getElementById('btn-udostepnij-pdf');
+    const shareSupported = typeof navigator !== 'undefined'
+      && typeof navigator.canShare === 'function'
+      && typeof navigator.share === 'function';
+
+    if (shareSupported && btnUdostepnijPdf) {
+      btnUdostepnijPdf.hidden = false;
+      btnUdostepnijPdf.addEventListener('click', async () => {
+        if (!aktualnyBlobPdf) return;
+        const file = new File([aktualnyBlobPdf], aktualnaNazwaPliku || 'Oferta.pdf', { type: 'application/pdf' });
+        if (!navigator.canShare({ files: [file] })) {
+          pokazKomunikat('Ta przeglądarka nie wspiera udostępniania plików PDF.', 'error');
+          return;
+        }
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'Wycena PDF',
+            text: 'Wycena w załączniku.',
+          });
+          if (aktualnyPayload) {
+            dodajDoHistorii(aktualnyPayload);
+            inkrementujNumeracje();
+            renderStatystyki();
+            aktualnyPayload = null;
+          }
+          pokazKomunikat('Oferta udostępniona.', 'success');
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          pokazKomunikat('Nie udało się udostępnić pliku: ' + err.message, 'error');
+        }
+      });
+    }
 
     btnDrukujPdf.addEventListener('click', () => {
       if (!aktualnyPodgladUrl) return;
