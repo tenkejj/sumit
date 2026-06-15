@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SumIt — generator ofert PDF</title>
+  <title>SumIt — generator wycen PDF</title>
   <script>
     (function () {
       try {
@@ -1994,7 +1994,7 @@
         </div>
       </div>
       <nav class="view-tabs" role="tablist" aria-label="Widoki aplikacji">
-        <button type="button" class="view-tab is-active" role="tab" id="tab-kreator" aria-selected="true" aria-controls="view-kreator" data-view-target="view-kreator">Kreator</button>
+        <button type="button" class="view-tab is-active" role="tab" id="tab-kreator" aria-selected="true" aria-controls="view-kreator" data-view-target="view-kreator">Nowa wycena</button>
         <button type="button" class="view-tab" role="tab" id="tab-statystyki" aria-selected="false" aria-controls="view-statystyki" data-view-target="view-statystyki">Statystyki</button>
       </nav>
       <div class="header-actions">
@@ -2014,12 +2014,12 @@
             <path d="m19.07 4.93-1.41 1.41"></path>
           </svg>
         </button>
-        <button type="button" class="btn-settings" id="btn-historia" aria-haspopup="dialog" aria-controls="historia-modal" title="Historia ofert">
+        <button type="button" class="btn-settings" id="btn-historia" aria-haspopup="dialog" aria-controls="historia-modal" title="Historia wycen">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9"></circle>
             <polyline points="12 7 12 12 15 14"></polyline>
           </svg>
-          <span>Historia ofert</span>
+          <span>Historia wycen</span>
         </button>
         <button type="button" class="btn-settings" id="btn-settings" aria-haspopup="dialog" aria-controls="settings-modal" title="Ustawienia firmy">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2031,17 +2031,17 @@
       </div>
     </header>
 
-    <p class="tagline">Twój standard wycen.</p>
+    <p class="tagline">Twórz wyceny PDF w 30 sekund</p>
 
     <div id="view-kreator" class="view" role="tabpanel" aria-labelledby="tab-kreator">
     <div class="kreator-layout">
     <div class="card">
       <form id="oferta-form" autocomplete="off">
         <section class="section">
-          <h2 class="section-title">Szczegóły oferty</h2>
+          <h2 class="section-title">Szczegóły wyceny</h2>
           <div class="row">
             <div class="field">
-              <label for="numer_oferty">Numer oferty</label>
+              <label for="numer_oferty">Numer wyceny</label>
               <input type="text" id="numer_oferty" name="numer_oferty" placeholder="np. 2026/001">
             </div>
             <div class="field">
@@ -2104,7 +2104,7 @@
         </section>
 
         <section class="section">
-          <h2 class="section-title">Uwagi do oferty</h2>
+          <h2 class="section-title">Uwagi do wyceny</h2>
           <div class="field">
             <label for="uwagi">Notatki widoczne pod tabelą</label>
             <textarea id="uwagi" name="uwagi" rows="4" placeholder="np. dodatkowe warunki, terminy, gwarancje"></textarea>
@@ -2118,7 +2118,7 @@
         </section>
 
         <div class="submit-wrap">
-          <button type="submit" class="btn-primary" id="btn-generuj">Podgląd i pobierz</button>
+          <button type="submit" class="btn-primary" id="btn-generuj">Wygeneruj wycenę</button>
           <div class="submit-actions">
             <button type="button" class="btn-clear" id="btn-wyczysc-formularz">Wyczyść formularz</button>
           </div>
@@ -2131,20 +2131,20 @@
         <div class="live-preview-frame">
           <iframe id="pdf-frame-1" class="active" title="Podgląd PDF na żywo"></iframe>
           <iframe id="pdf-frame-2" title="Podgląd PDF na żywo (bufor)"></iframe>
-          <div id="live-pdf-preview-empty" class="live-preview-empty">Wypełnij dane oferty (nazwa firmy, klient i&nbsp;przynajmniej jedna pozycja), aby zobaczyć podgląd.</div>
+          <div id="live-pdf-preview-empty" class="live-preview-empty">Wypełnij dane wyceny (nazwa firmy, klient i&nbsp;przynajmniej jedna pozycja), aby zobaczyć podgląd.</div>
         </div>
       </aside>
     </div>
     </div>
 
     <div id="view-statystyki" class="view hidden" role="tabpanel" aria-labelledby="tab-statystyki" hidden>
-      <section class="stats-section" id="stats-section" aria-label="Statystyki ofert"></section>
+      <section class="stats-section" id="stats-section" aria-label="Statystyki wycen"></section>
     </div>
 
     <p class="footer">© SumIt</p>
   </div>
 
-  <div class="lightbox" id="pdf-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Pełny podgląd oferty">
+  <div class="lightbox" id="pdf-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Pełny podgląd wyceny">
     <div class="lightbox-backdrop" id="pdf-lightbox-backdrop"></div>
     <button type="button" class="lightbox-close" id="pdf-lightbox-close" aria-label="Zamknij podgląd">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2161,7 +2161,7 @@
     <div class="modal-backdrop" id="pdf-modal-backdrop"></div>
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title" id="pdf-modal-title">Podgląd oferty</h3>
+        <h3 class="modal-title" id="pdf-modal-title">Podgląd wyceny</h3>
       </div>
       <div class="modal-body">
         <iframe id="pdf-preview" title="Podgląd PDF"></iframe>
@@ -2182,7 +2182,7 @@
         <h3 class="modal-title" id="settings-modal-title">Ustawienia firmy</h3>
       </div>
       <div class="modal-body">
-        <p class="settings-hint">Dane sprzedawcy używane na każdej ofercie. Zapis automatyczny przy zamknięciu okna.</p>
+        <p class="settings-hint">Dane sprzedawcy używane na każdej wycenie. Zapis automatyczny przy zamknięciu okna.</p>
         <form id="settings-form" class="settings-form" autocomplete="off" onsubmit="return false;">
           <div class="row">
             <div class="field field-full">
@@ -2299,10 +2299,10 @@
     <div class="modal-backdrop" id="historia-modal-backdrop"></div>
     <div class="modal-card historia-card">
       <div class="modal-header">
-        <h3 class="modal-title" id="historia-modal-title">Historia ofert</h3>
+        <h3 class="modal-title" id="historia-modal-title">Historia wycen</h3>
       </div>
       <div class="modal-body">
-        <ul class="historia-list" id="historia-list" aria-label="Zapisane oferty"></ul>
+        <ul class="historia-list" id="historia-list" aria-label="Zapisane wyceny"></ul>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-clear" id="btn-historia-wyczysc" hidden>Wyczyść historię</button>
@@ -2740,7 +2740,7 @@
 
     function aktualizujTekstPrzyciskuGeneruj() {
       if (!btnGeneruj) return;
-      btnGeneruj.textContent = livePodgladMql.matches ? 'Pobierz PDF' : 'Podgląd i pobierz';
+      btnGeneruj.textContent = livePodgladMql.matches ? 'Pobierz PDF' : 'Wygeneruj wycenę';
     }
     aktualizujTekstPrzyciskuGeneruj();
 
@@ -2841,7 +2841,7 @@
           if (numerEl) numerEl.value = nastepnyNumerOferty();
           aktualnyPayloadEmail = payload;
 
-          pokazKomunikat('PDF pobrany. Oferta zapisana w historii.', 'success');
+          pokazKomunikat('PDF pobrany. Wycena zapisana w historii.', 'success');
         } else {
           const url = URL.createObjectURL(blob);
           pokazPodgladPdf(url, nazwaPliku, payload);
@@ -2932,7 +2932,7 @@
 
     btnPrzygotujEmail.addEventListener('click', () => {
       if (!aktualnyPayloadEmail) {
-        pokazKomunikat('Najpierw wygeneruj ofertę, aby przygotować e-mail.', 'error');
+        pokazKomunikat('Najpierw wygeneruj wycenę, aby przygotować e-mail.', 'error');
         return;
       }
       const p = aktualnyPayloadEmail;
@@ -4170,9 +4170,9 @@
     }
 
     function sufiksOferty(n) {
-      if (n === 1) return 'oferta';
-      if (n >= 2 && n <= 4) return 'oferty';
-      return 'ofert';
+      if (n === 1) return 'wycena';
+      if (n >= 2 && n <= 4) return 'wyceny';
+      return 'wycen';
     }
 
     let chartTooltip = null;
@@ -4349,10 +4349,10 @@
       const trh = document.createElement('tr');
       [
         { txt: 'Klient', cls: '' },
-        { txt: 'Liczba ofert', cls: 'col-num' },
+        { txt: 'Liczba wycen', cls: 'col-num' },
         { txt: 'Łączna wartość', cls: 'col-num' },
         { txt: 'Średnia wartość', cls: 'col-num' },
-        { txt: 'Ostatnia oferta', cls: 'col-num' }
+        { txt: 'Ostatnia wycena', cls: 'col-num' }
       ].forEach(h => {
         const th = document.createElement('th');
         th.textContent = h.txt;
@@ -4495,7 +4495,7 @@
           if (dzien.getTime() > dzisMs) cell.classList.add('is-future');
 
           const dataFmt = formatujDateKrotka(dzien.getTime());
-          const sufiks = liczba === 1 ? 'oferta' : (liczba >= 2 && liczba <= 4 ? 'oferty' : 'ofert');
+          const sufiks = liczba === 1 ? 'wycena' : (liczba >= 2 && liczba <= 4 ? 'wyceny' : 'wycen');
           const dzienNazwa = HEATMAPA_NAZWY_DNI[dzien.getDay()];
           cell.title = dzienNazwa + ', ' + dataFmt + ' — ' + liczba + ' ' + sufiks;
           grid.appendChild(cell);
@@ -4540,7 +4540,7 @@
       if (!calaHistoria || calaHistoria.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'stats-empty';
-        empty.textContent = 'Brak danych — wygeneruj pierwszą ofertę, aby zobaczyć statystyki';
+        empty.textContent = 'Brak danych — wygeneruj pierwszą wycenę, aby zobaczyć statystyki';
         statsSection.appendChild(empty);
         return;
       }
@@ -4574,7 +4574,7 @@
       if (lista.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'stats-empty';
-        empty.textContent = 'Brak ofert w wybranym okresie';
+        empty.textContent = 'Brak wycen w wybranym okresie';
         statsSection.appendChild(empty);
         return;
       }
@@ -4621,12 +4621,12 @@
       grid.className = 'stats-grid';
 
       grid.appendChild(tworzKarteStat(
-        'Wygenerowane oferty',
+        'Wygenerowane wyceny',
         String(liczbaLacznie),
         'W tym miesiącu: ' + liczbaWMiesiacu
       ));
       grid.appendChild(tworzKarteStat(
-        'Wartość ofert',
+        'Wartość wycen',
         formatujSume(sumaLacznie),
         'W tym miesiącu: ' + formatujSume(sumaWMiesiacu)
       ));
@@ -4669,7 +4669,7 @@
       chartContainer.className = 'chart-container';
       const chartTitle = document.createElement('h3');
       chartTitle.className = 'chart-title';
-      chartTitle.textContent = 'Wartość ofert (ostatnie 6 miesięcy)';
+      chartTitle.textContent = 'Wartość wycen (ostatnie 6 miesięcy)';
       chartContainer.appendChild(chartTitle);
       const chartBars = document.createElement('div');
       chartBars.id = 'stat-chart';
@@ -4722,7 +4722,7 @@
       if (lista.length === 0) {
         const li = document.createElement('li');
         li.className = 'historia-empty';
-        li.textContent = 'Brak zapisanych ofert';
+        li.textContent = 'Brak zapisanych wycen';
         historiaList.appendChild(li);
         return;
       }
@@ -4797,7 +4797,7 @@
 
     function wczytajWpisDoFormularza(wpis) {
       if (!wpis || !wpis.payload) return;
-      const ok = window.confirm('Wczytanie nadpisze obecny szkic oferty. Kontynuować?');
+      const ok = window.confirm('Wczytanie nadpisze obecny szkic wyceny. Kontynuować?');
       if (!ok) return;
 
       const p = wpis.payload;
@@ -4833,7 +4833,7 @@
       odswiezStanPresetow();
       saveDraft();
       zamknijHistorie();
-      pokazKomunikat('Wczytano ofertę z historii.', 'success');
+      pokazKomunikat('Wczytano wycenę z historii.', 'success');
     }
 
     async function pobierzPdfZHistorii(wpis, btn) {
@@ -4891,7 +4891,7 @@
     btnZamknijHistoria.addEventListener('click', zamknijHistorie);
     historiaBackdrop.addEventListener('click', zamknijHistorie);
     btnHistoriaWyczysc.addEventListener('click', () => {
-      const ok = window.confirm('Wyczyścić całą historię ofert? Tej operacji nie można cofnąć.');
+      const ok = window.confirm('Wyczyścić całą historię wycen? Tej operacji nie można cofnąć.');
       if (!ok) return;
       zapiszHistorie([]);
       renderujHistorie();
