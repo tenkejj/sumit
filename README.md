@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="static/logoo.png" alt="SumIt Logo" width="100%">
+  <img src="static/readme-banner.png" alt="SumIt Logo" width="100%">
 </p>
 
 # SumIt - Your Valuation Standard
