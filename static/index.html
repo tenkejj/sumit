@@ -125,7 +125,7 @@
                 <th class="col-lp">#</th>
                 <th class="col-nazwa">Nazwa</th>
                 <th class="col-ilosc">Ilość</th>
-                <th class="col-cena">Cena jedn. (zł)</th>
+                <th class="col-cena">Cena dla klienta (zł)</th>
                 <th class="col-akcja" aria-label="Akcje"></th>
               </tr>
             </thead>
@@ -169,6 +169,10 @@
               </svg>
               <span>Wyślij klientowi</span>
             </button>
+            <div class="profit-badge" id="profit-badge" role="status" aria-live="polite" aria-label="Szacowany zysk z wyceny">
+              <span class="profit-badge-label">Szacowany zysk:</span>
+              <span class="profit-badge-value" id="profit-badge-value">0,00 zł</span>
+            </div>
           </div>
           <div class="submit-actions">
             <button type="button" class="btn-clear" id="btn-wyczysc-formularz">Wyczyść formularz</button>
@@ -477,7 +481,11 @@
         </td>
         <td class="col-cena">
           <div class="price-wrap">
-            <input type="number" class="in-cena" step="0.01" min="0" placeholder="0,00" required>
+            <input type="number" class="in-cena" step="0.01" min="0" placeholder="0,00" aria-label="Cena dla klienta (zł)" required>
+            <div class="koszt-row">
+              <span class="koszt-label" aria-hidden="true">Twój koszt (za szt.)</span>
+              <input type="number" class="in-koszt" step="0.01" min="0" placeholder="0,00" inputmode="decimal" aria-label="Twój koszt za jednostkę" title="Ile Ciebie kosztuje 1 jednostka — służy tylko do liczenia szacowanego zysku, nie trafia na PDF">
+            </div>
             <div class="price-adjusts" role="group" aria-label="Szybka korekta ceny jednostkowej">
               <button type="button" class="btn-adjust" data-adjust="-5" title="Obniż cenę jednostkową o 5%" aria-label="Obniż cenę jednostkową o 5% (rabat)">Rab. -5%</button>
               <button type="button" class="btn-adjust" data-adjust="10" title="Dolicz 10% marży do ceny jednostkowej" aria-label="Dolicz 10% marży do ceny jednostkowej">Mar. +10%</button>
@@ -503,6 +511,7 @@
         }
         tr.remove();
         odswiezNumery();
+        aktualizujSzacowanyZysk();
       });
       tr.querySelector('.btn-duplicate').addEventListener('click', () => duplikujWiersz(tr));
       tr.querySelector('.btn-calc').addEventListener('click', () => otworzKalkulator(tr));
@@ -525,6 +534,7 @@
       const nazwa = originalTr.querySelector('.in-nazwa').value;
       const ilosc = originalTr.querySelector('.in-ilosc').value;
       const cena  = originalTr.querySelector('.in-cena').value;
+      const koszt = originalTr.querySelector('.in-koszt').value;
 
       dodajWiersz();
       const noweTr = tbody.lastElementChild;
@@ -536,8 +546,10 @@
       noweTr.querySelector('.in-nazwa').value = nazwa;
       noweTr.querySelector('.in-ilosc').value = ilosc;
       noweTr.querySelector('.in-cena').value  = cena;
+      noweTr.querySelector('.in-koszt').value = koszt;
 
       odswiezNumery();
+      aktualizujSzacowanyZysk();
       saveDraft();
     }
 
@@ -568,9 +580,58 @@
       message.className = 'message';
     }
 
+    const profitBadge = document.getElementById('profit-badge');
+    const profitBadgeValue = document.getElementById('profit-badge-value');
+
+    function parsujLiczbeInput(el) {
+      if (!el) return NaN;
+      const raw = String(el.value || '').replace(',', '.').trim();
+      if (!raw) return NaN;
+      return parseFloat(raw);
+    }
+
+    function formatujKwote(v) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return '0,00 zł';
+      return n.toFixed(2).replace('.', ',') + ' zł';
+    }
+
+    function aktualizujSzacowanyZysk() {
+      if (!profitBadge || !profitBadgeValue) return;
+      let suma = 0;
+      let maPelneDane = false;
+      [...tbody.querySelectorAll('tr')].forEach(tr => {
+        const ilosc = parsujLiczbeInput(tr.querySelector('.in-ilosc'));
+        const cena  = parsujLiczbeInput(tr.querySelector('.in-cena'));
+        const koszt = parsujLiczbeInput(tr.querySelector('.in-koszt'));
+        if (!Number.isFinite(ilosc) || !Number.isFinite(cena) || !Number.isFinite(koszt)) return;
+        suma += (cena - koszt) * ilosc;
+        maPelneDane = true;
+      });
+      profitBadgeValue.textContent = formatujKwote(suma);
+      profitBadge.classList.remove('is-zero', 'is-loss');
+      if (!maPelneDane || Math.abs(suma) < 0.005) {
+        profitBadge.classList.add('is-zero');
+      } else if (suma < 0) {
+        profitBadge.classList.add('is-loss');
+      }
+    }
+
+    tbody.addEventListener('input', (e) => {
+      if (!e.target) return;
+      if (e.target.classList && (
+        e.target.classList.contains('in-ilosc') ||
+        e.target.classList.contains('in-cena') ||
+        e.target.classList.contains('in-koszt')
+      )) {
+        aktualizujSzacowanyZysk();
+      }
+    });
+
     btnDodaj.addEventListener('click', dodajWiersz);
 
     dodajWiersz();
+    aktualizujSzacowanyZysk();
 
     (function ustawDomyslnaDateWaznosci() {
       const input = document.getElementById('data_waznosci');
@@ -654,11 +715,23 @@
       const nazwaFirmy = String(cfg.nazwa_firmy || '').trim();
       const klient = document.getElementById('klient').value.trim();
       const pozycjeWiersze = [...tbody.querySelectorAll('tr')];
+      // Uwaga: pole .in-koszt jest celowo pomijane w payloadzie /quote.
+      // Backend Go (struct Pozycja w oferta.go) nie zna pola "koszt" — dorzucenie go
+      // zepsułoby parsowanie JSON-a po stronie serwera. Koszt własny pozostaje tylko
+      // w warstwie UI i służy wyłącznie do liczenia szacowanego zysku w przeglądarce
+      // oraz jest zapisywany razem z wpisem historii (osobno od payloadu) na potrzeby
+      // statystyk zysku.
       const pozycje = pozycjeWiersze.map(tr => ({
         nazwa: tr.querySelector('.in-nazwa').value.trim(),
         ilosc: parseFloat(tr.querySelector('.in-ilosc').value),
         cena_jednostkowa: parseFloat(tr.querySelector('.in-cena').value),
       }));
+      const koszty = pozycjeWiersze.map(tr => {
+        const raw = String(tr.querySelector('.in-koszt').value || '').replace(',', '.').trim();
+        if (!raw) return null;
+        const v = parseFloat(raw);
+        return Number.isFinite(v) ? v : null;
+      });
       const pozycjeOk = pozycje.filter(p => p.nazwa && Number.isFinite(p.ilosc) && p.ilosc > 0 && Number.isFinite(p.cena_jednostkowa) && p.cena_jednostkowa >= 0);
 
       const gotowy = !!nazwaFirmy && !!klient && pozycjeOk.length > 0;
@@ -667,6 +740,7 @@
         gotowy,
         nazwaFirmy,
         klient,
+        koszty,
         payload: {
           nazwa_firmy: nazwaFirmy,
           nip: String(cfg.nip || '').trim(),
@@ -876,7 +950,7 @@
           return;
         }
 
-        const { payload } = budujPayloadZFormularza();
+        const { payload, koszty } = budujPayloadZFormularza();
         const originalLabel = btnUdostepnijPdfDesktop.querySelector('span');
         const originalText = originalLabel ? originalLabel.textContent : '';
         btnUdostepnijPdfDesktop.disabled = true;
@@ -912,7 +986,7 @@
           if (livePodgladMql.matches) {
             zaladujPdfDoBufora(blob);
           }
-          dodajDoHistorii(payload);
+          dodajDoHistorii(payload, koszty);
           inkrementujNumeracje();
           renderStatystyki();
           const numerEl = document.getElementById('numer_oferty');
@@ -940,7 +1014,7 @@
         return;
       }
 
-      const { payload } = budujPayloadZFormularza();
+      const { payload, koszty } = budujPayloadZFormularza();
       const desktopTryb = livePodgladMql.matches;
 
       btnGeneruj.disabled = true;
@@ -973,7 +1047,7 @@
           a.remove();
           setTimeout(() => URL.revokeObjectURL(dlUrl), 10000);
 
-          dodajDoHistorii(payload);
+          dodajDoHistorii(payload, koszty);
           inkrementujNumeracje();
           renderStatystyki();
           const numerEl = document.getElementById('numer_oferty');
@@ -983,7 +1057,7 @@
           pokazKomunikat('PDF pobrany. Wycena zapisana w historii.', 'success');
         } else {
           const url = URL.createObjectURL(blob);
-          pokazPodgladPdf(url, nazwaPliku, payload, blob);
+          pokazPodgladPdf(url, nazwaPliku, payload, blob, koszty);
           pokazKomunikat('PDF wygenerowany. Otwórz podgląd, aby pobrać plik.', 'success');
         }
       } catch (err) {
@@ -1007,8 +1081,9 @@
     let aktualnyPayload = null;
     let aktualnyPayloadEmail = null;
     let aktualnyBlobPdf = null;
+    let aktualneKoszty = null;
 
-    function pokazPodgladPdf(url, nazwaPliku, payload, blob) {
+    function pokazPodgladPdf(url, nazwaPliku, payload, blob, koszty) {
       if (aktualnyPodgladUrl) {
         URL.revokeObjectURL(aktualnyPodgladUrl);
       }
@@ -1017,6 +1092,7 @@
       aktualnyPayload = payload || null;
       aktualnyPayloadEmail = payload || null;
       aktualnyBlobPdf = blob || null;
+      aktualneKoszty = Array.isArray(koszty) ? koszty.slice() : null;
       pdfPreview.src = url;
       pdfModal.hidden = false;
       pdfModal.setAttribute('aria-hidden', 'false');
@@ -1036,6 +1112,7 @@
       aktualnyPayload = null;
       aktualnyPayloadEmail = null;
       aktualnyBlobPdf = null;
+      aktualneKoszty = null;
     }
 
     btnZamknijModal.addEventListener('click', zamknijPodgladPdf);
@@ -1055,10 +1132,11 @@
       a.click();
       a.remove();
       if (aktualnyPayload) {
-        dodajDoHistorii(aktualnyPayload);
+        dodajDoHistorii(aktualnyPayload, aktualneKoszty);
         inkrementujNumeracje();
         renderStatystyki();
         aktualnyPayload = null;
+        aktualneKoszty = null;
       }
     });
 
@@ -1080,10 +1158,11 @@
               text: 'Wycena w załączniku.',
             });
             if (aktualnyPayload) {
-              dodajDoHistorii(aktualnyPayload);
+              dodajDoHistorii(aktualnyPayload, aktualneKoszty);
               inkrementujNumeracje();
               renderStatystyki();
               aktualnyPayload = null;
+              aktualneKoszty = null;
             }
             pokazKomunikat('Oferta wysłana do klienta.', 'success');
           } catch (err) {
@@ -1367,6 +1446,7 @@
         nazwa: tr.querySelector('.in-nazwa').value,
         ilosc: tr.querySelector('.in-ilosc').value,
         cena: tr.querySelector('.in-cena').value,
+        koszt: tr.querySelector('.in-koszt').value,
       }));
     }
 
@@ -1409,10 +1489,12 @@
           if (typeof p.nazwa === 'string') tr.querySelector('.in-nazwa').value = p.nazwa;
           if (typeof p.ilosc === 'string') tr.querySelector('.in-ilosc').value = p.ilosc;
           if (typeof p.cena === 'string')  tr.querySelector('.in-cena').value  = p.cena;
+          if (typeof p.koszt === 'string') tr.querySelector('.in-koszt').value = p.koszt;
         });
       }
 
       odswiezStanPresetow();
+      aktualizujSzacowanyZysk();
     }
 
     function ustawDomyslnaDate() {
@@ -1444,6 +1526,7 @@
 
       odswiezStanPresetow();
       ukryjKomunikat();
+      aktualizujSzacowanyZysk();
       aktualizujLivePodglad();
     }
 
@@ -1752,6 +1835,7 @@
 
       renderStatystyki();
       initViewTabs();
+      aktualizujSzacowanyZysk();
       aktualizujLivePodglad();
     });
 
@@ -1984,7 +2068,11 @@
       const n = tr.querySelector('.in-nazwa');
       const i = tr.querySelector('.in-ilosc');
       const c = tr.querySelector('.in-cena');
-      return (!n || !n.value.trim()) && (!i || !i.value.trim()) && (!c || !c.value.trim());
+      const k = tr.querySelector('.in-koszt');
+      return (!n || !n.value.trim())
+        && (!i || !i.value.trim())
+        && (!c || !c.value.trim())
+        && (!k || !k.value.trim());
     }
 
     function znajdzDocelowyWiersz() {
@@ -2229,14 +2317,41 @@
       return Math.round(suma * 100) / 100;
     }
 
-    function dodajDoHistorii(payload) {
+    // Zwraca { zysk, kompletny } gdzie:
+    //   zysk      — suma (cena - koszt) * ilosc dla pozycji z kompletem danych,
+    //   kompletny — true, gdy KAŻDA pozycja ma poprawny koszt; w przeciwnym razie
+    //               wpis traktujemy jako "częściowy" i pomijamy go w sumach statystyk.
+    function obliczZyskWpisu(pozycje, koszty) {
+      if (!Array.isArray(pozycje) || pozycje.length === 0) return { zysk: 0, kompletny: false };
+      if (!Array.isArray(koszty)) return { zysk: 0, kompletny: false };
+      let zysk = 0;
+      let kompletny = true;
+      pozycje.forEach((p, i) => {
+        const ilosc = Number(p && p.ilosc);
+        const cena  = Number(p && p.cena_jednostkowa);
+        const koszt = Number(koszty[i]);
+        if (Number.isFinite(ilosc) && Number.isFinite(cena) && Number.isFinite(koszt)) {
+          zysk += (cena - koszt) * ilosc;
+        } else {
+          kompletny = false;
+        }
+      });
+      return { zysk: Math.round(zysk * 100) / 100, kompletny };
+    }
+
+    function dodajDoHistorii(payload, koszty) {
       if (!payload || typeof payload !== 'object') return;
+      const koszt = Array.isArray(koszty) ? koszty.slice() : null;
+      const { zysk, kompletny } = obliczZyskWpisu(payload.pozycje, koszt || []);
       const wpis = {
         id: Date.now(),
         dataZapisu: new Date().toISOString(),
         numerOferty: String(payload.numer_oferty || ''),
         klient: String(payload.klient || ''),
         suma: obliczSumePozycji(payload.pozycje),
+        // koszty i zysk są zapisywane WYŁĄCZNIE w localStorage — nie w payloadzie /quote.
+        koszty: koszt,
+        zysk: kompletny ? zysk : null,
         payload: payload,
       };
       const lista = wczytajHistorie();
@@ -3007,6 +3122,10 @@
       let liczbaWMiesiacu = 0;
       let sumaLacznie = 0;
       let sumaWMiesiacu = 0;
+      let sumaZyskuLacznie = 0;
+      let sumaZyskuWMiesiacu = 0;
+      let liczbaZeZyskiem = 0;
+      let liczbaZeZyskiemWMiesiacu = 0;
       const liczniki = new Map();
 
       lista.forEach(wpis => {
@@ -3019,6 +3138,15 @@
         if (wMiesiacu) {
           liczbaWMiesiacu += 1;
           sumaWMiesiacu += suma;
+        }
+        const zysk = (wpis.zysk == null) ? null : Number(wpis.zysk);
+        if (Number.isFinite(zysk)) {
+          sumaZyskuLacznie += zysk;
+          liczbaZeZyskiem += 1;
+          if (wMiesiacu) {
+            sumaZyskuWMiesiacu += zysk;
+            liczbaZeZyskiemWMiesiacu += 1;
+          }
         }
         const pozycje = (wpis.payload && Array.isArray(wpis.payload.pozycje))
           ? wpis.payload.pozycje
@@ -3050,6 +3178,39 @@
         formatujSume(sumaLacznie),
         'W tym miesiącu: ' + formatujSume(sumaWMiesiacu)
       ));
+
+      const zyskCard = document.createElement('div');
+      zyskCard.className = 'stats-card';
+      const zyskLabel = document.createElement('div');
+      zyskLabel.className = 'stats-card-label';
+      zyskLabel.textContent = 'Szacowany zysk';
+      zyskCard.appendChild(zyskLabel);
+      const zyskValue = document.createElement('div');
+      zyskValue.className = 'stats-card-value';
+      if (liczbaZeZyskiem > 0) {
+        zyskValue.textContent = formatujSume(sumaZyskuLacznie);
+        if (sumaZyskuLacznie > 0.005) {
+          zyskValue.classList.add('stats-trend-positive');
+        } else if (sumaZyskuLacznie < -0.005) {
+          zyskValue.classList.add('stats-trend-negative');
+        }
+      } else {
+        zyskValue.textContent = '—';
+      }
+      zyskCard.appendChild(zyskValue);
+      const zyskMeta = document.createElement('div');
+      zyskMeta.className = 'stats-card-meta';
+      if (liczbaZeZyskiem > 0) {
+        const wMies = formatujSume(sumaZyskuWMiesiacu);
+        const procentPokrycia = Math.round((liczbaZeZyskiem / liczbaLacznie) * 100);
+        zyskMeta.textContent = 'W tym miesiącu: ' + wMies
+          + ' · z ' + liczbaZeZyskiem + '/' + liczbaLacznie + ' wycen (' + procentPokrycia + '%)';
+      } else {
+        zyskMeta.textContent = 'Uzupełnij "Twój koszt" w nowych wycenach, aby liczyć zysk';
+      }
+      zyskCard.appendChild(zyskMeta);
+      zyskCard.title = 'Suma (cena dla klienta − Twój koszt) × ilość dla wycen, w których uzupełniłeś koszt własny. Liczone tylko lokalnie, na podstawie historii wycen.';
+      grid.appendChild(zyskCard);
 
       const trendCard = document.createElement('div');
       trendCard.className = 'stats-card';
@@ -3179,6 +3340,18 @@
         info.appendChild(row1);
         info.appendChild(row2);
 
+        if (wpis.zysk != null && Number.isFinite(Number(wpis.zysk))) {
+          const zyskNum = Number(wpis.zysk);
+          const row3 = document.createElement('div');
+          row3.className = 'historia-item-row historia-item-meta';
+          const zyskInfo = document.createElement('span');
+          zyskInfo.textContent = 'Szacowany zysk: ' + formatujSume(zyskNum);
+          if (zyskNum > 0.005) zyskInfo.classList.add('stats-trend-positive');
+          else if (zyskNum < -0.005) zyskInfo.classList.add('stats-trend-negative');
+          row3.appendChild(zyskInfo);
+          info.appendChild(row3);
+        }
+
         const actions = document.createElement('div');
         actions.className = 'historia-item-actions';
 
@@ -3231,26 +3404,31 @@
       if (dataEl) dataEl.value = String(p.data_waznosci || '');
       if (uwagiEl) uwagiEl.value = String(p.uwagi || '');
 
+      const koszty = Array.isArray(wpis.koszty) ? wpis.koszty : [];
       tbody.innerHTML = '';
       if (Array.isArray(p.pozycje) && p.pozycje.length > 0) {
-        p.pozycje.forEach(poz => {
+        p.pozycje.forEach((poz, idx) => {
           dodajWiersz();
           const tr = tbody.lastElementChild;
           if (!tr) return;
           const inN = tr.querySelector('.in-nazwa');
           const inI = tr.querySelector('.in-ilosc');
           const inC = tr.querySelector('.in-cena');
+          const inK = tr.querySelector('.in-koszt');
           if (inN && typeof poz.nazwa === 'string') inN.value = poz.nazwa;
           const ilosc = Number(poz && poz.ilosc);
           if (inI && Number.isFinite(ilosc)) inI.value = String(ilosc);
           const cena = Number(poz && poz.cena_jednostkowa);
           if (inC && Number.isFinite(cena)) inC.value = String(cena);
+          const koszt = Number(koszty[idx]);
+          if (inK && Number.isFinite(koszt)) inK.value = String(koszt);
         });
       } else {
         dodajWiersz();
       }
 
       odswiezStanPresetow();
+      aktualizujSzacowanyZysk();
       saveDraft();
       zamknijHistorie();
       pokazKomunikat('Wczytano wycenę z historii.', 'success');
