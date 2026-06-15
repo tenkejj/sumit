@@ -1,15 +1,30 @@
 # Oferowo — zasady projektu
 
 ## Stack
-- Backend: Go 1.26, standardowa biblioteka + go-pdf/fpdf
+- Backend: Go 1.26, standardowa biblioteka + go-pdf/fpdf + skip2/go-qrcode
 - Frontend: vanilla HTML/CSS/JS, zero frameworków, zero npm
-- Pliki: main.go, oferta.go, static/index.html
+
+## Struktura plików
+- main.go            — bootstrap serwera HTTP, routing
+- quote.go           — model (Quote, LineItem, Company), JSON, walidacja, handler /quote
+- pdf.go             — generowanie PDF + embed czcionek z assets/fonts/
+- qr.go              — kod QR przelewu w standardzie ZBP
+- nip.go             — proxy do API Białej Listy MF (handler /api/nip)
+- assets/fonts/      — wbudowane TTF (Liberation Sans Regular + Bold)
+- static/index.html  — markup + JS aplikacji klienckiej (vanilla)
+- static/style.css   — wszystkie style aplikacji (wydzielone z `<style>` w index.html)
+- static/sumit-logo.png — logo aplikacji
+- static/readme-banner.png — banner do README
+
+## Pliki kontekstowe (gitignored)
+- KONTEKST.MD — prywatny brief projektu (architekt Claude → wykonawca Cursor); zawiera sekcję „Co już działa", model biznesowy, notatki workflow. Plik jest w `.gitignore` (linia 6), więc nie pokazują go Glob/Grep — **zawsze na początku sesji czytaj go bezpośrednio przez `Read C:\Users\frani\sumit\KONTEKST.MD`** zanim zaczniesz pracę nad zadaniem. Po skończeniu zmian funkcjonalnych dopisuj nowe wpisy do odpowiedniej subsekcji „Co już działa" (Backend / Frontend).
 
 ## Zasady Go
-- Nie modyfikuj struktury Oferta i Pozycja bez pytania
+- Nie modyfikuj struktur Quote, LineItem, Company bez pytania
 - Obsługa błędów zawsze przez if err != nil
 - Żadnych nowych zewnętrznych zależności bez pytania
 - Nie modyfikuj main.go bez wyraźnej prośby
+- Plik PDF i QR trzymaj w pdf.go / qr.go — model i handler w quote.go
 
 ## Zasady designu
 - Kolory tylko: #0a0a0a, #ffffff, #e5e5e5, #6b7280
@@ -20,5 +35,5 @@
 ## Zasady ogólne
 - Nie podejmuj decyzji architektonicznych samodzielnie
 - Zawsze zachowuj logikę JavaScript bez zmian
-- Jeden plik HTML — nie rozbijaj na komponenty
+- Frontend: jeden `index.html` jako entry + osobny `style.css` + (docelowo) osobny `app.js`. Dopuszczalne `<script src="/static/...">`. Zero komponentów (React/Vue/itp.), zero bundlerów, zero npm.
 - Zawsze pytaj jeśli coś jest niejednoznaczne

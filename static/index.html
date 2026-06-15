@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SumIt — generator wycen PDF</title>
+  <title>SumIt â€” generator wycen PDF</title>
   <script>
     (function () {
       try {
@@ -18,2030 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #eef0f4;
-      --bg-soft: #ffffff;
-      --bg-hover: #e4e6eb;
-      --bg-chip: #e1e3ea;
-      --text: #0a0a0a;
-      --text-rgb: 15, 23, 42;
-      --text-muted: #6b7280;
-      --border: #e5e5e5;
-      --border-hover: #d4d4d4;
-      --primary-bg: #0a0a0a;
-      --primary-text: #ffffff;
-      --primary-bg-hover: #262626;
-      --primary-bg-disabled: #525252;
-      --backdrop: rgba(10, 10, 10, 0.6);
-      --shadow: rgba(10, 10, 10, 0.15);
-      color-scheme: light;
-    }
-
-    [data-theme="dark"] {
-      --bg: #0a0a0a;
-      --bg-soft: #141414;
-      --bg-hover: #1f1f1f;
-      --bg-chip: #2a2a2a;
-      --text: #ffffff;
-      --text-rgb: 255, 255, 255;
-      --text-muted: #9ca3af;
-      --border: #2a2a2a;
-      --border-hover: #3a3a3a;
-      --primary-bg: #ffffff;
-      --primary-text: #0a0a0a;
-      --primary-bg-hover: #e5e5e5;
-      --primary-bg-disabled: #525252;
-      --backdrop: rgba(0, 0, 0, 0.7);
-      --shadow: rgba(0, 0, 0, 0.5);
-      color-scheme: dark;
-    }
-
-    input[type="date"] {
-      color-scheme: light;
-    }
-    [data-theme="dark"] input[type="date"] {
-      color-scheme: dark;
-    }
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
-      background-repeat: no-repeat;
-      background-position: center;
-      background-size: 18px 18px;
-      width: 20px;
-      height: 20px;
-      opacity: 1;
-      filter: none;
-      cursor: pointer;
-      transition: opacity 0.15s ease;
-    }
-    input[type="date"]::-webkit-calendar-picker-indicator:hover {
-      opacity: 0.7;
-    }
-    [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      min-height: 100vh;
-      padding: 40px 24px 56px;
-      letter-spacing: -0.01em;
-      position: relative;
-    }
-
-    [data-theme="light"] body {
-      background: radial-gradient(circle at 50% -10%, #ffffff 0%, transparent 60%), #eef0f4;
-      background-attachment: fixed;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: -1;
-    }
-
-    [data-theme="light"] body::before {
-      display: none;
-    }
-
-    [data-theme="dark"] body::before {
-      background: radial-gradient(circle at 50% -20%, rgba(255, 255, 255, 0.05), transparent 50%);
-    }
-
-    .page {
-      max-width: 1120px;
-      margin: 0 auto;
-      position: relative;
-    }
-
-    .header {
-      margin-bottom: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      position: relative;
-      min-height: 80px;
-    }
-
-    .header-brand {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 16px;
-      min-width: 0;
-      flex: 0 0 auto;
-    }
-
-    .logo {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 32px;
-      font-weight: 700;
-      letter-spacing: -0.04em;
-      color: var(--text);
-    }
-
-    .logo-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--text);
-      display: inline-block;
-    }
-
-    .tagline {
-      margin: -8px 0 28px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 15px;
-      font-weight: 400;
-      letter-spacing: -0.01em;
-    }
-
-    .btn-settings {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      margin-top: 4px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: -0.005em;
-      cursor: pointer;
-      transition: border-color 0.15s ease, color 0.15s ease;
-      white-space: nowrap;
-    }
-    .btn-settings:hover { border-color: var(--text); }
-    .btn-settings:focus-visible {
-      outline: none;
-      border-color: var(--text);
-    }
-    .btn-settings svg {
-      width: 16px;
-      height: 16px;
-      flex: 0 0 16px;
-      color: var(--text-muted);
-      transition: color 0.15s ease;
-    }
-    .btn-settings:hover svg,
-    .btn-settings:focus-visible svg { color: var(--text); }
-
-    .btn-theme {
-      padding: 8px;
-    }
-    .btn-theme svg {
-      width: 16px;
-      height: 16px;
-      flex: 0 0 16px;
-    }
-    .btn-theme .theme-icon-sun { display: none; }
-    .btn-theme .theme-icon-moon { display: block; }
-    [data-theme="dark"] .btn-theme .theme-icon-sun { display: block; }
-    [data-theme="dark"] .btn-theme .theme-icon-moon { display: none; }
-
-    .header-actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 0;
-      flex: 0 0 auto;
-    }
-    .header-actions .btn-settings { margin-top: 0; }
-
-    #app-logo {
-      display: flex;
-      align-items: center;
-      min-width: 0;
-    }
-    #app-logo img {
-      height: 72px;
-      width: auto;
-      object-fit: contain;
-      display: block;
-      filter: brightness(0);
-      transition: filter 0.3s ease;
-    }
-    [data-theme="dark"] #app-logo img {
-      filter: brightness(0) invert(1);
-    }
-
-    .view-tabs {
-      display: flex;
-      gap: 4px;
-      background: var(--bg-chip);
-      border-radius: 10px;
-      padding: 5px;
-      width: max-content;
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      margin: 0;
-    }
-
-    .view-tab {
-      appearance: none;
-      border: 0;
-      background: transparent;
-      color: var(--text-muted);
-      padding: 10px 22px;
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: -0.005em;
-      cursor: pointer;
-      transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .view-tab:hover { color: var(--text); }
-    .view-tab:focus-visible {
-      outline: none;
-      color: var(--text);
-    }
-
-    .view-tab.is-active {
-      background: var(--bg);
-      color: var(--text);
-      box-shadow: 0 1px 2px var(--shadow);
-    }
-
-    [data-theme="dark"] .view-tabs {
-      background: var(--bg-soft);
-    }
-    [data-theme="dark"] .view-tab.is-active {
-      background: var(--bg-chip);
-      box-shadow: none;
-    }
-
-    .view.hidden { display: none; }
-
-    .card {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 36px;
-      margin: 0 auto;
-    }
-
-    .section + .section { margin-top: 24px; }
-
-    .section-title {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      margin: 0 0 18px;
-    }
-
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-    }
-
-    label {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 8px;
-      letter-spacing: -0.01em;
-    }
-
-    .label-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-    .label-row label { margin-bottom: 0; }
-
-    .btn-link-nip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
-      letter-spacing: -0.005em;
-      transition: color 0.15s ease;
-    }
-    .btn-link-nip:hover { color: var(--text); }
-    .btn-link-nip:focus-visible {
-      outline: 2px solid var(--text);
-      outline-offset: 3px;
-      border-radius: 4px;
-    }
-    .btn-link-nip svg {
-      width: 14px;
-      height: 14px;
-      stroke: currentColor;
-      stroke-width: 1.6;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      fill: none;
-      flex-shrink: 0;
-    }
-    .btn-link-nip[aria-busy="true"] {
-      color: var(--text-muted);
-      cursor: progress;
-      opacity: 0.7;
-    }
-
-    input[type="text"],
-    input[type="number"],
-    input[type="date"],
-    input[type="email"],
-    input[type="tel"],
-    textarea {
-      font: inherit;
-      font-size: 15px;
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg);
-      color: var(--text);
-      transition: border-color 0.15s ease;
-      width: 100%;
-      letter-spacing: -0.005em;
-    }
-
-    input::placeholder,
-    textarea::placeholder { color: var(--text-muted); }
-
-    input:hover:not(:focus),
-    textarea:hover:not(:focus) {
-      border-color: var(--border-hover);
-    }
-
-    input:focus,
-    textarea:focus {
-      outline: none;
-      border-color: var(--text);
-    }
-
-    textarea {
-      font-family: inherit;
-      line-height: 1.5;
-      resize: vertical;
-      min-height: 96px;
-    }
-
-    .klient-wrapper {
-      position: relative;
-    }
-
-    .dropdown-menu {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      width: 100%;
-      max-height: 240px;
-      overflow-y: auto;
-      margin: 0;
-      padding: 6px;
-      list-style: none;
-      z-index: 50;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.55) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.85);
-      border-radius: 10px;
-      -webkit-backdrop-filter: blur(32px) saturate(180%);
-      backdrop-filter: blur(32px) saturate(180%);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.95),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-        0 1px 2px rgba(15, 23, 42, 0.04),
-        0 16px 40px -12px rgba(15, 23, 42, 0.18);
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-    [data-theme="dark"] .dropdown-menu {
-      background: linear-gradient(180deg, rgba(20, 20, 20, 0.92) 0%, rgba(20, 20, 20, 0.85) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        0 8px 32px rgba(0, 0, 0, 0.45);
-    }
-    .dropdown-menu.hidden { display: none; }
-    .dropdown-menu::-webkit-scrollbar { width: 8px; }
-    .dropdown-menu::-webkit-scrollbar-track { background: transparent; }
-    .dropdown-menu::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 4px;
-    }
-    .dropdown-menu::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
-
-    .dropdown-item {
-      display: block;
-      padding: 8px 10px;
-      border-radius: 6px;
-      font-size: 14px;
-      line-height: 1.4;
-      color: var(--text);
-      letter-spacing: -0.005em;
-      cursor: pointer;
-      white-space: pre-line;
-      transition: background 0.12s ease;
-    }
-    .dropdown-item:hover,
-    .dropdown-item.is-active {
-      background: var(--bg-hover);
-    }
-    .dropdown-item-meta {
-      display: block;
-      margin-top: 2px;
-      font-size: 12px;
-      color: var(--text-muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    input[type="number"] {
-      -moz-appearance: textfield;
-    }
-    input[type="number"]::-webkit-outer-spin-button,
-    input[type="number"]::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    thead th {
-      text-align: left;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
-      letter-spacing: -0.005em;
-      padding: 0 8px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    thead th:first-child { padding-left: 0; }
-    thead th:last-child { padding-right: 0; }
-
-    tbody td {
-      padding: 10px 8px;
-      vertical-align: middle;
-      border-bottom: 1px solid var(--border);
-    }
-    tbody td:first-child { padding-left: 0; }
-    tbody td:last-child { padding-right: 0; }
-    tbody tr:last-child td { border-bottom: none; }
-
-    .col-lp {
-      width: 32px;
-      text-align: left;
-      color: var(--text-muted);
-      font-variant-numeric: tabular-nums;
-      font-size: 13px;
-    }
-    .col-nazwa { min-width: 180px; }
-    .col-ilosc { width: 120px; }
-    .col-cena  { width: 140px; }
-    .col-akcja { width: 72px; text-align: right; white-space: nowrap; }
-
-    button {
-      font: inherit;
-      cursor: pointer;
-      border: none;
-      background: none;
-      color: inherit;
-    }
-
-    .btn-add {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 0;
-      margin-top: 14px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-muted);
-      letter-spacing: -0.005em;
-      transition: color 0.15s ease;
-    }
-    .btn-add:hover { color: var(--text); }
-    .btn-add .plus {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      font-size: 14px;
-      line-height: 1;
-      transition: border-color 0.15s ease, color 0.15s ease;
-    }
-    .btn-add:hover .plus {
-      border-color: var(--text);
-      color: var(--text);
-    }
-
-    .btn-remove {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      color: var(--text-muted);
-      font-size: 18px;
-      line-height: 1;
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-    .btn-remove:hover,
-    .btn-remove:focus-visible {
-      outline: none;
-      background: var(--bg-hover);
-      color: var(--text);
-    }
-
-    .row-actions {
-      display: inline-flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 4px;
-    }
-
-    .btn-duplicate {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      color: var(--text-muted);
-      line-height: 1;
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-    .btn-duplicate:hover,
-    .btn-duplicate:focus-visible {
-      outline: none;
-      background: var(--bg-hover);
-      color: var(--text);
-    }
-    .btn-duplicate svg {
-      width: 14px;
-      height: 14px;
-      flex: 0 0 14px;
-    }
-
-    .ilosc-wrap {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      min-width: 0;
-    }
-    .ilosc-wrap .in-ilosc {
-      flex: 1 1 auto;
-      min-width: 0;
-    }
-
-    .btn-calc {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      color: var(--text-muted);
-      line-height: 1;
-      flex: 0 0 28px;
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-    .btn-calc:hover,
-    .btn-calc:focus-visible {
-      outline: none;
-      background: var(--bg-hover);
-      color: var(--text);
-    }
-    .btn-calc svg {
-      width: 14px;
-      height: 14px;
-      flex: 0 0 14px;
-    }
-
-    .price-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-width: 0;
-    }
-
-    .price-adjusts {
-      display: flex;
-      gap: 4px;
-    }
-
-    .btn-adjust {
-      padding: 2px 6px;
-      font-size: 10px;
-      font-weight: 500;
-      line-height: 1.4;
-      color: var(--text-muted);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      letter-spacing: -0.005em;
-      font-variant-numeric: tabular-nums;
-      transition: color 0.15s ease, border-color 0.15s ease;
-    }
-    .btn-adjust:hover {
-      color: var(--text);
-      border-color: var(--text);
-    }
-    .btn-adjust:focus-visible {
-      outline: none;
-      color: var(--text);
-      border-color: var(--text);
-    }
-
-    .btn-clear {
-      display: inline-block;
-      margin-top: 16px;
-      padding: 0;
-      font-size: 12px;
-      font-weight: 400;
-      color: var(--text-muted);
-      letter-spacing: -0.005em;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-      transition: color 0.15s ease;
-    }
-    .btn-clear:hover { color: var(--text); }
-
-    .logo-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .logo-preview {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .logo-preview[hidden] { display: none; }
-    .logo-preview img {
-      max-width: 80px;
-      max-height: 80px;
-      width: auto;
-      height: auto;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      object-fit: contain;
-      background: var(--bg-soft);
-    }
-    .logo-preview .btn-clear { margin-top: 0; }
-
-    .date-helpers {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .chip {
-      padding: 6px 10px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      letter-spacing: -0.005em;
-      transition: border-color 0.15s ease, color 0.15s ease;
-    }
-    .chip:hover {
-      border-color: var(--text);
-      color: var(--text);
-    }
-    .chip:focus-visible {
-      outline: none;
-      border-color: var(--text);
-      color: var(--text);
-    }
-
-    .footer-presets {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 12px;
-    }
-
-    .footer-presets .chip {
-      background: var(--bg-chip);
-      border-color: var(--bg-chip);
-    }
-
-    .footer-presets .chip:hover,
-    .footer-presets .chip:focus-visible {
-      background: var(--bg);
-      border-color: var(--text);
-      color: var(--text);
-    }
-
-    .footer-presets .chip[aria-pressed="true"] {
-      background: var(--text);
-      color: var(--bg);
-      border-color: var(--text);
-    }
-
-    .submit-wrap { margin-top: 28px; }
-
-    .submit-actions {
-      display: flex;
-      justify-content: center;
-      margin-top: 12px;
-    }
-    .submit-actions .btn-clear { margin-top: 0; }
-
-    .cta-row {
-      display: flex;
-      gap: 12px;
-      align-items: stretch;
-      width: 100%;
-    }
-    .cta-row .btn-primary {
-      flex: 1;
-      width: auto;
-    }
-
-    .btn-cta-secondary {
-      flex: 1;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 14px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
-    }
-    .btn-cta-secondary:hover:not(:disabled) {
-      border-color: var(--text);
-      background: var(--bg-hover);
-    }
-    .btn-cta-secondary:focus-visible {
-      outline: 2px solid var(--text);
-      outline-offset: 2px;
-    }
-    .btn-cta-secondary:disabled {
-      cursor: progress;
-      opacity: 0.6;
-    }
-    .btn-cta-secondary svg {
-      width: 16px;
-      height: 16px;
-      stroke: currentColor;
-      flex-shrink: 0;
-    }
-    @media (max-width: 600px) {
-      .cta-row { flex-direction: column; gap: 8px; }
-    }
-
-    .btn-primary {
-      width: 100%;
-      padding: 14px;
-      background: var(--primary-bg);
-      color: var(--primary-text);
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      transition: background 0.15s ease;
-    }
-    .btn-primary:hover:not(:disabled) {
-      background: var(--primary-bg-hover);
-    }
-    .btn-primary:disabled {
-      cursor: not-allowed;
-      background: var(--primary-bg-disabled);
-    }
-
-    .message {
-      margin-top: 16px;
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      letter-spacing: -0.005em;
-      display: none;
-      border: 1px solid var(--border);
-    }
-    .message.error {
-      background: var(--bg);
-      color: var(--text);
-      border-color: var(--text);
-      display: block;
-    }
-    .message.success {
-      background: var(--bg);
-      color: var(--text);
-      border-color: var(--border);
-      display: block;
-    }
-
-    .footer {
-      text-align: center;
-      margin-top: 32px;
-      color: var(--text-muted);
-      font-size: 12px;
-      letter-spacing: -0.005em;
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    .modal[hidden] { display: none; }
-    .modal.hidden { display: none; }
-
-    .modal-backdrop {
-      position: absolute;
-      inset: 0;
-      background: var(--backdrop);
-    }
-
-    .lightbox {
-      position: fixed;
-      inset: 0;
-      z-index: 1500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 32px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
-    }
-    .lightbox[hidden] { display: none; }
-    .lightbox.is-open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .lightbox-backdrop {
-      position: absolute;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.35);
-      -webkit-backdrop-filter: blur(16px) saturate(140%);
-      backdrop-filter: blur(16px) saturate(140%);
-      cursor: zoom-out;
-    }
-    [data-theme="dark"] .lightbox-backdrop {
-      background: rgba(0, 0, 0, 0.6);
-    }
-
-    .lightbox-content {
-      position: relative;
-      z-index: 1;
-      height: min(calc(100vh - 64px), 1273px);
-      aspect-ratio: 1 / 1.414;
-      max-width: calc(100vw - 64px);
-      background: #ffffff;
-      border-radius: 12px;
-      overflow: hidden;
-      animation: lightboxIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes lightboxIn {
-      from { transform: scale(0.96); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    .lightbox-content iframe {
-      position: absolute;
-      top: -2%;
-      left: -2%;
-      width: 104%;
-      height: 104%;
-      border: none;
-      outline: none;
-      background: #ffffff;
-      pointer-events: none;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .lightbox-close {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 2;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      color: #0a0a0a;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 0;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-      transition: transform 0.15s ease, background 0.15s ease;
-    }
-    .lightbox-close svg {
-      width: 18px;
-      height: 18px;
-    }
-    .lightbox-close:hover {
-      transform: scale(1.05);
-      background: #ffffff;
-    }
-    .lightbox-close:focus-visible {
-      outline: 2px solid #0a0a0a;
-      outline-offset: 2px;
-    }
-    [data-theme="dark"] .lightbox-close {
-      background: rgba(20, 20, 20, 0.9);
-      border-color: rgba(255, 255, 255, 0.15);
-      color: #ffffff;
-    }
-    [data-theme="dark"] .lightbox-close:hover {
-      background: rgba(40, 40, 40, 0.95);
-    }
-
-    .modal-card {
-      position: relative;
-      width: 100%;
-      max-width: 860px;
-      max-height: 90vh;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow: 0 20px 40px var(--shadow);
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .modal-title {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      color: var(--text);
-    }
-
-    .modal-body {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: auto;
-      padding: 16px 24px;
-    }
-
-    .modal-body iframe {
-      width: 100%;
-      height: 70vh;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg);
-      display: block;
-    }
-
-    .modal-footer {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 12px;
-      padding: 16px 24px;
-      border-top: 1px solid var(--border);
-    }
-
-    .modal-footer .btn-primary {
-      width: auto;
-      padding: 10px 20px;
-      font-size: 14px;
-    }
-
-    .btn-secondary {
-      padding: 10px 20px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: -0.01em;
-      transition: border-color 0.15s ease;
-    }
-    .btn-secondary:hover { border-color: var(--text); }
-
-    .btn-secondary.btn-with-icon {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-secondary.btn-with-icon svg {
-      width: 14px;
-      height: 14px;
-      flex-shrink: 0;
-    }
-
-    .items-actions {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 24px;
-      margin-top: 14px;
-    }
-    .items-actions .btn-add { margin-top: 0; }
-
-    .modal-card.catalog-card { max-width: 560px; }
-    .modal-card.settings-card { max-width: 560px; }
-    .modal-card.historia-card { max-width: 560px; }
-    .modal-card.kalkulator-card { max-width: 440px; }
-    .modal-card.nip-card { max-width: 440px; }
-
-    .nip-card #nip-input {
-      font-variant-numeric: tabular-nums;
-      letter-spacing: 0.05em;
-    }
-    .nip-card #nip-input:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .kalkulator-wynik {
-      margin-top: 20px;
-      padding: 14px 16px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg-soft);
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-      letter-spacing: -0.005em;
-      font-variant-numeric: tabular-nums;
-      text-align: center;
-    }
-
-    .historia-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      max-height: 60vh;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-    }
-
-    .historia-empty {
-      padding: 32px 16px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 13px;
-      letter-spacing: -0.005em;
-    }
-
-    .historia-item {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 14px;
-      border-bottom: 1px solid var(--border);
-    }
-    .historia-item:last-child { border-bottom: none; }
-
-    .historia-item-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
-    }
-
-    .historia-item-row {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      min-width: 0;
-    }
-
-    .historia-item-numer {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text);
-      letter-spacing: -0.005em;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      min-width: 0;
-    }
-
-    .historia-item-suma {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-
-    .historia-item-meta {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .historia-item-klient {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      min-width: 0;
-    }
-
-    .historia-item-data {
-      white-space: nowrap;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .historia-item-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .btn-historia-action {
-      padding: 6px 10px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      letter-spacing: -0.005em;
-      cursor: pointer;
-      transition: border-color 0.15s ease, color 0.15s ease;
-    }
-    .btn-historia-action:hover,
-    .btn-historia-action:focus-visible {
-      outline: none;
-      border-color: var(--text);
-      color: var(--text);
-    }
-    .btn-historia-action:disabled {
-      cursor: not-allowed;
-      opacity: 0.55;
-    }
-    .btn-historia-action.is-delete {
-      margin-left: auto;
-    }
-
-    .historia-card .modal-footer #btn-historia-wyczysc {
-      margin-right: auto;
-      margin-top: 0;
-    }
-
-    .stats-section {
-      margin: 48px auto 0;
-    }
-
-    .stats-section .section-title {
-      margin: 0 0 16px;
-    }
-
-    .stats-okres-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin: 0 0 16px;
-    }
-
-    .stats-okres-bar .chip[aria-pressed="true"],
-    .stats-okres-bar .chip.is-active {
-      background: var(--text);
-      color: var(--bg);
-      border-color: var(--text);
-    }
-
-    .stats-trend-positive { color: #16a34a; }
-    .stats-trend-negative { color: #dc2626; }
-    [data-theme="dark"] .stats-trend-positive { color: #4ade80; }
-    [data-theme="dark"] .stats-trend-negative { color: #f87171; }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    @media (min-width: 1024px) {
-      .stats-grid {
-        grid-template-columns: repeat(4, 1fr);
-      }
-    }
-
-    .stats-card {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
-    }
-
-    .stats-card-full {
-      grid-column: 1 / -1;
-      padding: 18px 20px;
-      gap: 8px;
-    }
-
-    .stats-card-standalone {
-      margin-top: 16px;
-    }
-
-    .stats-card-label {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-    }
-
-    .stats-card-value {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -0.02em;
-      font-variant-numeric: tabular-nums;
-      line-height: 1.2;
-    }
-
-    .stats-card-full .stats-card-label { font-size: 11px; }
-
-    .stats-card-meta {
-      font-size: 11px;
-      color: var(--text-muted);
-      letter-spacing: -0.005em;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .chart-container {
-      margin-top: 16px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      position: relative;
-    }
-
-    .chart-title {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      margin: 0 0 16px;
-    }
-
-    #stat-chart {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      height: 200px;
-      gap: 8px;
-    }
-
-    #stat-chart .chart-bar {
-      flex: 1;
-      min-width: 0;
-      background: var(--text);
-      opacity: 0.8;
-      border-radius: 4px 4px 0 0;
-      transition: opacity 0.15s ease, transform 0.15s ease, height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      transform-origin: bottom;
-      cursor: default;
-      min-height: 2px;
-    }
-
-    #stat-chart .chart-bar:hover {
-      opacity: 1;
-      transform: scaleY(1.02);
-    }
-
-    #stat-chart .chart-bar.is-empty {
-      background: var(--border);
-      opacity: 0.6;
-      min-height: 2px;
-    }
-
-    #stat-chart .chart-bar.is-empty:hover {
-      opacity: 0.8;
-      transform: scaleY(1.02);
-    }
-
-    .chart-tooltip {
-      position: absolute;
-      pointer-events: none;
-      padding: 8px 10px;
-      border-radius: 8px;
-      font-size: 12px;
-      color: var(--text);
-      letter-spacing: -0.005em;
-      white-space: nowrap;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.55) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.85);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.95),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-        0 1px 2px rgba(15, 23, 42, 0.04),
-        0 16px 40px -12px rgba(15, 23, 42, 0.10);
-      -webkit-backdrop-filter: blur(32px) saturate(180%);
-      backdrop-filter: blur(32px) saturate(180%);
-      opacity: 0;
-      transition: opacity 0.15s ease;
-      z-index: 5;
-    }
-    .chart-tooltip.is-visible { opacity: 1; }
-    .chart-tooltip-title {
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-    .chart-tooltip-amount {
-      font-variant-numeric: tabular-nums;
-    }
-    .chart-tooltip-count {
-      color: var(--text-muted);
-      font-size: 11px;
-      margin-top: 2px;
-      font-variant-numeric: tabular-nums;
-    }
-    [data-theme="dark"] .chart-tooltip {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        0 8px 32px rgba(0, 0, 0, 0.3);
-    }
-
-    #stat-chart-labels {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    #stat-chart-labels > div {
-      flex: 1;
-      text-align: center;
-      font-size: 11px;
-      color: var(--text-muted);
-      letter-spacing: -0.005em;
-      min-width: 0;
-      text-transform: capitalize;
-    }
-
-    @media (max-width: 600px) {
-      #stat-chart { height: 160px; gap: 4px; }
-      #stat-chart-labels { gap: 4px; }
-      #stat-chart-labels > div { font-size: 10px; }
-      .chart-container { padding: 16px; }
-    }
-
-    .stats-card-list {
-      list-style: none;
-      margin: 4px 0 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .stats-card-list li {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      font-size: 13px;
-      color: var(--text);
-      letter-spacing: -0.005em;
-      min-width: 0;
-    }
-
-    .stats-card-list .name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      min-width: 0;
-    }
-
-    .stats-card-list .count {
-      font-variant-numeric: tabular-nums;
-      color: var(--text-muted);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .stats-empty {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 32px 20px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 13px;
-      letter-spacing: -0.005em;
-    }
-
-    @media (max-width: 600px) {
-      .stats-grid { grid-template-columns: 1fr; }
-      .stats-section { margin-top: 32px; }
-      .stats-card { padding: 12px 14px; }
-      .stats-card-value { font-size: 18px; }
-    }
-
-    .stats-klienci-wrap {
-      overflow-x: auto;
-      margin-top: 4px;
-    }
-
-    .stats-klienci-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    .stats-klienci-table thead th {
-      text-align: left;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      letter-spacing: -0.005em;
-      padding: 0 10px 10px;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-    .stats-klienci-table thead th:first-child { padding-left: 0; }
-    .stats-klienci-table thead th:last-child { padding-right: 0; }
-
-    .stats-klienci-table tbody td {
-      padding: 9px 10px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-      vertical-align: middle;
-    }
-    .stats-klienci-table tbody td:first-child { padding-left: 0; }
-    .stats-klienci-table tbody td:last-child { padding-right: 0; }
-    .stats-klienci-table tbody tr:last-child td { border-bottom: none; }
-    .stats-klienci-table tbody tr {
-      transition: background-color 0.12s ease;
-    }
-    .stats-klienci-table tbody tr:hover { background: var(--bg-hover); }
-
-    .stats-klienci-table .col-num {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-    .stats-klienci-table .col-klient {
-      max-width: 320px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .stats-klienci-empty {
-      color: var(--text-muted);
-      font-size: 13px;
-      padding: 4px 0 0;
-    }
-
-    @media (max-width: 600px) {
-      .stats-klienci-table,
-      .stats-klienci-table thead,
-      .stats-klienci-table tbody,
-      .stats-klienci-table tr,
-      .stats-klienci-table th,
-      .stats-klienci-table td { display: revert; }
-      .stats-klienci-table { display: table; }
-      .stats-klienci-table thead { display: table-header-group; }
-      .stats-klienci-table tbody { display: table-row-group; }
-      .stats-klienci-table tr { display: table-row; }
-      .stats-klienci-table th,
-      .stats-klienci-table td { display: table-cell; width: auto !important; }
-      .stats-klienci-table thead th { padding: 0 8px 8px; font-size: 11px; }
-      .stats-klienci-table tbody td {
-        padding: 8px;
-        font-size: 12px;
-        border: none;
-        border-bottom: 1px solid var(--border);
-      }
-      .stats-klienci-table tbody tr:last-child td { border-bottom: none; }
-      .stats-klienci-table .col-klient { max-width: 140px; }
-    }
-
-    .heatmap-card { gap: 10px; }
-
-    .heatmap-scroll {
-      overflow-x: auto;
-      margin: 4px -4px 0;
-      padding: 0 4px 4px;
-    }
-
-    .heatmap-wrap {
-      --hm-cell: 12px;
-      --hm-gap: 3px;
-      --hm-step: 15px;
-      display: grid;
-      grid-template-columns: 26px max-content;
-      grid-template-rows: 14px auto;
-      gap: 4px 6px;
-      width: max-content;
-      min-width: 100%;
-    }
-
-    .heatmap-month-labels {
-      grid-column: 2;
-      grid-row: 1;
-      position: relative;
-      height: 14px;
-      font-size: 10px;
-      color: var(--text-muted);
-      letter-spacing: 0.02em;
-      width: calc(52 * var(--hm-cell) + 51 * var(--hm-gap));
-    }
-    .heatmap-month-labels span {
-      position: absolute;
-      top: 0;
-      left: calc(var(--hm-col, 0) * var(--hm-step));
-      white-space: nowrap;
-      pointer-events: none;
-    }
-
-    .heatmap-day-labels {
-      grid-column: 1;
-      grid-row: 2;
-      display: grid;
-      grid-template-rows: repeat(7, var(--hm-cell));
-      gap: var(--hm-gap);
-      font-size: 10px;
-      color: var(--text-muted);
-      align-content: start;
-    }
-    .heatmap-day-labels > span {
-      line-height: var(--hm-cell);
-      text-align: right;
-      padding-right: 4px;
-    }
-
-    .heatmap-grid {
-      grid-column: 2;
-      grid-row: 2;
-      display: grid;
-      grid-template-columns: repeat(52, var(--hm-cell));
-      grid-template-rows: repeat(7, var(--hm-cell));
-      grid-auto-flow: column;
-      gap: var(--hm-gap);
-    }
-
-    .heatmap-cell {
-      width: var(--hm-cell);
-      height: var(--hm-cell);
-      border-radius: 2px;
-      background: var(--border);
-      transition: transform 0.12s ease;
-    }
-    .heatmap-cell.l1 { background: rgba(var(--text-rgb), 0.2); }
-    .heatmap-cell.l2 { background: rgba(var(--text-rgb), 0.5); }
-    .heatmap-cell.l3 { background: var(--text); }
-    .heatmap-cell.is-future { opacity: 0.35; }
-    .heatmap-cell:hover { transform: scale(1.35); }
-
-    .heatmap-legend {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      justify-content: flex-end;
-      font-size: 10px;
-      color: var(--text-muted);
-      letter-spacing: 0.02em;
-      margin-top: 6px;
-    }
-    .heatmap-legend .heatmap-cell { transition: none; }
-    .heatmap-legend .heatmap-cell:hover { transform: none; }
-
-    @media (max-width: 600px) {
-      .heatmap-wrap {
-        --hm-cell: 10px;
-        --hm-gap: 2px;
-        --hm-step: 12px;
-        grid-template-columns: max-content;
-      }
-      .heatmap-month-labels,
-      .heatmap-grid { grid-column: 1; }
-      .heatmap-day-labels { display: none; }
-    }
-
-    .settings-form .row {
-      margin-bottom: 16px;
-    }
-    .settings-form .row:last-child {
-      margin-bottom: 0;
-    }
-    .settings-form .field-full {
-      grid-column: 1 / -1;
-    }
-    .settings-form .logo-wrap {
-      margin-top: 0;
-      gap: 10px;
-    }
-    .settings-hint {
-      margin: 0 0 16px;
-      font-size: 12px;
-      color: var(--text-muted);
-      letter-spacing: -0.005em;
-    }
-    .settings-card .modal-footer {
-      justify-content: space-between;
-    }
-    .settings-card .modal-footer .btn-clear { margin-top: 0; }
-
-    .btn-import,
-    .btn-export {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 6px;
-      padding: 6px 12px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text-muted);
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: -0.005em;
-      cursor: pointer;
-      transition: border-color 0.15s ease, color 0.15s ease;
-    }
-    .btn-import:hover,
-    .btn-export:hover {
-      border-color: var(--text);
-      color: var(--text);
-    }
-    .btn-import .hint,
-    .btn-export .hint {
-      font-weight: 400;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-    .btn-import:hover .hint,
-    .btn-export:hover .hint { color: var(--text-muted); }
-
-    .catalog-actions {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .catalog-search {
-      width: 100%;
-      margin-bottom: 12px;
-    }
-
-    .catalog-categories {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 14px;
-    }
-
-    .catalog-categories .chip[aria-pressed="true"] {
-      background: var(--text);
-      color: var(--bg);
-      border-color: var(--text);
-    }
-
-    .catalog-feedback {
-      margin-bottom: 12px;
-      padding: 10px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      letter-spacing: -0.005em;
-      border: 1px solid var(--border);
-      color: var(--text);
-      background: var(--bg);
-    }
-    .catalog-feedback[hidden] { display: none; }
-    .catalog-feedback.error { border-color: var(--text); }
-
-    .catalog-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      max-height: 50vh;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-    }
-
-    .catalog-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    .catalog-item:last-child { border-bottom: none; }
-    .catalog-item:hover { background: var(--bg-hover); }
-    .catalog-item:focus-visible {
-      outline: none;
-      background: var(--bg-hover);
-    }
-
-    .catalog-item-nazwa {
-      font-size: 14px;
-      color: var(--text);
-      letter-spacing: -0.005em;
-      flex: 1 1 auto;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .catalog-item-cena {
-      font-size: 13px;
-      color: var(--text-muted);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-
-    .catalog-empty {
-      padding: 24px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 13px;
-    }
-
-    .card,
-    .view-tabs,
-    .stats-card,
-    .stats-empty,
-    .chart-container {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.55) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.85);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.95),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-        0 1px 2px rgba(15, 23, 42, 0.04),
-        0 16px 40px -12px rgba(15, 23, 42, 0.10);
-      -webkit-backdrop-filter: blur(32px) saturate(180%);
-      backdrop-filter: blur(32px) saturate(180%);
-    }
-
-    [data-theme="dark"] .card,
-    [data-theme="dark"] .view-tabs,
-    [data-theme="dark"] .stats-card,
-    [data-theme="dark"] .stats-empty,
-    [data-theme="dark"] .chart-container {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        0 8px 32px rgba(0, 0, 0, 0.3);
-    }
-
-    @media (min-width: 768px) and (max-width: 1023.98px) {
-      #oferta-form {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        column-gap: 20px;
-        row-gap: 16px;
-        align-items: start;
-      }
-      #oferta-form .section + .section { margin-top: 0; }
-      #oferta-form > section:nth-of-type(n+3),
-      #oferta-form > .submit-wrap,
-      #oferta-form > #message {
-        grid-column: 1 / -1;
-      }
-    }
-
-    .kreator-layout {
-      display: block;
-    }
-
-    .live-preview-wrap { display: none; }
-
-    @media (min-width: 1024px) {
-      .kreator-layout {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 28px;
-        align-items: stretch;
-      }
-      .live-preview-wrap {
-        display: block;
-        position: sticky;
-        top: 24px;
-        align-self: start;
-      }
-      .live-preview-frame {
-        position: relative;
-        overflow: hidden;
-        border-radius: 12px;
-        aspect-ratio: 1 / 1.414;
-        width: 100%;
-        max-height: calc(100vh - 80px);
-        background: #ffffff;
-        cursor: default;
-        transition: transform 0.2s ease;
-      }
-      .live-preview-frame.has-pdf {
-        cursor: zoom-in;
-      }
-      .live-preview-frame.has-pdf:hover {
-        transform: translateY(-2px);
-      }
-      .live-preview-frame iframe {
-        position: absolute;
-        top: -2%;
-        left: -2%;
-        width: 104%;
-        height: 104%;
-        border: none;
-        outline: none;
-        opacity: 0;
-        transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-        background: #ffffff;
-        will-change: opacity;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-        pointer-events: none;
-        touch-action: none;
-        user-select: none;
-        -webkit-user-select: none;
-      }
-      .live-preview-frame iframe.active {
-        opacity: 1;
-      }
-      .live-preview-empty {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-        color: var(--text-muted);
-        font-size: 13px;
-        text-align: center;
-        letter-spacing: -0.005em;
-        background: #ffffff;
-        z-index: 2;
-        opacity: 1;
-        transition: opacity 0.5s ease;
-        pointer-events: none;
-      }
-      [data-theme="dark"] .live-preview-empty {
-        background: var(--bg-soft);
-      }
-      .live-preview-empty[hidden] {
-        display: flex;
-        opacity: 0;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .modal { padding: 12px; }
-      .modal-body iframe { height: 60vh; }
-    }
-
-    @media (max-width: 600px) {
-      body { padding: 24px 16px 48px; }
-      .header {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        grid-template-rows: auto auto;
-        align-items: center;
-        margin-bottom: 20px;
-        gap: 12px;
-        position: static;
-        min-height: 0;
-      }
-      .header-brand { grid-column: 1; grid-row: 1; }
-      .header-actions { grid-column: 2; grid-row: 1; justify-self: end; }
-      .view-tabs {
-        grid-column: 1 / -1;
-        grid-row: 2;
-        justify-self: center;
-        margin: 4px 0 0;
-        position: static;
-        left: auto;
-        top: auto;
-        transform: none;
-      }
-      .btn-settings { padding: 8px; }
-      .btn-settings span { display: none; }
-      .logo { font-size: 26px; }
-      #app-logo img { height: 52px; }
-      .card { padding: 22px 20px; }
-      .row { grid-template-columns: 1fr; gap: 16px; }
-      .section { margin-bottom: 28px; }
-
-      table, thead, tbody, tr, td, th { display: block; }
-      thead { display: none; }
-      tbody tr {
-        position: relative;
-        padding: 16px 0;
-        border-bottom: 1px solid var(--border);
-      }
-      tbody tr:last-child { border-bottom: none; }
-      tbody td {
-        padding: 6px 0;
-        border: none;
-        width: auto !important;
-      }
-      tbody td.col-lp {
-        position: absolute;
-        top: 16px;
-        right: 36px;
-        font-size: 12px;
-      }
-      tbody td.col-akcja {
-        position: absolute;
-        top: 12px;
-        right: 0;
-        text-align: right;
-      }
-      tbody td.col-nazwa { padding-right: 110px; }
-      tbody td.col-ilosc::before { content: "Ilość"; }
-      tbody td.col-cena::before  { content: "Cena jedn. (zł)"; }
-      tbody td.col-ilosc, tbody td.col-cena {
-        display: grid;
-        grid-template-columns: 110px 1fr;
-        align-items: center;
-        gap: 12px;
-      }
-      tbody td.col-ilosc::before,
-      tbody td.col-cena::before {
-        font-size: 12px;
-        color: var(--text-muted);
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <div class="page">
@@ -2058,7 +35,7 @@
         <button type="button" class="view-tab" role="tab" id="tab-statystyki" aria-selected="false" aria-controls="view-statystyki" data-view-target="view-statystyki">Statystyki</button>
       </nav>
       <div class="header-actions">
-        <button type="button" class="btn-settings btn-theme" id="btn-theme" aria-label="Przełącz motyw" title="Przełącz motyw">
+        <button type="button" class="btn-settings btn-theme" id="btn-theme" aria-label="PrzeĹ‚Ä…cz motyw" title="PrzeĹ‚Ä…cz motyw">
           <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
@@ -2091,23 +68,23 @@
       </div>
     </header>
 
-    <p class="tagline">Twórz wyceny PDF w 30 sekund</p>
+    <p class="tagline">TwĂłrz wyceny PDF w 30 sekund</p>
 
     <div id="view-kreator" class="view" role="tabpanel" aria-labelledby="tab-kreator">
     <div class="kreator-layout">
     <div class="card">
       <form id="oferta-form" autocomplete="off">
         <section class="section">
-          <h2 class="section-title">Szczegóły wyceny</h2>
+          <h2 class="section-title">SzczegĂłĹ‚y wyceny</h2>
           <div class="row">
             <div class="field">
               <label for="numer_oferty">Numer wyceny</label>
               <input type="text" id="numer_oferty" name="numer_oferty" placeholder="np. 2026/001">
             </div>
             <div class="field">
-              <label for="data_waznosci">Data ważności</label>
+              <label for="data_waznosci">Data waĹĽnoĹ›ci</label>
               <input type="date" id="data_waznosci" name="data_waznosci">
-              <div class="date-helpers" role="group" aria-label="Szybkie ustawienie daty ważności">
+              <div class="date-helpers" role="group" aria-label="Szybkie ustawienie daty waĹĽnoĹ›ci">
                 <button type="button" class="chip" data-days="7">+7 dni</button>
                 <button type="button" class="chip" data-days="14">+14 dni</button>
                 <button type="button" class="chip" data-days="30">+30 dni</button>
@@ -2121,7 +98,7 @@
           <div class="field">
             <div class="label-row">
               <label for="klient">Nazwa klienta</label>
-              <button type="button" class="btn-link-nip" id="btn-pobierz-nip" aria-label="Pobierz dane klienta po NIP z Białej Listy MF">
+              <button type="button" class="btn-link-nip" id="btn-pobierz-nip" aria-label="Pobierz dane klienta po NIP z BiaĹ‚ej Listy MF">
                 <svg viewBox="0 0 16 16" aria-hidden="true">
                   <circle cx="7" cy="7" r="4.5"></circle>
                   <line x1="10.5" y1="10.5" x2="14" y2="14"></line>
@@ -2131,7 +108,7 @@
             </div>
             <div class="klient-wrapper">
               <textarea id="klient" name="klient" rows="3" placeholder="Nazwa klienta&#10;Adres&#10;NIP: 1234567890" autocomplete="off" required aria-autocomplete="list" aria-controls="klient-autocomplete" aria-expanded="false"></textarea>
-              <ul id="klient-autocomplete" class="dropdown-menu hidden" role="listbox" aria-label="Powracający klienci z książki adresowej i historii"></ul>
+              <ul id="klient-autocomplete" class="dropdown-menu hidden" role="listbox" aria-label="PowracajÄ…cy klienci z ksiÄ…ĹĽki adresowej i historii"></ul>
             </div>
           </div>
         </section>
@@ -2143,8 +120,8 @@
               <tr>
                 <th class="col-lp">#</th>
                 <th class="col-nazwa">Nazwa</th>
-                <th class="col-ilosc">Ilość</th>
-                <th class="col-cena">Cena jedn. (zł)</th>
+                <th class="col-ilosc">IloĹ›Ä‡</th>
+                <th class="col-cena">Cena jedn. (zĹ‚)</th>
                 <th class="col-akcja" aria-label="Akcje"></th>
               </tr>
             </thead>
@@ -2155,7 +132,7 @@
           <div class="items-actions">
             <button type="button" class="btn-add" id="btn-dodaj">
               <span class="plus">+</span>
-              <span>Dodaj pozycję</span>
+              <span>Dodaj pozycjÄ™</span>
             </button>
             <button type="button" class="btn-add" id="btn-katalog" aria-haspopup="dialog" aria-controls="catalog-modal">
               <span class="plus">+</span>
@@ -2167,41 +144,41 @@
         <section class="section">
           <h2 class="section-title">Uwagi do wyceny</h2>
           <div class="field">
-            <label for="uwagi">Notatki widoczne pod tabelą</label>
+            <label for="uwagi">Notatki widoczne pod tabelÄ…</label>
             <textarea id="uwagi" name="uwagi" rows="4" placeholder="np. dodatkowe warunki, terminy, gwarancje"></textarea>
             <div class="footer-presets" role="group" aria-label="Szybkie wstawianie uwag">
               <button type="button" class="chip" data-preset="Zaliczka 30%" aria-pressed="false">Zaliczka 30%</button>
               <button type="button" class="chip" data-preset="Termin 7 dni" aria-pressed="false">Termin 7 dni</button>
               <button type="button" class="chip" data-preset="Gwarancja 12 m-cy" aria-pressed="false">Gwarancja 12 m-cy</button>
-              <button type="button" class="chip" data-preset="Ważność 30 dni" aria-pressed="false">Ważność 30 dni</button>
+              <button type="button" class="chip" data-preset="WaĹĽnoĹ›Ä‡ 30 dni" aria-pressed="false">WaĹĽnoĹ›Ä‡ 30 dni</button>
             </div>
           </div>
         </section>
 
         <div class="submit-wrap">
           <div class="cta-row">
-            <button type="submit" class="btn-primary" id="btn-generuj">Wygeneruj wycenę</button>
-            <button type="button" class="btn-cta-secondary" id="btn-udostepnij-pdf-desktop" hidden aria-label="Wyślij ofertę klientowi przez aplikację natywną">
+            <button type="submit" class="btn-primary" id="btn-generuj">Wygeneruj wycenÄ™</button>
+            <button type="button" class="btn-cta-secondary" id="btn-udostepnij-pdf-desktop" hidden aria-label="WyĹ›lij ofertÄ™ klientowi przez aplikacjÄ™ natywnÄ…">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M22 2 11 13"/>
                 <path d="M22 2 15 22l-4-9-9-4 20-7z"/>
               </svg>
-              <span>Wyślij klientowi</span>
+              <span>WyĹ›lij klientowi</span>
             </button>
           </div>
           <div class="submit-actions">
-            <button type="button" class="btn-clear" id="btn-wyczysc-formularz">Wyczyść formularz</button>
+            <button type="button" class="btn-clear" id="btn-wyczysc-formularz">WyczyĹ›Ä‡ formularz</button>
           </div>
         </div>
 
         <div id="message" class="message"></div>
       </form>
     </div>
-      <aside class="live-preview-wrap" aria-label="Podgląd PDF na żywo">
+      <aside class="live-preview-wrap" aria-label="PodglÄ…d PDF na ĹĽywo">
         <div class="live-preview-frame">
-          <iframe id="pdf-frame-1" class="active" title="Podgląd PDF na żywo"></iframe>
-          <iframe id="pdf-frame-2" title="Podgląd PDF na żywo (bufor)"></iframe>
-          <div id="live-pdf-preview-empty" class="live-preview-empty">Wypełnij dane wyceny (nazwa firmy, klient i&nbsp;przynajmniej jedna pozycja), aby zobaczyć podgląd.</div>
+          <iframe id="pdf-frame-1" class="active" title="PodglÄ…d PDF na ĹĽywo"></iframe>
+          <iframe id="pdf-frame-2" title="PodglÄ…d PDF na ĹĽywo (bufor)"></iframe>
+          <div id="live-pdf-preview-empty" class="live-preview-empty">WypeĹ‚nij dane wyceny (nazwa firmy, klient i&nbsp;przynajmniej jedna pozycja), aby zobaczyÄ‡ podglÄ…d.</div>
         </div>
       </aside>
     </div>
@@ -2211,19 +188,19 @@
       <section class="stats-section" id="stats-section" aria-label="Statystyki wycen"></section>
     </div>
 
-    <p class="footer">© SumIt</p>
+    <p class="footer">Â© SumIt</p>
   </div>
 
-  <div class="lightbox" id="pdf-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Pełny podgląd wyceny">
+  <div class="lightbox" id="pdf-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="PeĹ‚ny podglÄ…d wyceny">
     <div class="lightbox-backdrop" id="pdf-lightbox-backdrop"></div>
-    <button type="button" class="lightbox-close" id="pdf-lightbox-close" aria-label="Zamknij podgląd">
+    <button type="button" class="lightbox-close" id="pdf-lightbox-close" aria-label="Zamknij podglÄ…d">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="18" y1="6" x2="6" y2="18"></line>
         <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
     </button>
     <div class="lightbox-content">
-      <iframe id="pdf-lightbox-frame" title="Pełny podgląd PDF"></iframe>
+      <iframe id="pdf-lightbox-frame" title="PeĹ‚ny podglÄ…d PDF"></iframe>
     </div>
   </div>
 
@@ -2231,21 +208,21 @@
     <div class="modal-backdrop" id="pdf-modal-backdrop"></div>
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title" id="pdf-modal-title">Podgląd wyceny</h3>
+        <h3 class="modal-title" id="pdf-modal-title">PodglÄ…d wyceny</h3>
       </div>
       <div class="modal-body">
-        <iframe id="pdf-preview" title="Podgląd PDF"></iframe>
+        <iframe id="pdf-preview" title="PodglÄ…d PDF"></iframe>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" id="btn-zamknij-modal">Zamknij</button>
         <button type="button" class="btn-secondary" id="btn-drukuj-pdf">Drukuj</button>
-        <button type="button" class="btn-secondary" id="btn-przygotuj-email" title="Otworzy klienta poczty z gotowym tematem i treścią. Pamiętaj o dołączeniu pobranego PDF jako załącznika.">Przygotuj e-mail</button>
-        <button type="button" class="btn-secondary btn-with-icon" id="btn-udostepnij-pdf" hidden aria-label="Wyślij ofertę klientowi przez komunikator">
+        <button type="button" class="btn-secondary" id="btn-przygotuj-email" title="Otworzy klienta poczty z gotowym tematem i treĹ›ciÄ…. PamiÄ™taj o doĹ‚Ä…czeniu pobranego PDF jako zaĹ‚Ä…cznika.">Przygotuj e-mail</button>
+        <button type="button" class="btn-secondary btn-with-icon" id="btn-udostepnij-pdf" hidden aria-label="WyĹ›lij ofertÄ™ klientowi przez komunikator">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M22 2 11 13"/>
             <path d="M22 2 15 22l-4-9-9-4 20-7z"/>
           </svg>
-          <span>Wyślij klientowi</span>
+          <span>WyĹ›lij klientowi</span>
         </button>
         <button type="button" class="btn-primary" id="btn-pobierz-pdf">Pobierz PDF</button>
       </div>
@@ -2259,7 +236,7 @@
         <h3 class="modal-title" id="settings-modal-title">Ustawienia firmy</h3>
       </div>
       <div class="modal-body">
-        <p class="settings-hint">Dane sprzedawcy używane na każdej wycenie. Zapis automatyczny przy zamknięciu okna.</p>
+        <p class="settings-hint">Dane sprzedawcy uĹĽywane na kaĹĽdej wycenie. Zapis automatyczny przy zamkniÄ™ciu okna.</p>
         <form id="settings-form" class="settings-form" autocomplete="off" onsubmit="return false;">
           <div class="row">
             <div class="field field-full">
@@ -2278,7 +255,7 @@
             </div>
             <div class="field">
               <label for="cfg-adres">Adres (ulica, numer)</label>
-              <input type="text" id="cfg-adres" placeholder="np. ul. Przykładowa 12/3">
+              <input type="text" id="cfg-adres" placeholder="np. ul. PrzykĹ‚adowa 12/3">
             </div>
             <div class="field">
               <label for="cfg-miasto">Miasto i kod pocztowy</label>
@@ -2290,7 +267,7 @@
             </div>
             <div class="field field-full">
               <label for="cfg-numer_konta">Numer konta bankowego (NRB)</label>
-              <input type="text" id="cfg-numer_konta" placeholder="12 3456 7890 1234 5678 9012 3456" inputmode="numeric" autocomplete="off" pattern="^(?:PL\s*)?(?:\d\s*){26}$" title="26 cyfr (spacje są opcjonalne)">
+              <input type="text" id="cfg-numer_konta" placeholder="12 3456 7890 1234 5678 9012 3456" inputmode="numeric" autocomplete="off" pattern="^(?:PL\s*)?(?:\d\s*){26}$" title="26 cyfr (spacje sÄ… opcjonalne)">
             </div>
           </div>
           <div class="row">
@@ -2298,10 +275,10 @@
               <label>Logo</label>
               <div class="logo-wrap">
                 <input type="file" id="cfg-logo-input" accept="image/png,image/jpeg" hidden>
-                <button type="button" class="btn-secondary" id="btn-cfg-dodaj-logo">Wybierz plik (PNG / JPG, ≤ 200 KB)</button>
+                <button type="button" class="btn-secondary" id="btn-cfg-dodaj-logo">Wybierz plik (PNG / JPG, â‰¤ 200 KB)</button>
                 <div class="logo-preview" id="cfg-logo-preview-wrap" hidden>
-                  <img id="cfg-logo-preview" alt="Podgląd logo">
-                  <button type="button" class="btn-clear" id="btn-cfg-usun-logo">Usuń logo</button>
+                  <img id="cfg-logo-preview" alt="PodglÄ…d logo">
+                  <button type="button" class="btn-clear" id="btn-cfg-usun-logo">UsuĹ„ logo</button>
                 </div>
               </div>
             </div>
@@ -2310,7 +287,7 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-clear" id="btn-cfg-wyczysc">Wyczyść ustawienia</button>
+        <button type="button" class="btn-clear" id="btn-cfg-wyczysc">WyczyĹ›Ä‡ ustawienia</button>
         <button type="button" class="btn-secondary" id="btn-cfg-zamknij">Zamknij i zapisz</button>
       </div>
     </div>
@@ -2320,9 +297,9 @@
     <div class="modal-backdrop" id="catalog-modal-backdrop"></div>
     <div class="modal-card catalog-card">
       <div class="modal-header">
-        <h3 class="modal-title" id="catalog-modal-title">Katalog usług</h3>
+        <h3 class="modal-title" id="catalog-modal-title">Katalog usĹ‚ug</h3>
         <div class="catalog-actions">
-          <button type="button" class="btn-import" id="btn-import-catalog" title="Wczytaj listę usług zapisaną w Excelu jako CSV (rozdzielany przecinkami)">
+          <button type="button" class="btn-import" id="btn-import-catalog" title="Wczytaj listÄ™ usĹ‚ug zapisanÄ… w Excelu jako CSV (rozdzielany przecinkami)">
             Importuj CSV <span class="hint">(plik z Excela)</span>
           </button>
           <button type="button" class="btn-export" id="btn-export-catalog" title="Eksportuj katalog do Excela (CSV)">
@@ -2333,9 +310,9 @@
       </div>
       <div class="modal-body">
         <div class="catalog-feedback" id="catalog-feedback" hidden></div>
-        <input type="text" id="catalog-search" class="catalog-search" placeholder="Szukaj usługi..." autocomplete="off">
+        <input type="text" id="catalog-search" class="catalog-search" placeholder="Szukaj usĹ‚ugi..." autocomplete="off">
         <div class="catalog-categories" id="catalog-categories" role="group" aria-label="Filtr kategorii"></div>
-        <ul class="catalog-list" id="catalog-list" role="listbox" aria-label="Predefiniowane usługi"></ul>
+        <ul class="catalog-list" id="catalog-list" role="listbox" aria-label="Predefiniowane usĹ‚ugi"></ul>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" id="btn-zamknij-catalog">Zamknij</button>
@@ -2350,24 +327,24 @@
         <h3 class="modal-title" id="kalkulator-modal-title">Kalkulator powierzchni</h3>
       </div>
       <div class="modal-body">
-        <p class="settings-hint">Wpisz wymiary, by obliczyć powierzchnię w m² i wstawić wynik do pola „Ilość".</p>
+        <p class="settings-hint">Wpisz wymiary, by obliczyÄ‡ powierzchniÄ™ w mÂ˛ i wstawiÄ‡ wynik do pola â€žIloĹ›Ä‡".</p>
         <form id="kalkulator-form" autocomplete="off" onsubmit="return false;">
           <div class="row">
             <div class="field">
-              <label for="kalk-dlugosc">Długość (m)</label>
+              <label for="kalk-dlugosc">DĹ‚ugoĹ›Ä‡ (m)</label>
               <input type="number" id="kalk-dlugosc" step="0.01" min="0" placeholder="0,00" inputmode="decimal">
             </div>
             <div class="field">
-              <label for="kalk-szerokosc">Szerokość (m)</label>
+              <label for="kalk-szerokosc">SzerokoĹ›Ä‡ (m)</label>
               <input type="number" id="kalk-szerokosc" step="0.01" min="0" placeholder="0,00" inputmode="decimal">
             </div>
           </div>
-          <div class="kalkulator-wynik" id="kalk-wynik" aria-live="polite">Powierzchnia: 0,00 m²</div>
+          <div class="kalkulator-wynik" id="kalk-wynik" aria-live="polite">Powierzchnia: 0,00 mÂ˛</div>
         </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" id="btn-kalk-zamknij">Anuluj</button>
-        <button type="button" class="btn-primary" id="btn-kalk-wstaw">Wstaw do Ilości</button>
+        <button type="button" class="btn-primary" id="btn-kalk-wstaw">Wstaw do IloĹ›ci</button>
       </div>
     </div>
   </div>
@@ -2382,7 +359,7 @@
         <ul class="historia-list" id="historia-list" aria-label="Zapisane wyceny"></ul>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-clear" id="btn-historia-wyczysc" hidden>Wyczyść historię</button>
+        <button type="button" class="btn-clear" id="btn-historia-wyczysc" hidden>WyczyĹ›Ä‡ historiÄ™</button>
         <button type="button" class="btn-secondary" id="btn-zamknij-historia">Zamknij</button>
       </div>
     </div>
@@ -2395,7 +372,7 @@
         <h3 class="modal-title" id="modal-nip-title">Pobierz dane z GUS</h3>
       </div>
       <div class="modal-body">
-        <p class="settings-hint">Pobiera nazwę, adres i NIP z Białej Listy Ministerstwa Finansów.</p>
+        <p class="settings-hint">Pobiera nazwÄ™, adres i NIP z BiaĹ‚ej Listy Ministerstwa FinansĂłw.</p>
         <form id="modal-nip-form" autocomplete="off" onsubmit="return false;">
           <div class="field">
             <label for="nip-input">NIP klienta</label>
@@ -2430,7 +407,7 @@
 
     function aktualizujOpisPrzeciskaMotywu(motyw) {
       if (!btnTheme) return;
-      const opis = motyw === 'dark' ? 'Włącz tryb jasny' : 'Włącz tryb ciemny';
+      const opis = motyw === 'dark' ? 'WĹ‚Ä…cz tryb jasny' : 'WĹ‚Ä…cz tryb ciemny';
       btnTheme.setAttribute('aria-label', opis);
       btnTheme.setAttribute('title', opis);
     }
@@ -2475,11 +452,11 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="col-lp"></td>
-        <td class="col-nazwa"><input type="text" class="in-nazwa" placeholder="np. Usługa konsultingowa" list="szablony-pozycji-datalist" autocomplete="off" required></td>
+        <td class="col-nazwa"><input type="text" class="in-nazwa" placeholder="np. UsĹ‚uga konsultingowa" list="szablony-pozycji-datalist" autocomplete="off" required></td>
         <td class="col-ilosc">
           <div class="ilosc-wrap">
             <input type="number" class="in-ilosc" step="any" min="0" placeholder="1" required>
-            <button type="button" class="btn-calc" title="Kalkulator powierzchni (m²)" aria-label="Otwórz kalkulator powierzchni" aria-haspopup="dialog" aria-controls="kalkulator-modal">
+            <button type="button" class="btn-calc" title="Kalkulator powierzchni (mÂ˛)" aria-label="OtwĂłrz kalkulator powierzchni" aria-haspopup="dialog" aria-controls="kalkulator-modal">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="4" y="2" width="16" height="20" rx="2"></rect>
                 <line x1="8" y1="6" x2="16" y2="6"></line>
@@ -2498,8 +475,8 @@
           <div class="price-wrap">
             <input type="number" class="in-cena" step="0.01" min="0" placeholder="0,00" required>
             <div class="price-adjusts" role="group" aria-label="Szybka korekta ceny jednostkowej">
-              <button type="button" class="btn-adjust" data-adjust="-5" title="Obniż cenę jednostkową o 5%" aria-label="Obniż cenę jednostkową o 5% (rabat)">Rab. -5%</button>
-              <button type="button" class="btn-adjust" data-adjust="10" title="Dolicz 10% marży do ceny jednostkowej" aria-label="Dolicz 10% marży do ceny jednostkowej">Mar. +10%</button>
+              <button type="button" class="btn-adjust" data-adjust="-5" title="ObniĹĽ cenÄ™ jednostkowÄ… o 5%" aria-label="ObniĹĽ cenÄ™ jednostkowÄ… o 5% (rabat)">Rab. -5%</button>
+              <button type="button" class="btn-adjust" data-adjust="10" title="Dolicz 10% marĹĽy do ceny jednostkowej" aria-label="Dolicz 10% marĹĽy do ceny jednostkowej">Mar. +10%</button>
             </div>
           </div>
         </td>
@@ -2511,13 +488,13 @@
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </button>
-            <button type="button" class="btn-remove" title="Usuń" aria-label="Usuń wiersz">&times;</button>
+            <button type="button" class="btn-remove" title="UsuĹ„" aria-label="UsuĹ„ wiersz">&times;</button>
           </div>
         </td>
       `;
       tr.querySelector('.btn-remove').addEventListener('click', () => {
         if (tbody.children.length <= 1) {
-          pokazKomunikat('Musi pozostać co najmniej jedna pozycja.', 'error');
+          pokazKomunikat('Musi pozostaÄ‡ co najmniej jedna pozycja.', 'error');
           return;
         }
         tr.remove();
@@ -2567,7 +544,7 @@
       const raw = String(input.value).replace(',', '.').trim();
       const current = parseFloat(raw);
       if (!Number.isFinite(current)) {
-        pokazKomunikat('Podaj cenę jednostkową, zanim zastosujesz korektę.', 'error');
+        pokazKomunikat('Podaj cenÄ™ jednostkowÄ…, zanim zastosujesz korektÄ™.', 'error');
         input.focus();
         return;
       }
@@ -2825,7 +802,7 @@
 
     function aktualizujTekstPrzyciskuGeneruj() {
       if (!btnGeneruj) return;
-      btnGeneruj.textContent = livePodgladMql.matches ? 'Pobierz PDF' : 'Wygeneruj wycenę';
+      btnGeneruj.textContent = livePodgladMql.matches ? 'Pobierz PDF' : 'Wygeneruj wycenÄ™';
     }
     aktualizujTekstPrzyciskuGeneruj();
 
@@ -2890,7 +867,7 @@
 
         const cfg = wczytajConfig();
         if (!String(cfg.nazwa_firmy || '').trim()) {
-          pokazKomunikat('Uzupełnij nazwę firmy w Ustawieniach firmy (ikona koła zębatego).', 'error');
+          pokazKomunikat('UzupeĹ‚nij nazwÄ™ firmy w Ustawieniach firmy (ikona koĹ‚a zÄ™batego).', 'error');
           otworzSettings();
           return;
         }
@@ -2899,7 +876,7 @@
         const originalLabel = btnUdostepnijPdfDesktop.querySelector('span');
         const originalText = originalLabel ? originalLabel.textContent : '';
         btnUdostepnijPdfDesktop.disabled = true;
-        if (originalLabel) originalLabel.textContent = 'Przygotowuję…';
+        if (originalLabel) originalLabel.textContent = 'PrzygotowujÄ™â€¦';
 
         try {
           const res = await fetch('/quote', {
@@ -2910,7 +887,7 @@
 
           if (!res.ok) {
             const tekst = await res.text();
-            throw new Error(tekst || `Błąd ${res.status}`);
+            throw new Error(tekst || `BĹ‚Ä…d ${res.status}`);
           }
 
           const blob = await res.blob();
@@ -2918,14 +895,14 @@
           const file = new File([blob], nazwaPliku, { type: 'application/pdf' });
 
           if (!navigator.canShare({ files: [file] })) {
-            pokazKomunikat('Ta przeglądarka nie wspiera wysyłania plików PDF. Użyj „Pobierz PDF" i załącz ręcznie.', 'error');
+            pokazKomunikat('Ta przeglÄ…darka nie wspiera wysyĹ‚ania plikĂłw PDF. UĹĽyj â€žPobierz PDF" i zaĹ‚Ä…cz rÄ™cznie.', 'error');
             return;
           }
 
           await navigator.share({
             files: [file],
             title: 'Wycena PDF',
-            text: 'Wycena w załączniku.',
+            text: 'Wycena w zaĹ‚Ä…czniku.',
           });
 
           if (livePodgladMql.matches) {
@@ -2937,13 +914,13 @@
           const numerEl = document.getElementById('numer_oferty');
           if (numerEl) numerEl.value = nastepnyNumerOferty();
           aktualnyPayloadEmail = payload;
-          pokazKomunikat('Oferta wysłana do klienta. Wycena zapisana w historii.', 'success');
+          pokazKomunikat('Oferta wysĹ‚ana do klienta. Wycena zapisana w historii.', 'success');
         } catch (err) {
           if (err && err.name === 'AbortError') return;
-          pokazKomunikat('Nie udało się wysłać pliku: ' + err.message, 'error');
+          pokazKomunikat('Nie udaĹ‚o siÄ™ wysĹ‚aÄ‡ pliku: ' + err.message, 'error');
         } finally {
           btnUdostepnijPdfDesktop.disabled = false;
-          if (originalLabel) originalLabel.textContent = originalText || 'Wyślij klientowi';
+          if (originalLabel) originalLabel.textContent = originalText || 'WyĹ›lij klientowi';
         }
       });
     }
@@ -2954,7 +931,7 @@
 
       const cfg = wczytajConfig();
       if (!String(cfg.nazwa_firmy || '').trim()) {
-        pokazKomunikat('Uzupełnij nazwę firmy w Ustawieniach firmy (ikona koła zębatego).', 'error');
+        pokazKomunikat('UzupeĹ‚nij nazwÄ™ firmy w Ustawieniach firmy (ikona koĹ‚a zÄ™batego).', 'error');
         otworzSettings();
         return;
       }
@@ -2974,7 +951,7 @@
 
         if (!res.ok) {
           const tekst = await res.text();
-          throw new Error(tekst || `Błąd ${res.status}`);
+          throw new Error(tekst || `BĹ‚Ä…d ${res.status}`);
         }
 
         const blob = await res.blob();
@@ -3003,10 +980,10 @@
         } else {
           const url = URL.createObjectURL(blob);
           pokazPodgladPdf(url, nazwaPliku, payload, blob);
-          pokazKomunikat('PDF wygenerowany. Otwórz podgląd, aby pobrać plik.', 'success');
+          pokazKomunikat('PDF wygenerowany. OtwĂłrz podglÄ…d, aby pobraÄ‡ plik.', 'success');
         }
       } catch (err) {
-        pokazKomunikat('Nie udało się wygenerować PDF: ' + err.message, 'error');
+        pokazKomunikat('Nie udaĹ‚o siÄ™ wygenerowaÄ‡ PDF: ' + err.message, 'error');
       } finally {
         btnGeneruj.disabled = false;
         aktualizujTekstPrzyciskuGeneruj();
@@ -3089,14 +1066,14 @@
         if (!aktualnyBlobPdf) return;
         const file = new File([aktualnyBlobPdf], aktualnaNazwaPliku || 'Oferta.pdf', { type: 'application/pdf' });
           if (!navigator.canShare({ files: [file] })) {
-            pokazKomunikat('Ta przeglądarka nie wspiera wysyłania plików PDF.', 'error');
+            pokazKomunikat('Ta przeglÄ…darka nie wspiera wysyĹ‚ania plikĂłw PDF.', 'error');
             return;
           }
           try {
             await navigator.share({
               files: [file],
               title: 'Wycena PDF',
-              text: 'Wycena w załączniku.',
+              text: 'Wycena w zaĹ‚Ä…czniku.',
             });
             if (aktualnyPayload) {
               dodajDoHistorii(aktualnyPayload);
@@ -3104,10 +1081,10 @@
               renderStatystyki();
               aktualnyPayload = null;
             }
-            pokazKomunikat('Oferta wysłana do klienta.', 'success');
+            pokazKomunikat('Oferta wysĹ‚ana do klienta.', 'success');
           } catch (err) {
             if (err && err.name === 'AbortError') return;
-            pokazKomunikat('Nie udało się wysłać pliku: ' + err.message, 'error');
+            pokazKomunikat('Nie udaĹ‚o siÄ™ wysĹ‚aÄ‡ pliku: ' + err.message, 'error');
           }
       });
     }
@@ -3118,13 +1095,13 @@
         pdfPreview.contentWindow.focus();
         pdfPreview.contentWindow.print();
       } catch (e) {
-        pokazKomunikat('Nie udało się otworzyć dialogu drukowania. Pobierz PDF i wydrukuj z czytnika.', 'error');
+        pokazKomunikat('Nie udaĹ‚o siÄ™ otworzyÄ‡ dialogu drukowania. Pobierz PDF i wydrukuj z czytnika.', 'error');
       }
     });
 
     btnPrzygotujEmail.addEventListener('click', () => {
       if (!aktualnyPayloadEmail) {
-        pokazKomunikat('Najpierw wygeneruj wycenę, aby przygotować e-mail.', 'error');
+        pokazKomunikat('Najpierw wygeneruj wycenÄ™, aby przygotowaÄ‡ e-mail.', 'error');
         return;
       }
       const p = aktualnyPayloadEmail;
@@ -3138,7 +1115,7 @@
         ? `Oferta ${numerTxt} - ${firma}`
         : `Oferta ${numerTxt}`;
       const podpis = firma ? `Pozdrawiam,\n${firma}` : 'Pozdrawiam';
-      const body = `Dzień dobry,\n\nw załączniku przesyłam ofertę ${numerTxt} na kwotę ${sumaTxt} zł. W razie pytań jestem do dyspozycji.\n\n${podpis}`;
+      const body = `DzieĹ„ dobry,\n\nw zaĹ‚Ä…czniku przesyĹ‚am ofertÄ™ ${numerTxt} na kwotÄ™ ${sumaTxt} zĹ‚. W razie pytaĹ„ jestem do dyspozycji.\n\n${podpis}`;
 
       const mailto = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
       window.location.href = mailto;
@@ -3208,7 +1185,7 @@
       try {
         localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(cfg));
       } catch (e) {
-        pokazKomunikatCfg('Nie udało się zapisać ustawień (brak miejsca w przeglądarce).', 'error');
+        pokazKomunikatCfg('Nie udaĹ‚o siÄ™ zapisaÄ‡ ustawieĹ„ (brak miejsca w przeglÄ…darce).', 'error');
       }
     }
 
@@ -3217,12 +1194,12 @@
         cfgLogoBase64 = dataUrl;
         cfgLogoPreviewImg.src = dataUrl;
         cfgLogoPreviewWrap.hidden = false;
-        btnCfgDodajLogo.textContent = 'Zmień plik (PNG / JPG, ≤ 200 KB)';
+        btnCfgDodajLogo.textContent = 'ZmieĹ„ plik (PNG / JPG, â‰¤ 200 KB)';
       } else {
         cfgLogoBase64 = '';
         cfgLogoPreviewImg.removeAttribute('src');
         cfgLogoPreviewWrap.hidden = true;
-        btnCfgDodajLogo.textContent = 'Wybierz plik (PNG / JPG, ≤ 200 KB)';
+        btnCfgDodajLogo.textContent = 'Wybierz plik (PNG / JPG, â‰¤ 200 KB)';
       }
     }
 
@@ -3253,7 +1230,7 @@
       const cyfry = raw.replace(/\D+/g, '');
       if (cyfry.length === 0) return true;
       if (cyfry.length !== 26) {
-        pokazKomunikatCfg('Numer konta musi mieć dokładnie 26 cyfr (obecnie ' + cyfry.length + ').', 'error');
+        pokazKomunikatCfg('Numer konta musi mieÄ‡ dokĹ‚adnie 26 cyfr (obecnie ' + cyfry.length + ').', 'error');
         el.focus();
         return false;
       }
@@ -3279,7 +1256,7 @@
         const dataUrl = String(reader.result || '');
         if (dataUrl.length > MAX_LOGO_BYTES) {
           const kb = Math.round(dataUrl.length / 1024);
-          pokazKomunikatCfg('Logo musi być ≤ 200 KB po konwersji (aktualnie ~' + kb + ' KB). Wybierz mniejszy plik.', 'error');
+          pokazKomunikatCfg('Logo musi byÄ‡ â‰¤ 200 KB po konwersji (aktualnie ~' + kb + ' KB). Wybierz mniejszy plik.', 'error');
           cfgLogoInput.value = '';
           return;
         }
@@ -3287,7 +1264,7 @@
         ukryjKomunikatCfg();
       };
       reader.onerror = () => {
-        pokazKomunikatCfg('Nie udało się wczytać pliku logo.', 'error');
+        pokazKomunikatCfg('Nie udaĹ‚o siÄ™ wczytaÄ‡ pliku logo.', 'error');
         cfgLogoInput.value = '';
       };
       reader.readAsDataURL(file);
@@ -3481,7 +1458,7 @@
     function ustawStanLadowaniaNIP(loading) {
       if (!btnNipPobierz || !nipInput) return;
       btnNipPobierz.disabled = loading;
-      btnNipPobierz.textContent = loading ? 'Pobieram…' : 'Pobierz';
+      btnNipPobierz.textContent = loading ? 'Pobieramâ€¦' : 'Pobierz';
       btnNipPobierz.setAttribute('aria-busy', loading ? 'true' : 'false');
       nipInput.disabled = loading;
     }
@@ -3514,7 +1491,7 @@
 
       const nip = oczyscNIPWejscie(nipInput.value);
       if (nip.length !== 10) {
-        window.alert('Nieprawidłowy NIP — musi zawierać dokładnie 10 cyfr.');
+        window.alert('NieprawidĹ‚owy NIP â€” musi zawieraÄ‡ dokĹ‚adnie 10 cyfr.');
         nipInput.focus();
         return;
       }
@@ -3531,7 +1508,7 @@
         try { dane = await resp.json(); } catch (e) { dane = null; }
 
         if (!resp.ok) {
-          const msg = (dane && dane.error) ? dane.error : 'Nie udało się pobrać danych z Białej Listy MF.';
+          const msg = (dane && dane.error) ? dane.error : 'Nie udaĹ‚o siÄ™ pobraÄ‡ danych z BiaĹ‚ej Listy MF.';
           window.alert(msg);
           return;
         }
@@ -3542,7 +1519,7 @@
         if (dane && dane.nip)   linie.push('NIP: ' + String(dane.nip));
 
         if (linie.length === 0) {
-          window.alert('Biała Lista MF nie zwróciła danych firmy.');
+          window.alert('BiaĹ‚a Lista MF nie zwrĂłciĹ‚a danych firmy.');
           return;
         }
 
@@ -3552,7 +1529,7 @@
         klientEl.focus();
       } catch (err) {
         if (err && err.name === 'AbortError') return;
-        window.alert('Błąd sieci: nie udało się połączyć z serwerem.');
+        window.alert('BĹ‚Ä…d sieci: nie udaĹ‚o siÄ™ poĹ‚Ä…czyÄ‡ z serwerem.');
       } finally {
         nipFetchController = null;
         if (!modalNIP.classList.contains('hidden')) {
@@ -3602,7 +1579,7 @@
         if (linie.length > 1) {
           const meta = document.createElement('span');
           meta.className = 'dropdown-item-meta';
-          meta.textContent = linie.slice(1).join(' · ');
+          meta.textContent = linie.slice(1).join(' Â· ');
           li.appendChild(meta);
         }
         li.addEventListener('mousedown', (e) => {
@@ -3819,34 +1796,34 @@
 
     const DOMYSLNY_KATALOG = [
       { nazwa: 'Wymiana baterii umywalkowej',       cena_jednostkowa: 150, kategoria: 'Hydraulika' },
-      { nazwa: 'Naprawa spłuczki',                  cena_jednostkowa: 100, kategoria: 'Hydraulika' },
-      { nazwa: 'Udrożnienie odpływu',               cena_jednostkowa: 200, kategoria: 'Hydraulika' },
-      { nazwa: 'Montaż umywalki',                   cena_jednostkowa: 250, kategoria: 'Hydraulika' },
-      { nazwa: 'Wymiana zaworu kątowego',           cena_jednostkowa:  80, kategoria: 'Hydraulika' },
-      { nazwa: 'Montaż WC kompakt',                 cena_jednostkowa: 350, kategoria: 'Hydraulika' },
+      { nazwa: 'Naprawa spĹ‚uczki',                  cena_jednostkowa: 100, kategoria: 'Hydraulika' },
+      { nazwa: 'UdroĹĽnienie odpĹ‚ywu',               cena_jednostkowa: 200, kategoria: 'Hydraulika' },
+      { nazwa: 'MontaĹĽ umywalki',                   cena_jednostkowa: 250, kategoria: 'Hydraulika' },
+      { nazwa: 'Wymiana zaworu kÄ…towego',           cena_jednostkowa:  80, kategoria: 'Hydraulika' },
+      { nazwa: 'MontaĹĽ WC kompakt',                 cena_jednostkowa: 350, kategoria: 'Hydraulika' },
       { nazwa: 'Wymiana grzejnika',                 cena_jednostkowa: 450, kategoria: 'Hydraulika' },
 
-      { nazwa: 'Montaż gniazda elektrycznego',      cena_jednostkowa:  80, kategoria: 'Elektryka' },
-      { nazwa: 'Wymiana włącznika',                 cena_jednostkowa:  60, kategoria: 'Elektryka' },
-      { nazwa: 'Montaż lampy sufitowej',            cena_jednostkowa: 120, kategoria: 'Elektryka' },
-      { nazwa: 'Montaż żyrandola',                  cena_jednostkowa: 150, kategoria: 'Elektryka' },
-      { nazwa: 'Pomiary elektryczne (protokół)',    cena_jednostkowa: 200, kategoria: 'Elektryka' },
+      { nazwa: 'MontaĹĽ gniazda elektrycznego',      cena_jednostkowa:  80, kategoria: 'Elektryka' },
+      { nazwa: 'Wymiana wĹ‚Ä…cznika',                 cena_jednostkowa:  60, kategoria: 'Elektryka' },
+      { nazwa: 'MontaĹĽ lampy sufitowej',            cena_jednostkowa: 120, kategoria: 'Elektryka' },
+      { nazwa: 'MontaĹĽ ĹĽyrandola',                  cena_jednostkowa: 150, kategoria: 'Elektryka' },
+      { nazwa: 'Pomiary elektryczne (protokĂłĹ‚)',    cena_jednostkowa: 200, kategoria: 'Elektryka' },
       { nazwa: 'Wymiana rozdzielni',                cena_jednostkowa: 800, kategoria: 'Elektryka' },
 
-      { nazwa: 'Malowanie ściany (m²)',             cena_jednostkowa:  35, kategoria: 'Wykończenia' },
-      { nazwa: 'Gładź gipsowa (m²)',                cena_jednostkowa:  50, kategoria: 'Wykończenia' },
-      { nazwa: 'Tapetowanie (m²)',                  cena_jednostkowa:  45, kategoria: 'Wykończenia' },
-      { nazwa: 'Montaż drzwi wewnętrznych',         cena_jednostkowa: 350, kategoria: 'Wykończenia' },
-      { nazwa: 'Listwy przypodłogowe (mb)',         cena_jednostkowa:  25, kategoria: 'Wykończenia' },
-      { nazwa: 'Układanie paneli (m²)',             cena_jednostkowa:  40, kategoria: 'Wykończenia' },
-      { nazwa: 'Układanie płytek (m²)',             cena_jednostkowa: 120, kategoria: 'Wykończenia' },
+      { nazwa: 'Malowanie Ĺ›ciany (mÂ˛)',             cena_jednostkowa:  35, kategoria: 'WykoĹ„czenia' },
+      { nazwa: 'GĹ‚adĹş gipsowa (mÂ˛)',                cena_jednostkowa:  50, kategoria: 'WykoĹ„czenia' },
+      { nazwa: 'Tapetowanie (mÂ˛)',                  cena_jednostkowa:  45, kategoria: 'WykoĹ„czenia' },
+      { nazwa: 'MontaĹĽ drzwi wewnÄ™trznych',         cena_jednostkowa: 350, kategoria: 'WykoĹ„czenia' },
+      { nazwa: 'Listwy przypodĹ‚ogowe (mb)',         cena_jednostkowa:  25, kategoria: 'WykoĹ„czenia' },
+      { nazwa: 'UkĹ‚adanie paneli (mÂ˛)',             cena_jednostkowa:  40, kategoria: 'WykoĹ„czenia' },
+      { nazwa: 'UkĹ‚adanie pĹ‚ytek (mÂ˛)',             cena_jednostkowa: 120, kategoria: 'WykoĹ„czenia' },
 
-      { nazwa: 'Wyburzenie ścianki działowej (m²)', cena_jednostkowa: 180, kategoria: 'Budowlanka' },
-      { nazwa: 'Stawianie ścianki działowej (m²)',  cena_jednostkowa: 220, kategoria: 'Budowlanka' },
+      { nazwa: 'Wyburzenie Ĺ›cianki dziaĹ‚owej (mÂ˛)', cena_jednostkowa: 180, kategoria: 'Budowlanka' },
+      { nazwa: 'Stawianie Ĺ›cianki dziaĹ‚owej (mÂ˛)',  cena_jednostkowa: 220, kategoria: 'Budowlanka' },
 
       { nazwa: 'Robocizna (godzina)',               cena_jednostkowa:  80, kategoria: 'Inne' },
       { nazwa: 'Dojazd (km)',                       cena_jednostkowa:   3, kategoria: 'Inne' },
-      { nazwa: 'Wywóz gruzu (m³)',                  cena_jednostkowa: 350, kategoria: 'Inne' },
+      { nazwa: 'WywĂłz gruzu (mÂł)',                  cena_jednostkowa: 350, kategoria: 'Inne' },
     ];
 
     function zapiszKatalog(items) {
@@ -3901,7 +1878,7 @@
     function formatujCene(cena) {
       const n = Number(cena);
       if (!Number.isFinite(n)) return '';
-      return n.toFixed(2).replace('.', ',') + ' zł';
+      return n.toFixed(2).replace('.', ',') + ' zĹ‚';
     }
 
     function pokazFeedbackKatalog(tekst, typ) {
@@ -3969,7 +1946,7 @@
       if (widoczne.length === 0) {
         const li = document.createElement('li');
         li.className = 'catalog-empty';
-        li.textContent = 'Brak pozycji pasujących do filtra.';
+        li.textContent = 'Brak pozycji pasujÄ…cych do filtra.';
         catalogList.appendChild(li);
         return;
       }
@@ -4103,12 +2080,12 @@
           kategoria,
         });
       }
-      if (items.length === 0) throw new Error('Brak prawidłowych pozycji w pliku.');
+      if (items.length === 0) throw new Error('Brak prawidĹ‚owych pozycji w pliku.');
       zapiszKatalog(items);
       return items;
     }
 
-    const KOMUNIKAT_BLEDU_IMPORTU = 'Nie udało się odczytać pliku. Upewnij się, że zapisałeś go w Excelu jako CSV (rozdzielany przecinkami).';
+    const KOMUNIKAT_BLEDU_IMPORTU = 'Nie udaĹ‚o siÄ™ odczytaÄ‡ pliku. Upewnij siÄ™, ĹĽe zapisaĹ‚eĹ› go w Excelu jako CSV (rozdzielany przecinkami).';
 
     function escCSV(wartosc) {
       const s = String(wartosc == null ? '' : wartosc);
@@ -4121,7 +2098,7 @@
     function eksportujKatalogCSV() {
       const items = wczytajKatalog();
       if (!items || items.length === 0) {
-        pokazFeedbackKatalog('Katalog jest pusty — nie ma czego eksportować.', 'error');
+        pokazFeedbackKatalog('Katalog jest pusty â€” nie ma czego eksportowaÄ‡.', 'error');
         return;
       }
 
@@ -4450,7 +2427,7 @@
       szablony.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.nazwa;
-        const cenaFmt = (Number(s.cena) || 0).toFixed(2).replace('.', ',') + ' zł';
+        const cenaFmt = (Number(s.cena) || 0).toFixed(2).replace('.', ',') + ' zĹ‚';
         opt.label = 'Ostatnio: ' + cenaFmt;
         frag.appendChild(opt);
       });
@@ -4499,8 +2476,8 @@
 
     function formatujSume(suma) {
       const n = Number(suma);
-      if (!Number.isFinite(n)) return '0,00 zł';
-      return n.toFixed(2).replace('.', ',') + ' zł';
+      if (!Number.isFinite(n)) return '0,00 zĹ‚';
+      return n.toFixed(2).replace('.', ',') + ' zĹ‚';
     }
 
     const statsSection = document.getElementById('stats-section');
@@ -4527,8 +2504,8 @@
       return card;
     }
 
-    const NAZWY_MIESIECY = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
-    const NAZWY_DNI = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    const NAZWY_MIESIECY = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'PaĹş', 'Lis', 'Gru'];
+    const NAZWY_DNI = ['Niedziela', 'PoniedziaĹ‚ek', 'Wtorek', 'Ĺšroda', 'Czwartek', 'PiÄ…tek', 'Sobota'];
     const KOLEJNOSC_DNI_TYGODNIA = [1, 2, 3, 4, 5, 6, 0];
 
     const STATS_OKRES_KEY = 'sumit_stats_okres';
@@ -4758,9 +2735,9 @@
     }
 
     function formatujDateKrotka(ms) {
-      if (!ms) return '—';
+      if (!ms) return 'â€”';
       const d = new Date(ms);
-      if (Number.isNaN(d.getTime())) return '—';
+      if (Number.isNaN(d.getTime())) return 'â€”';
       const dd = String(d.getDate()).padStart(2, '0');
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       return dd + '.' + mm + '.' + d.getFullYear();
@@ -4773,7 +2750,7 @@
       if (klienci.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'stats-klienci-empty';
-        empty.textContent = 'Brak danych klientów w wybranym okresie';
+        empty.textContent = 'Brak danych klientĂłw w wybranym okresie';
         card.appendChild(empty);
         return card;
       }
@@ -4789,8 +2766,8 @@
       [
         { txt: 'Klient', cls: '' },
         { txt: 'Liczba wycen', cls: 'col-num' },
-        { txt: 'Łączna wartość', cls: 'col-num' },
-        { txt: 'Średnia wartość', cls: 'col-num' },
+        { txt: 'ĹÄ…czna wartoĹ›Ä‡', cls: 'col-num' },
+        { txt: 'Ĺšrednia wartoĹ›Ä‡', cls: 'col-num' },
         { txt: 'Ostatnia wycena', cls: 'col-num' }
       ].forEach(h => {
         const th = document.createElement('th');
@@ -4839,11 +2816,11 @@
       return card;
     }
 
-    const HEATMAPA_DNI_SKROTY = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
-    const HEATMAPA_NAZWY_DNI = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    const HEATMAPA_DNI_SKROTY = ['Nd', 'Pn', 'Wt', 'Ĺšr', 'Cz', 'Pt', 'Sb'];
+    const HEATMAPA_NAZWY_DNI = ['Niedziela', 'PoniedziaĹ‚ek', 'Wtorek', 'Ĺšroda', 'Czwartek', 'PiÄ…tek', 'Sobota'];
     const HEATMAPA_MIESIACE_PELNE = [
       'Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze',
-      'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'
+      'Lip', 'Sie', 'Wrz', 'PaĹş', 'Lis', 'Gru'
     ];
 
     function startTygodniaPnUTC(d) {
@@ -4880,7 +2857,7 @@
     }
 
     function renderujKarteHeatmapy(historiaPelna) {
-      const card = tworzKarteStat('Aktywność (ostatnie 52 tygodnie)', null, null, 'stats-card-full stats-card-standalone heatmap-card');
+      const card = tworzKarteStat('AktywnoĹ›Ä‡ (ostatnie 52 tygodnie)', null, null, 'stats-card-full stats-card-standalone heatmap-card');
 
       const mapa = agregujDniHeatmapy(historiaPelna);
 
@@ -4904,7 +2881,7 @@
       [0, 1, 2, 3, 4, 5, 6].forEach(rowIdx => {
         const span = document.createElement('span');
         if (rowIdx === 0) span.textContent = 'Pn';
-        else if (rowIdx === 2) span.textContent = 'Śr';
+        else if (rowIdx === 2) span.textContent = 'Ĺšr';
         else if (rowIdx === 4) span.textContent = 'Pt';
         else span.textContent = '';
         dayLabels.appendChild(span);
@@ -4936,7 +2913,7 @@
           const dataFmt = formatujDateKrotka(dzien.getTime());
           const sufiks = liczba === 1 ? 'wycena' : (liczba >= 2 && liczba <= 4 ? 'wyceny' : 'wycen');
           const dzienNazwa = HEATMAPA_NAZWY_DNI[dzien.getDay()];
-          cell.title = dzienNazwa + ', ' + dataFmt + ' — ' + liczba + ' ' + sufiks;
+          cell.title = dzienNazwa + ', ' + dataFmt + ' â€” ' + liczba + ' ' + sufiks;
           grid.appendChild(cell);
         }
       }
@@ -4958,7 +2935,7 @@
         legend.appendChild(c);
       });
       const lblWiecej = document.createElement('span');
-      lblWiecej.textContent = 'więcej';
+      lblWiecej.textContent = 'wiÄ™cej';
       legend.appendChild(lblWiecej);
       card.appendChild(legend);
 
@@ -4979,7 +2956,7 @@
       if (!calaHistoria || calaHistoria.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'stats-empty';
-        empty.textContent = 'Brak danych — wygeneruj pierwszą wycenę, aby zobaczyć statystyki';
+        empty.textContent = 'Brak danych â€” wygeneruj pierwszÄ… wycenÄ™, aby zobaczyÄ‡ statystyki';
         statsSection.appendChild(empty);
         return;
       }
@@ -5062,12 +3039,12 @@
       grid.appendChild(tworzKarteStat(
         'Wygenerowane wyceny',
         String(liczbaLacznie),
-        'W tym miesiącu: ' + liczbaWMiesiacu
+        'W tym miesiÄ…cu: ' + liczbaWMiesiacu
       ));
       grid.appendChild(tworzKarteStat(
-        'Wartość wycen',
+        'WartoĹ›Ä‡ wycen',
         formatujSume(sumaLacznie),
-        'W tym miesiącu: ' + formatujSume(sumaWMiesiacu)
+        'W tym miesiÄ…cu: ' + formatujSume(sumaWMiesiacu)
       ));
 
       const trendCard = document.createElement('div');
@@ -5083,21 +3060,21 @@
         trendValue.textContent = znak + trend.procent.toFixed(0) + '%';
         trendValue.classList.add(trend.procent >= 0 ? 'stats-trend-positive' : 'stats-trend-negative');
       } else {
-        trendValue.textContent = '—';
+        trendValue.textContent = 'â€”';
       }
       trendCard.appendChild(trendValue);
       const trendMeta = document.createElement('div');
       trendMeta.className = 'stats-card-meta';
-      trendMeta.textContent = trend.dostepny ? 'vs poprzedni miesiąc' : 'Brak danych do porównania';
+      trendMeta.textContent = trend.dostepny ? 'vs poprzedni miesiÄ…c' : 'Brak danych do porĂłwnania';
       trendCard.appendChild(trendMeta);
       grid.appendChild(trendCard);
 
-      const topDzienValue = topDzien.indeks >= 0 ? NAZWY_DNI[topDzien.indeks] : '—';
+      const topDzienValue = topDzien.indeks >= 0 ? NAZWY_DNI[topDzien.indeks] : 'â€”';
       const topDzienMeta = topDzien.indeks >= 0
         ? topDzien.liczba + ' ' + sufiksOferty(topDzien.liczba)
         : 'Brak danych';
       grid.appendChild(tworzKarteStat(
-        'Top dzień tygodnia',
+        'Top dzieĹ„ tygodnia',
         topDzienValue,
         topDzienMeta
       ));
@@ -5108,7 +3085,7 @@
       chartContainer.className = 'chart-container';
       const chartTitle = document.createElement('h3');
       chartTitle.className = 'chart-title';
-      chartTitle.textContent = 'Wartość wycen (ostatnie 6 miesięcy)';
+      chartTitle.textContent = 'WartoĹ›Ä‡ wycen (ostatnie 6 miesiÄ™cy)';
       chartContainer.appendChild(chartTitle);
       const chartBars = document.createElement('div');
       chartBars.id = 'stat-chart';
@@ -5121,7 +3098,7 @@
       const buckets = agregujMiesiacami(lista, 6);
       renderujWykres(buckets);
 
-      const top5Card = tworzKarteStat('Najczęstsze pozycje', null, null, 'stats-card-full stats-card-standalone');
+      const top5Card = tworzKarteStat('NajczÄ™stsze pozycje', null, null, 'stats-card-full stats-card-standalone');
       if (top5.length > 0) {
         const ul = document.createElement('ul');
         ul.className = 'stats-card-list';
@@ -5216,8 +3193,8 @@
         const btnDel = document.createElement('button');
         btnDel.type = 'button';
         btnDel.className = 'btn-historia-action is-delete';
-        btnDel.textContent = 'Usuń';
-        btnDel.setAttribute('aria-label', 'Usuń wpis z historii');
+        btnDel.textContent = 'UsuĹ„';
+        btnDel.setAttribute('aria-label', 'UsuĹ„ wpis z historii');
         btnDel.addEventListener('click', () => {
           usunZHistorii(wpis.id);
           renderujHistorie();
@@ -5236,7 +3213,7 @@
 
     function wczytajWpisDoFormularza(wpis) {
       if (!wpis || !wpis.payload) return;
-      const ok = window.confirm('Wczytanie nadpisze obecny szkic wyceny. Kontynuować?');
+      const ok = window.confirm('Wczytanie nadpisze obecny szkic wyceny. KontynuowaÄ‡?');
       if (!ok) return;
 
       const p = wpis.payload;
@@ -5272,7 +3249,7 @@
       odswiezStanPresetow();
       saveDraft();
       zamknijHistorie();
-      pokazKomunikat('Wczytano wycenę z historii.', 'success');
+      pokazKomunikat('Wczytano wycenÄ™ z historii.', 'success');
     }
 
     async function pobierzPdfZHistorii(wpis, btn) {
@@ -5288,7 +3265,7 @@
         });
         if (!res.ok) {
           const tekst = await res.text();
-          throw new Error(tekst || `Błąd ${res.status}`);
+          throw new Error(tekst || `BĹ‚Ä…d ${res.status}`);
         }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -5301,7 +3278,7 @@
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 0);
       } catch (err) {
-        window.alert('Nie udało się pobrać PDF: ' + err.message);
+        window.alert('Nie udaĹ‚o siÄ™ pobraÄ‡ PDF: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = oryginalnyTekst;
@@ -5330,7 +3307,7 @@
     btnZamknijHistoria.addEventListener('click', zamknijHistorie);
     historiaBackdrop.addEventListener('click', zamknijHistorie);
     btnHistoriaWyczysc.addEventListener('click', () => {
-      const ok = window.confirm('Wyczyścić całą historię wycen? Tej operacji nie można cofnąć.');
+      const ok = window.confirm('WyczyĹ›ciÄ‡ caĹ‚Ä… historiÄ™ wycen? Tej operacji nie moĹĽna cofnÄ…Ä‡.');
       if (!ok) return;
       zapiszHistorie([]);
       renderujHistorie();
@@ -5370,10 +3347,10 @@
     function odswiezKalkulatorWynik() {
       const wynik = obliczPowierzchnieKalk();
       if (Number.isFinite(wynik) && wynik > 0) {
-        kalkWynikEl.textContent = 'Powierzchnia: ' + formatujPowierzchnie(wynik) + ' m²';
+        kalkWynikEl.textContent = 'Powierzchnia: ' + formatujPowierzchnie(wynik) + ' mÂ˛';
         btnKalkWstaw.disabled = false;
       } else {
-        kalkWynikEl.textContent = 'Powierzchnia: 0,00 m²';
+        kalkWynikEl.textContent = 'Powierzchnia: 0,00 mÂ˛';
         btnKalkWstaw.disabled = true;
       }
     }
