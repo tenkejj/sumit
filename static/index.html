@@ -31,6 +31,7 @@
         <div class="logo">
           <div id="app-logo">
             <img src="/static/sumit-logo.png" alt="SumIt">
+            <span id="logo-tagline">dla fachowców</span>
           </div>
         </div>
       </div>
@@ -78,8 +79,18 @@
     <div class="kreator-layout">
     <div class="card">
       <form id="oferta-form" autocomplete="off">
-        <section class="section">
+        <section class="section accordion-section is-open" data-accordion-id="szczegoly" data-accordion-default="open">
           <h2 class="section-title">Szczegóły wyceny</h2>
+          <button type="button" class="accordion-header" aria-expanded="true" aria-controls="accordion-body-szczegoly">
+            <span class="accordion-header-left">
+              <span class="section-title">Szczegóły wyceny</span>
+              <span class="accordion-preview" hidden></span>
+            </span>
+            <svg class="accordion-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6l4 4 4-4"></path>
+            </svg>
+          </button>
+          <div class="accordion-body" id="accordion-body-szczegoly">
           <div class="row">
             <div class="field">
               <label for="numer_oferty">Numer wyceny</label>
@@ -95,10 +106,21 @@
               </div>
             </div>
           </div>
+          </div>
         </section>
 
-        <section class="section">
+        <section class="section accordion-section" data-accordion-id="klient" data-accordion-default="closed">
           <h2 class="section-title">Klient</h2>
+          <button type="button" class="accordion-header" aria-expanded="false" aria-controls="accordion-body-klient">
+            <span class="accordion-header-left">
+              <span class="section-title">Klient</span>
+              <span class="accordion-preview" hidden></span>
+            </span>
+            <svg class="accordion-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6l4 4 4-4"></path>
+            </svg>
+          </button>
+          <div class="accordion-body" id="accordion-body-klient">
           <div class="field">
             <div class="label-row">
               <label for="klient">Nazwa klienta</label>
@@ -115,10 +137,21 @@
               <ul id="klient-autocomplete" class="dropdown-menu hidden" role="listbox" aria-label="Powracający klienci z książki adresowej i historii"></ul>
             </div>
           </div>
+          </div>
         </section>
 
-        <section class="section">
+        <section class="section accordion-section is-open" data-accordion-id="pozycje" data-accordion-default="open">
           <h2 class="section-title">Pozycje</h2>
+          <button type="button" class="accordion-header" aria-expanded="true" aria-controls="accordion-body-pozycje">
+            <span class="accordion-header-left">
+              <span class="section-title">Pozycje</span>
+              <span class="accordion-preview" hidden></span>
+            </span>
+            <svg class="accordion-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6l4 4 4-4"></path>
+            </svg>
+          </button>
+          <div class="accordion-body" id="accordion-body-pozycje">
           <table>
             <thead>
               <tr>
@@ -143,10 +176,21 @@
               <span>Wybierz z katalogu</span>
             </button>
           </div>
+          </div>
         </section>
 
-        <section class="section">
+        <section class="section accordion-section" data-accordion-id="uwagi" data-accordion-default="closed">
           <h2 class="section-title">Uwagi do wyceny</h2>
+          <button type="button" class="accordion-header" aria-expanded="false" aria-controls="accordion-body-uwagi">
+            <span class="accordion-header-left">
+              <span class="section-title">Uwagi do wyceny</span>
+              <span class="accordion-preview" hidden></span>
+            </span>
+            <svg class="accordion-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6l4 4 4-4"></path>
+            </svg>
+          </button>
+          <div class="accordion-body" id="accordion-body-uwagi">
           <div class="field">
             <label for="uwagi">Notatki widoczne pod tabelą</label>
             <textarea id="uwagi" name="uwagi" rows="4" placeholder="np. dodatkowe warunki, terminy, gwarancje"></textarea>
@@ -156,6 +200,7 @@
               <button type="button" class="chip" data-preset="Gwarancja 12 m-cy" aria-pressed="false">Gwarancja 12 m-cy</button>
               <button type="button" class="chip" data-preset="Ważność 30 dni" aria-pressed="false">Ważność 30 dni</button>
             </div>
+          </div>
           </div>
         </section>
 
@@ -1613,7 +1658,7 @@
         klientEl.value = linie.join('\n');
         zamknijModalNIP();
         saveDraft();
-        klientEl.focus();
+        if (typeof zwinKlientaJesliWypelniony === 'function') zwinKlientaJesliWypelniony();
       } catch (err) {
         if (err && err.name === 'AbortError') return;
         window.alert('Błąd sieci: nie udało się połączyć z serwerem.');
@@ -1717,7 +1762,8 @@
       delete klientTextarea.dataset.klientAutofill;
       ukryjAutocompleteKlient();
       saveDraft();
-      klientTextarea.focus();
+      if (typeof zwinKlientaJesliWypelniony === 'function') zwinKlientaJesliWypelniony();
+      klientTextarea.blur();
     }
 
     function sprobujAutofillKlientaZKsiazki() {
@@ -1812,6 +1858,164 @@
       }
     });
 
+    const accordionMql = window.matchMedia('(max-width: 1023px)');
+
+    function zmierzWysokoscAkordeonu(body) {
+      const prev = body.style.maxHeight;
+      body.style.maxHeight = 'none';
+      const h = body.scrollHeight;
+      body.style.maxHeight = prev;
+      return h;
+    }
+
+    function ustawAkordeonOtwarty(section, otwarty) {
+      const body = section.querySelector('.accordion-body');
+      const header = section.querySelector('.accordion-header');
+      if (!body) return;
+
+      if (!accordionMql.matches) {
+        section.classList.add('is-open');
+        body.style.maxHeight = '';
+        if (header) header.setAttribute('aria-expanded', 'true');
+        return;
+      }
+
+      if (otwarty) {
+        section.classList.add('is-open');
+        body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
+        if (header) header.setAttribute('aria-expanded', 'true');
+        const klientSection = section.dataset.accordionId === 'klient';
+        if (klientSection) {
+          const preview = section.querySelector('.accordion-preview');
+          if (preview) preview.hidden = true;
+        }
+      } else {
+        const h = zmierzWysokoscAkordeonu(body);
+        body.style.maxHeight = h + 'px';
+        requestAnimationFrame(() => {
+          body.style.maxHeight = '0px';
+        });
+        section.classList.remove('is-open');
+        if (header) header.setAttribute('aria-expanded', 'false');
+        if (section.dataset.accordionId === 'klient') {
+          odswiezPodgladKlientaAkordeon();
+        }
+      }
+    }
+
+    function przelaczAkordeon(section) {
+      if (!accordionMql.matches) return;
+      ustawAkordeonOtwarty(section, !section.classList.contains('is-open'));
+    }
+
+    function odswiezPodgladKlientaAkordeon() {
+      const section = document.querySelector('[data-accordion-id="klient"]');
+      const klientEl = document.getElementById('klient');
+      if (!section || !klientEl) return;
+      const preview = section.querySelector('.accordion-preview');
+      if (!preview) return;
+
+      if (!accordionMql.matches || section.classList.contains('is-open')) {
+        preview.hidden = true;
+        preview.textContent = '';
+        return;
+      }
+
+      const pierwszaLinia = klientEl.value.split('\n').map(s => s.trim()).find(Boolean) || '';
+      if (pierwszaLinia) {
+        preview.textContent = '\u2713 ' + pierwszaLinia;
+        preview.hidden = false;
+      } else {
+        preview.textContent = '';
+        preview.hidden = true;
+      }
+    }
+
+    function zwinKlientaJesliWypelniony() {
+      if (!accordionMql.matches) return;
+      const section = document.querySelector('[data-accordion-id="klient"]');
+      const klientEl = document.getElementById('klient');
+      if (!section || !klientEl) return;
+      if (klientEl.value.trim() && section.classList.contains('is-open')) {
+        ustawAkordeonOtwarty(section, false);
+      } else {
+        odswiezPodgladKlientaAkordeon();
+      }
+    }
+
+    function odswiezWszystkieAkordeony() {
+      document.querySelectorAll('#oferta-form .accordion-section').forEach(section => {
+        const body = section.querySelector('.accordion-body');
+        if (!body) return;
+        if (!accordionMql.matches) {
+          section.classList.add('is-open');
+          body.style.maxHeight = '';
+          const header = section.querySelector('.accordion-header');
+          if (header) header.setAttribute('aria-expanded', 'true');
+          return;
+        }
+        const domyslnieOtwarty = section.dataset.accordionDefault === 'open';
+        const otwarty = section.classList.contains('is-open');
+        if (otwarty) {
+          body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
+        } else if (!body.style.maxHeight) {
+          body.style.maxHeight = domyslnieOtwarty ? zmierzWysokoscAkordeonu(body) + 'px' : '0px';
+        }
+      });
+      odswiezPodgladKlientaAkordeon();
+    }
+
+    function initFormAccordions() {
+      const sections = document.querySelectorAll('#oferta-form .accordion-section');
+      const klientEl = document.getElementById('klient');
+
+      sections.forEach(section => {
+        const domyslnieOtwarty = section.dataset.accordionDefault === 'open';
+        const body = section.querySelector('.accordion-body');
+        const header = section.querySelector('.accordion-header');
+
+        section.classList.toggle('is-open', domyslnieOtwarty);
+        if (header) header.setAttribute('aria-expanded', domyslnieOtwarty ? 'true' : 'false');
+
+        if (body) {
+          if (!accordionMql.matches) {
+            body.style.maxHeight = '';
+            section.classList.add('is-open');
+          } else if (domyslnieOtwarty) {
+            body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
+          } else {
+            body.style.maxHeight = '0px';
+          }
+        }
+
+        if (header) {
+          header.addEventListener('click', () => przelaczAkordeon(section));
+        }
+
+        if (body && typeof ResizeObserver !== 'undefined') {
+          const ro = new ResizeObserver(() => {
+            if (!accordionMql.matches || !section.classList.contains('is-open')) return;
+            body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
+          });
+          ro.observe(body);
+        }
+      });
+
+      if (klientEl) {
+        klientEl.addEventListener('blur', zwinKlientaJesliWypelniony);
+      }
+
+      accordionMql.addEventListener('change', odswiezWszystkieAkordeony);
+
+      if (klientEl && klientEl.value.trim()) {
+        const klientSection = document.querySelector('[data-accordion-id="klient"]');
+        if (klientSection && accordionMql.matches) {
+          ustawAkordeonOtwarty(klientSection, false);
+        }
+      }
+      odswiezPodgladKlientaAkordeon();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       wczytajDraft();
 
@@ -1819,6 +2023,8 @@
       if (numerEl && !numerEl.value.trim()) {
         numerEl.value = nastepnyNumerOferty();
       }
+
+      initFormAccordions();
 
       form.addEventListener('input', saveDraftDebounced);
       btnDodaj.addEventListener('click', saveDraftDebounced);
