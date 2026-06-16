@@ -230,8 +230,8 @@
     }
 
     .logo-hanko img {
-      width: 28px;
-      height: 28px;
+      width: 22px;
+      height: 22px;
       object-fit: contain;
       filter: brightness(0) invert(1);
     }
@@ -248,7 +248,7 @@
       display: flex;
       align-items: center;
       gap: 0;
-      min-width: 0;
+      flex-shrink: 0;
     }
 
     .view-tabs {
