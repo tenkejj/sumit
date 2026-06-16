@@ -1,0 +1,21 @@
+[Unit]
+Description=SumIt - generator ofert PDF
+Documentation=https://github.com/tenkejj/sumit
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/sumit
+ExecStart=/usr/local/bin/sumit
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sumit
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

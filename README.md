@@ -34,3 +34,96 @@ go run .
 ```
 
 Once initialized, navigate to the local environment instance at: http://localhost:8080
+
+## Wdrożenie na VPS (Linux x86_64)
+
+Poniższa instrukcja opisuje **jednorazową** konfigurację serwera oraz powtarzalne wdrożenia z maszyny deweloperskiej.
+
+Aplikacja nasłuchuje na porcie **8080** (`http://130.61.35.204:8080` po wdrożeniu).
+
+### Wymagania
+
+| Środowisko | Wymagania |
+|---|---|
+| Maszyna deweloperska | Go 1.22+, `bash`, `ssh`, `scp` (np. WSL lub Git Bash na Windows) |
+| Serwer VPS | Ubuntu 24.04 (Oracle Cloud Free Tier), użytkownik `ubuntu`, dostęp SSH |
+
+Go na serwerze **nie jest wymagane** — binarka jest kompilowana lokalnie i przesyłana przez `deploy.sh`.
+
+### Klucz SSH (`SSH_KEY`)
+
+W pliku `deploy.sh` ustaw zmienną `SSH_KEY` na ścieżkę do klucza prywatnego SSH. Skrypt używa jej we wszystkich wywołaniach `scp` i `ssh` (flaga `-i`):
+
+```bash
+readonly SSH_KEY="/ścieżka/do/twojego/klucza.key"
+```
+
+Na Windows (Git Bash) ścieżka w stylu `/c/Users/...` jest poprawna. Przykładowe komendy ręczne poniżej zakładają tę samą zmienną:
+
+```bash
+export SSH_KEY="/ścieżka/do/twojego/klucza.key"
+```
+
+### Jednorazowa konfiguracja serwera
+
+Zaloguj się na serwer:
+
+```bash
+ssh -i "${SSH_KEY}" ubuntu@130.61.35.204
+```
+
+Utwórz katalog aplikacji i nadaj uprawnienia:
+
+```bash
+sudo mkdir -p /opt/sumit/static /opt/sumit/assets
+sudo chown -R ubuntu:ubuntu /opt/sumit
+```
+
+Skopiuj plik usługi systemd (z maszyny lokalnej, w katalogu projektu):
+
+```bash
+scp -i "${SSH_KEY}" sumit.service ubuntu@130.61.35.204:/tmp/sumit.service
+```
+
+Na serwerze zainstaluj i włącz usługę:
+
+```bash
+sudo mv /tmp/sumit.service /etc/systemd/system/sumit.service
+sudo systemctl daemon-reload
+sudo systemctl enable sumit
+sudo systemctl start sumit
+```
+
+Opcjonalnie otwórz port HTTP w firewallu:
+
+```bash
+sudo ufw allow 8080/tcp
+```
+
+### Wdrożenie aplikacji
+
+Upewnij się, że `SSH_KEY` w `deploy.sh` wskazuje na właściwy klucz. Z katalogu głównego projektu na maszynie deweloperskiej:
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+Skrypt:
+
+1. Kompiluje binarkę pod Linux (`GOOS=linux GOARCH=amd64`).
+2. Przesyła ją na serwer przez `scp -i "${SSH_KEY}"` do `/usr/local/bin/sumit`.
+3. Aktualizuje katalogi `/opt/sumit/static` i `/opt/sumit/assets`.
+4. Restartuje usługę `sumit` (jeśli jest już włączona).
+
+### Weryfikacja
+
+```bash
+# status usługi
+ssh -i "${SSH_KEY}" ubuntu@130.61.35.204 'sudo systemctl status sumit'
+
+# logi
+ssh -i "${SSH_KEY}" ubuntu@130.61.35.204 'journalctl -u sumit -f'
+```
+
+Aplikacja dostępna pod adresem: **http://130.61.35.204:8080**
