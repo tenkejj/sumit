@@ -18,7 +18,7 @@ Fill in a form, get a PDF estimate. SumIt is built for Polish electricians, plum
 
 No account. No database. Your drafts and client history stay in the browser (`localStorage`). The Go server only renders PDFs and proxies the MF White List API so NIP lookup works without CORS headaches.
 
-**Live:** http://130.61.35.204:8080
+**Live:** [http://130.61.35.204:8080](http://130.61.35.204:8080) — Oracle Cloud (Ubuntu 24.04), deployed via `deploy.sh` + systemd.
 
 ### What you get
 
@@ -59,7 +59,7 @@ Wypełniasz formularz, dostajesz PDF z wyceną. SumIt jest pod hydraulików, ele
 
 Bez konta. Bez bazy danych. Szkice i historia klientów siedzą w przeglądarce (`localStorage`). Serwer Go robi dwie rzeczy: generuje PDF i proxy do Białej Listy MF, żeby pobieranie danych po NIP działało bez problemów z CORS.
 
-**Produkcja:** http://130.61.35.204:8080
+**Produkcja:** [http://130.61.35.204:8080](http://130.61.35.204:8080) — Oracle Cloud (Ubuntu 24.04), wdrożenie przez `deploy.sh` + systemd.
 
 ### Co potrafi
 
