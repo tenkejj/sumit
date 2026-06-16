@@ -2,7 +2,7 @@
   <img src="static/readme-banner.png" alt="SumIt" width="100%">
 </p>
 
-<h3 align="center">PDF quotes for tradespeople. No signup.</h3>
+<h3 align="center">PDF estimates for tradespeople. No signup.</h3>
 
 <p align="center">
   <a href="#english">English</a> · <a href="#polski">Polski</a>
@@ -14,7 +14,7 @@
 
 ## English
 
-Fill in a form, get a PDF offer. SumIt is built for Polish electricians, plumbers, and small service crews who need a proper quote on site — not another SaaS with a 20-step onboarding.
+Fill in a form, get a PDF estimate. SumIt is built for Polish electricians, plumbers, and small service crews who need a proper estimate on site — not another SaaS with a 20-step onboarding.
 
 No account. No database. Your drafts and client history stay in the browser (`localStorage`). The Go server only renders PDFs and proxies the MF White List API so NIP lookup works without CORS headaches.
 
@@ -22,12 +22,12 @@ No account. No database. Your drafts and client history stay in the browser (`lo
 
 ### What you get
 
-- PDF offers with seller/client blocks, line items, totals, notes, optional logo
+- PDF estimates with seller/client blocks, line items, totals, notes, optional logo
 - Bank transfer QR code (ZBP standard) when you set an account number
 - NIP lookup → company name and address from the Ministry of Finance White List
-- Client autocomplete from your quote history
+- Client autocomplete from your estimate history
 - Service catalog, CSV import/export, profit estimate per line item
-- Stats dashboard, quote history, light/dark mode, PWA install on mobile
+- Stats dashboard, estimate history, light/dark mode, PWA install on mobile
 
 ### Stack
 
@@ -55,7 +55,7 @@ Maintainers: see [DEPLOY.md](DEPLOY.md) for VPS setup.
 
 ## Polski
 
-Wypełniasz formularz, dostajesz PDF z ofertą. SumIt jest pod hydraulików, elektryków i małe ekipy remontowe — ludzi, którzy potrzebują wyceny u klienta, a nie kolejnej aplikacji z rejestracją i panelem admina.
+Wypełniasz formularz, dostajesz PDF z wyceną. SumIt jest pod hydraulików, elektryków i małe ekipy remontowe — ludzi, którzy potrzebują wyceny u klienta, a nie kolejnej aplikacji z rejestracją i panelem admina.
 
 Bez konta. Bez bazy danych. Szkice i historia klientów siedzą w przeglądarce (`localStorage`). Serwer Go robi dwie rzeczy: generuje PDF i proxy do Białej Listy MF, żeby pobieranie danych po NIP działało bez problemów z CORS.
 
