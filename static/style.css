@@ -219,8 +219,8 @@
     .header-actions .btn-settings { margin-top: 0; }
 
     .logo-hanko {
-      width: 44px;
-      height: 44px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
       background: #C0143C;
       display: flex;
@@ -230,18 +230,10 @@
     }
 
     .logo-hanko img {
-      width: 22px;
-      height: 22px;
+      width: 36px;
+      height: 36px;
       object-fit: contain;
       filter: brightness(0) invert(1);
-    }
-
-    .logo-name {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: 0.02em;
-      margin-left: 10px;
     }
 
     #app-logo {
@@ -2210,15 +2202,12 @@
       .btn-settings span { display: none; }
       .logo { font-size: 26px; }
       .logo-hanko {
-        width: 36px;
-        height: 36px;
+        width: 44px;
+        height: 44px;
       }
       .logo-hanko img {
-        width: 22px;
-        height: 22px;
-      }
-      .logo-name {
-        font-size: 15px;
+        width: 28px;
+        height: 28px;
       }
       .card { padding: 22px 20px; }
       .row { grid-template-columns: 1fr; gap: 16px; }
