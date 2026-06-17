@@ -1936,14 +1936,30 @@
     const aiNotatka = document.getElementById('ai-notatka');
     const btnAiParse = document.getElementById('btn-ai-parse');
     const btnAiMic = document.getElementById('btn-ai-mic');
+    const btnAiPhoto = document.getElementById('btn-ai-photo');
+    const aiPhotoInput = document.getElementById('ai-photo-input');
+    const aiPhotoThumb = document.getElementById('ai-photo-thumb');
+    const aiPhotoThumbImg = document.getElementById('ai-photo-thumb-img');
+    const btnAiPhotoRemove = document.getElementById('btn-ai-photo-remove');
     const aiParseStatus = document.getElementById('ai-parse-status');
     const btnAiParseLabel = btnAiParse ? btnAiParse.querySelector('.btn-ai-parse-label') : null;
     const btnAiParseSpinner = btnAiParse ? btnAiParse.querySelector('.btn-ai-parse-spinner') : null;
+    const modalAiPreview = document.getElementById('modal-ai-preview');
+    const modalAiPreviewBackdrop = document.getElementById('modal-ai-preview-backdrop');
+    const aiPreviewTbody = document.getElementById('ai-preview-tbody');
+    const aiPreviewMeta = document.getElementById('ai-preview-meta');
+    const btnAiPreviewAnuluj = document.getElementById('btn-ai-preview-anuluj');
+    const btnAiPreviewDodaj = document.getElementById('btn-ai-preview-dodaj');
+
+    const AI_MAX_KONTEKST = 30;
+    const AI_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 
     let aiParseController = null;
     let speechRecognition = null;
     let speechRecording = false;
     let speechBaseText = '';
+    let aiPendingItems = [];
+    let aiPhotoPayload = null;
 
     function ustawAiParseStatus(tekst, typ) {
       if (!aiParseStatus) return;
@@ -1956,6 +1972,8 @@
       btnAiParse.disabled = loading;
       btnAiParse.setAttribute('aria-busy', loading ? 'true' : 'false');
       if (btnAiMic) btnAiMic.disabled = loading;
+      if (btnAiPhoto) btnAiPhoto.disabled = loading;
+      if (btnAiPhotoRemove) btnAiPhotoRemove.disabled = loading;
       if (btnAiParseLabel) {
         btnAiParseLabel.textContent = loading ? 'Przetwarzam…' : 'Przetwórz tekst';
       }
@@ -1964,16 +1982,176 @@
       }
     }
 
+    function zbierzKontekstAi() {
+      const seen = new Set();
+      const out = [];
+
+      function dodaj(nazwa) {
+        const s = String(nazwa || '').trim();
+        if (!s) return;
+        const key = s.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push(s);
+      }
+
+      wczytajKatalog().forEach(item => dodaj(item.nazwa));
+      wczytajSzablonyPozycji().forEach(item => dodaj(item.nazwa));
+      wczytajHistorie().slice(0, 20).forEach(wpis => {
+        const pozycje = wpis && wpis.payload && Array.isArray(wpis.payload.pozycje) ? wpis.payload.pozycje : [];
+        pozycje.forEach(p => dodaj(p && p.nazwa));
+      });
+
+      return out.slice(0, AI_MAX_KONTEKST);
+    }
+
+    function dopasujCenePozycji(nazwa, cena) {
+      const parsed = Number(cena);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return { cena: parsed, zrodlo: null };
+      }
+
+      const key = String(nazwa || '').trim().toLowerCase();
+      if (!key) return { cena: 0, zrodlo: null };
+
+      const katalog = wczytajKatalog();
+      const exactKat = katalog.find(k => k.nazwa.toLowerCase() === key);
+      if (exactKat) {
+        return { cena: exactKat.cena_jednostkowa, zrodlo: 'katalog' };
+      }
+
+      const szablony = wczytajSzablonyPozycji();
+      const exactSz = szablony.find(s => s.nazwa.toLowerCase() === key);
+      if (exactSz) {
+        return { cena: exactSz.cena, zrodlo: 'szablon' };
+      }
+
+      const partial = katalog.filter(k => {
+        const katKey = k.nazwa.toLowerCase();
+        return katKey.includes(key) || key.includes(katKey);
+      });
+      if (partial.length === 1) {
+        return { cena: partial[0].cena_jednostkowa, zrodlo: 'katalog' };
+      }
+
+      return { cena: 0, zrodlo: null };
+    }
+
+    function formatujCeneAi(cena) {
+      const n = Number(cena);
+      if (!Number.isFinite(n)) return '0,00';
+      return n.toFixed(2).replace('.', ',');
+    }
+
+    function przygotujPozycjeAi(items) {
+      if (!Array.isArray(items)) return [];
+      return items
+        .filter(item => item && typeof item === 'object')
+        .map(item => {
+          const nazwa = typeof item.nazwa === 'string' ? item.nazwa.trim() : '';
+          const ilosc = Number(item.ilosc);
+          const dopasowanie = dopasujCenePozycji(nazwa, item.cena);
+          return {
+            nazwa,
+            ilosc,
+            cena: dopasowanie.cena,
+            zrodloCeny: dopasowanie.zrodlo,
+          };
+        })
+        .filter(item => item.nazwa && Number.isFinite(item.ilosc) && item.ilosc > 0 && item.cena >= 0);
+    }
+
+    function wyczyscZdjecieAi() {
+      if (aiPhotoPayload && aiPhotoPayload.previewUrl && aiPhotoPayload.previewUrl.startsWith('blob:')) {
+        try { URL.revokeObjectURL(aiPhotoPayload.previewUrl); } catch (e) {}
+      }
+      aiPhotoPayload = null;
+      if (aiPhotoInput) aiPhotoInput.value = '';
+      if (aiPhotoThumb) aiPhotoThumb.classList.add('hidden');
+      if (aiPhotoThumbImg) {
+        aiPhotoThumbImg.removeAttribute('src');
+        aiPhotoThumbImg.alt = '';
+      }
+    }
+
+    function pokazMiniatureZdjeciaAi(previewUrl) {
+      if (!aiPhotoThumb || !aiPhotoThumbImg) return;
+      aiPhotoThumbImg.src = previewUrl;
+      aiPhotoThumbImg.alt = 'Wybrane zdjęcie notatki';
+      aiPhotoThumb.classList.remove('hidden');
+    }
+
+    function zamknijPodgladAi() {
+      if (!modalAiPreview) return;
+      modalAiPreview.classList.add('hidden');
+      modalAiPreview.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      aiPendingItems = [];
+      if (aiPreviewTbody) aiPreviewTbody.innerHTML = '';
+      if (aiPreviewMeta) aiPreviewMeta.textContent = '';
+    }
+
+    function pokazPodgladAi(items) {
+      if (!modalAiPreview || !aiPreviewTbody) return;
+      aiPendingItems = items.slice();
+
+      aiPreviewTbody.innerHTML = '';
+      let uzupelnione = 0;
+      aiPendingItems.forEach(item => {
+        const tr = document.createElement('tr');
+
+        const tdNazwa = document.createElement('td');
+        tdNazwa.textContent = item.nazwa;
+        if (item.zrodloCeny) {
+          const tag = document.createElement('span');
+          tag.className = 'ai-preview-tag';
+          tag.textContent = item.zrodloCeny === 'katalog' ? 'z katalogu' : 'z historii';
+          tdNazwa.appendChild(document.createTextNode(' '));
+          tdNazwa.appendChild(tag);
+          uzupelnione++;
+        }
+
+        const tdIlosc = document.createElement('td');
+        tdIlosc.className = 'col-num tabular-nums';
+        tdIlosc.textContent = String(item.ilosc);
+
+        const tdCena = document.createElement('td');
+        tdCena.className = 'col-num tabular-nums';
+        tdCena.textContent = formatujCeneAi(item.cena);
+
+        tr.appendChild(tdNazwa);
+        tr.appendChild(tdIlosc);
+        tr.appendChild(tdCena);
+        aiPreviewTbody.appendChild(tr);
+      });
+
+      if (aiPreviewMeta) {
+        let meta = 'Znaleziono ' + aiPendingItems.length + ' pozycji — sprawdź przed dodaniem.';
+        if (uzupelnione > 0) {
+          meta += ' Ceny uzupełnione z katalogu/historii: ' + uzupelnione + '.';
+        }
+        aiPreviewMeta.textContent = meta;
+      }
+
+      modalAiPreview.classList.remove('hidden');
+      modalAiPreview.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      if (btnAiPreviewDodaj) btnAiPreviewDodaj.focus();
+    }
+
     function wstrzyknijPozycjeZAi(items) {
       if (!Array.isArray(items) || items.length === 0) {
         ustawAiParseStatus('Nie znaleziono pozycji w notatce.', 'error');
-        return;
+        return 0;
       }
+
+      let dodane = 0;
       items.forEach(item => {
         if (!item || typeof item !== 'object') return;
         const nazwa = typeof item.nazwa === 'string' ? item.nazwa.trim() : '';
         const ilosc = Number(item.ilosc);
-        const cena = Number(item.cena);
+        const dopasowanie = dopasujCenePozycji(nazwa, item.cena);
+        const cena = dopasowanie.cena;
         if (!nazwa || !Number.isFinite(ilosc) || ilosc <= 0 || !Number.isFinite(cena) || cena < 0) return;
 
         dodajWiersz();
@@ -1996,19 +2174,102 @@
           inCena.value = String(cena);
           inCena.dispatchEvent(new Event('input', { bubbles: true }));
         }
+        dodane++;
       });
+
+      if (dodane === 0) {
+        ustawAiParseStatus('Nie znaleziono poprawnych pozycji do dodania.', 'error');
+        return 0;
+      }
 
       aktualizujSzacowanyZysk();
       saveDraft();
-      ustawAiParseStatus('Dodano ' + items.length + ' pozycji do wyceny.', 'success');
+      return dodane;
+    }
+
+    function przygotujObrazDoAi(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) {
+          reject(new Error('empty'));
+          return;
+        }
+        if (file.size > AI_PHOTO_MAX_BYTES) {
+          reject(new Error('too_large'));
+          return;
+        }
+        const mime = (file.type || '').toLowerCase();
+        if (mime !== 'image/jpeg' && mime !== 'image/png') {
+          reject(new Error('bad_type'));
+          return;
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const maxDim = 1600;
+            let w = img.naturalWidth || img.width;
+            let h = img.naturalHeight || img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w >= h) {
+                h = Math.round(h * maxDim / w);
+                w = maxDim;
+              } else {
+                w = Math.round(w * maxDim / h);
+                h = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('canvas'));
+              return;
+            }
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob(blob => {
+              URL.revokeObjectURL(objectUrl);
+              if (!blob) {
+                reject(new Error('blob'));
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                const dataUrl = String(reader.result || '');
+                const comma = dataUrl.indexOf(',');
+                if (comma < 0) {
+                  reject(new Error('dataurl'));
+                  return;
+                }
+                resolve({
+                  base64: dataUrl.slice(comma + 1),
+                  mime_type: 'image/jpeg',
+                  previewUrl: dataUrl,
+                });
+              };
+              reader.onerror = () => reject(new Error('read'));
+              reader.readAsDataURL(blob);
+            }, 'image/jpeg', 0.82);
+          } catch (e) {
+            URL.revokeObjectURL(objectUrl);
+            reject(e);
+          }
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('image'));
+        };
+        img.src = objectUrl;
+      });
     }
 
     async function przetworzNotatkeAi() {
-      if (!aiNotatka || !btnAiParse) return;
+      if (!btnAiParse) return;
 
-      const tekst = aiNotatka.value.trim();
-      if (!tekst) {
-        ustawAiParseStatus('Wklej lub podyktuj notatkę przed przetwarzaniem.', 'error');
+      const tekst = aiNotatka ? aiNotatka.value.trim() : '';
+      if (!tekst && !aiPhotoPayload) {
+        ustawAiParseStatus('Wklej notatkę, podyktuj lub dodaj zdjęcie przed przetwarzaniem.', 'error');
         return;
       }
 
@@ -2020,11 +2281,17 @@
       ustawAiParseStatus('');
       ustawStanLadowaniaAiParse(true);
 
+      const payload = { tekst, kontekst: zbierzKontekstAi() };
+      if (aiPhotoPayload) {
+        payload.obraz = aiPhotoPayload.base64;
+        payload.mime_type = aiPhotoPayload.mime_type;
+      }
+
       try {
         const resp = await fetch('/api/parse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tekst }),
+          body: JSON.stringify(payload),
           signal: aiParseController.signal,
         });
 
@@ -2050,7 +2317,14 @@
           return;
         }
 
-        wstrzyknijPozycjeZAi(dane);
+        const pozycje = przygotujPozycjeAi(dane);
+        if (pozycje.length === 0) {
+          ustawAiParseStatus('Nie znaleziono poprawnych pozycji w notatce.', 'error');
+          return;
+        }
+
+        ustawAiParseStatus('Znaleziono ' + pozycje.length + ' pozycji — sprawdź przed dodaniem.', 'success');
+        pokazPodgladAi(pozycje);
       } catch (err) {
         if (err && err.name === 'AbortError') return;
         ustawAiParseStatus('Błąd sieci — sprawdź połączenie i spróbuj ponownie.', 'error');
@@ -2069,11 +2343,7 @@
       if (btnAiMic) btnAiMic.classList.remove('is-recording');
     }
 
-    function initAiQuickInput() {
-      if (btnAiParse) {
-        btnAiParse.addEventListener('click', przetworzNotatkeAi);
-      }
-
+    function initAiSpeech() {
       const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognitionCtor || !btnAiMic) {
         if (btnAiMic) btnAiMic.style.display = 'none';
@@ -2132,6 +2402,72 @@
           ustawAiParseStatus('Nie udało się uruchomić mikrofonu.', 'error');
         }
       });
+    }
+
+    function initAiPhoto() {
+      if (btnAiPhoto && aiPhotoInput) {
+        btnAiPhoto.addEventListener('click', () => aiPhotoInput.click());
+        aiPhotoInput.addEventListener('change', async () => {
+          const file = aiPhotoInput.files && aiPhotoInput.files[0];
+          if (!file) return;
+          ustawAiParseStatus('');
+          try {
+            wyczyscZdjecieAi();
+            const prepared = await przygotujObrazDoAi(file);
+            aiPhotoPayload = prepared;
+            pokazMiniatureZdjeciaAi(prepared.previewUrl);
+          } catch (e) {
+            wyczyscZdjecieAi();
+            if (e && e.message === 'too_large') {
+              ustawAiParseStatus('Zdjęcie jest zbyt duże (max 5 MB przed kompresją).', 'error');
+            } else if (e && e.message === 'bad_type') {
+              ustawAiParseStatus('Wybierz plik JPG lub PNG.', 'error');
+            } else {
+              ustawAiParseStatus('Nie udało się wczytać zdjęcia.', 'error');
+            }
+          }
+        });
+      }
+      if (btnAiPhotoRemove) {
+        btnAiPhotoRemove.addEventListener('click', () => {
+          wyczyscZdjecieAi();
+          ustawAiParseStatus('');
+        });
+      }
+    }
+
+    function initAiPreviewModal() {
+      if (btnAiPreviewAnuluj) {
+        btnAiPreviewAnuluj.addEventListener('click', zamknijPodgladAi);
+      }
+      if (modalAiPreviewBackdrop) {
+        modalAiPreviewBackdrop.addEventListener('click', zamknijPodgladAi);
+      }
+      if (btnAiPreviewDodaj) {
+        btnAiPreviewDodaj.addEventListener('click', () => {
+          const dodane = wstrzyknijPozycjeZAi(aiPendingItems);
+          if (dodane > 0) {
+            ustawAiParseStatus('Dodano ' + dodane + ' pozycji do wyceny.', 'success');
+            if (aiNotatka) aiNotatka.value = '';
+            wyczyscZdjecieAi();
+          }
+          zamknijPodgladAi();
+        });
+      }
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (!modalAiPreview || modalAiPreview.classList.contains('hidden')) return;
+        zamknijPodgladAi();
+      });
+    }
+
+    function initAiQuickInput() {
+      if (btnAiParse) {
+        btnAiParse.addEventListener('click', przetworzNotatkeAi);
+      }
+      initAiPhoto();
+      initAiPreviewModal();
+      initAiSpeech();
     }
 
     function parsujCSV(text) {
@@ -3600,4 +3936,4 @@
     kalkulatorBackdrop.addEventListener('click', zamknijKalkulator);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !kalkulatorModal.hidden) zamknijKalkulator();
-    });
+    });

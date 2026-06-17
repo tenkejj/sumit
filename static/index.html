@@ -156,6 +156,11 @@
             <summary class="ai-quick-input-summary">Szybkie wprowadzanie (Tekst / Mowa)</summary>
             <div class="ai-quick-input-body">
               <textarea id="ai-notatka" rows="4" placeholder="Wklej notatkę lub kliknij mikrofon i podyktuj..."></textarea>
+              <div class="ai-photo-thumb hidden" id="ai-photo-thumb">
+                <img id="ai-photo-thumb-img" alt="" width="80" height="80">
+                <button type="button" class="btn-secondary btn-ai-photo-remove" id="btn-ai-photo-remove">Usuń zdjęcie</button>
+              </div>
+              <input type="file" id="ai-photo-input" class="visually-hidden" accept="image/jpeg,image/png" capture="environment">
               <div class="ai-quick-input-actions">
                 <button type="button" class="btn-primary" id="btn-ai-parse" aria-busy="false">
                   <span class="btn-ai-parse-label">Przetwórz tekst</span>
@@ -167,6 +172,12 @@
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
                     <line x1="12" y1="19" x2="12" y2="23"></line>
                     <line x1="8" y1="23" x2="16" y2="23"></line>
+                  </svg>
+                </button>
+                <button type="button" class="btn-secondary btn-ai-photo" id="btn-ai-photo" aria-label="Zrób zdjęcie notatki" title="Zrób zdjęcie notatki">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
                   </svg>
                 </button>
               </div>
@@ -435,6 +446,35 @@
       <div class="modal-footer">
         <button type="button" class="btn-clear" id="btn-historia-wyczysc" hidden>Wyczyść historię</button>
         <button type="button" class="btn-secondary" id="btn-zamknij-historia">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="modal-ai-preview" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-ai-preview-title">
+    <div class="modal-backdrop" id="modal-ai-preview-backdrop"></div>
+    <div class="modal-card ai-preview-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-ai-preview-title">Podgląd pozycji z AI</h3>
+      </div>
+      <div class="modal-body">
+        <p class="settings-hint" id="ai-preview-hint">Sprawdź pozycje przed dodaniem do wyceny.</p>
+        <div class="ai-preview-table-wrap">
+          <table class="ai-preview-table">
+            <thead>
+              <tr>
+                <th>Nazwa</th>
+                <th class="col-num">Ilość</th>
+                <th class="col-num">Cena (zł)</th>
+              </tr>
+            </thead>
+            <tbody id="ai-preview-tbody"></tbody>
+          </table>
+        </div>
+        <p id="ai-preview-meta" class="ai-parse-status" role="status"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btn-ai-preview-anuluj">Anuluj</button>
+        <button type="button" class="btn-primary" id="btn-ai-preview-dodaj">Dodaj do wyceny</button>
       </div>
     </div>
   </div>
