@@ -1,0 +1,3603 @@
+    const tbody = document.getElementById('pozycje-tbody');
+    const btnDodaj = document.getElementById('btn-dodaj');
+    const btnGeneruj = document.getElementById('btn-generuj');
+    const form = document.getElementById('oferta-form');
+    const message = document.getElementById('message');
+
+    const shareSupported = typeof navigator !== 'undefined'
+      && typeof navigator.canShare === 'function'
+      && typeof navigator.share === 'function';
+
+    const STORAGE_KEY_THEME = 'sumit_theme';
+    const btnTheme = document.getElementById('btn-theme');
+
+    function aktualnyMotyw() {
+      return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    }
+
+    function aktualizujOpisPrzeciskaMotywu(motyw) {
+      if (!btnTheme) return;
+      const opis = motyw === 'dark' ? 'Włącz tryb jasny' : 'Włącz tryb ciemny';
+      btnTheme.setAttribute('aria-label', opis);
+      btnTheme.setAttribute('title', opis);
+    }
+
+    function ustawMotyw(motyw, zapisz) {
+      const nowy = motyw === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', nowy);
+      aktualizujOpisPrzeciskaMotywu(nowy);
+      if (zapisz) {
+        try { localStorage.setItem(STORAGE_KEY_THEME, nowy); } catch (e) {}
+      }
+    }
+
+    aktualizujOpisPrzeciskaMotywu(aktualnyMotyw());
+
+    if (btnTheme) {
+      btnTheme.addEventListener('click', () => {
+        ustawMotyw(aktualnyMotyw() === 'dark' ? 'light' : 'dark', true);
+      });
+    }
+
+    if (window.matchMedia) {
+      const mql = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = (e) => {
+        let zapis = null;
+        try { zapis = localStorage.getItem(STORAGE_KEY_THEME); } catch (err) {}
+        if (zapis !== 'dark' && zapis !== 'light') {
+          ustawMotyw(e.matches ? 'dark' : 'light', false);
+        }
+      };
+      if (mql.addEventListener) mql.addEventListener('change', handler);
+      else if (mql.addListener) mql.addListener(handler);
+    }
+
+    function odswiezNumery() {
+      [...tbody.querySelectorAll('tr')].forEach((tr, i) => {
+        tr.querySelector('.col-lp').textContent = i + 1;
+      });
+    }
+
+    function dodajWiersz() {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="col-lp"></td>
+        <td class="col-nazwa"><input type="text" class="in-nazwa" placeholder="np. Usługa konsultingowa" list="szablony-pozycji-datalist" autocomplete="off" required></td>
+        <td class="col-ilosc">
+          <div class="ilosc-wrap">
+            <input type="number" class="in-ilosc" step="any" min="0" placeholder="1" required>
+            <button type="button" class="btn-calc" title="Kalkulator powierzchni (m²)" aria-label="Otwórz kalkulator powierzchni" aria-haspopup="dialog" aria-controls="kalkulator-modal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                <line x1="8" y1="6" x2="16" y2="6"></line>
+                <line x1="8" y1="10" x2="8" y2="10"></line>
+                <line x1="12" y1="10" x2="12" y2="10"></line>
+                <line x1="16" y1="10" x2="16" y2="10"></line>
+                <line x1="8" y1="14" x2="8" y2="14"></line>
+                <line x1="12" y1="14" x2="12" y2="14"></line>
+                <line x1="16" y1="14" x2="16" y2="18"></line>
+                <line x1="8" y1="18" x2="12" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </td>
+        <td class="col-cena">
+          <div class="price-wrap">
+            <input type="number" class="in-cena" step="0.01" min="0" placeholder="0,00" aria-label="Cena dla klienta (zł)" required>
+            <div class="koszt-row">
+              <span class="koszt-label" aria-hidden="true">Twój koszt (za szt.)</span>
+              <input type="number" class="in-koszt" step="0.01" min="0" placeholder="0,00" inputmode="decimal" aria-label="Twój koszt za jednostkę" title="Ile Ciebie kosztuje 1 jednostka — służy tylko do liczenia szacowanego zysku, nie trafia na PDF">
+            </div>
+            <div class="price-adjusts" role="group" aria-label="Szybka korekta ceny jednostkowej">
+              <button type="button" class="btn-adjust" data-adjust="-5" title="Obniż cenę jednostkową o 5%" aria-label="Obniż cenę jednostkową o 5% (rabat)">Rab. -5%</button>
+              <button type="button" class="btn-adjust" data-adjust="10" title="Dolicz 10% marży do ceny jednostkowej" aria-label="Dolicz 10% marży do ceny jednostkowej">Mar. +10%</button>
+            </div>
+          </div>
+        </td>
+        <td class="col-akcja">
+          <div class="row-actions">
+            <button type="button" class="btn-duplicate" title="Duplikuj wiersz" aria-label="Duplikuj wiersz">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+            <button type="button" class="btn-remove" title="Usuń" aria-label="Usuń wiersz">&times;</button>
+          </div>
+        </td>
+      `;
+      tr.querySelector('.btn-remove').addEventListener('click', () => {
+        if (tbody.children.length <= 1) {
+          pokazKomunikat('Musi pozostać co najmniej jedna pozycja.', 'error');
+          return;
+        }
+        tr.remove();
+        odswiezNumery();
+        aktualizujSzacowanyZysk();
+      });
+      tr.querySelector('.btn-duplicate').addEventListener('click', () => duplikujWiersz(tr));
+      tr.querySelector('.btn-calc').addEventListener('click', () => otworzKalkulator(tr));
+      tr.querySelectorAll('.btn-adjust').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pct = parseFloat(btn.dataset.adjust);
+          if (Number.isFinite(pct)) applyAdjustment(tr, pct);
+        });
+      });
+      const nazwaInput = tr.querySelector('.in-nazwa');
+      if (nazwaInput) {
+        nazwaInput.addEventListener('input', () => aplikujSzablonDoWiersza(tr));
+      }
+      tbody.appendChild(tr);
+      odswiezNumery();
+    }
+
+    function duplikujWiersz(originalTr) {
+      if (!originalTr || !tbody.contains(originalTr)) return;
+      const nazwa = originalTr.querySelector('.in-nazwa').value;
+      const ilosc = originalTr.querySelector('.in-ilosc').value;
+      const cena  = originalTr.querySelector('.in-cena').value;
+      const koszt = originalTr.querySelector('.in-koszt').value;
+
+      dodajWiersz();
+      const noweTr = tbody.lastElementChild;
+      if (!noweTr) return;
+      if (noweTr !== originalTr) {
+        originalTr.insertAdjacentElement('afterend', noweTr);
+      }
+
+      noweTr.querySelector('.in-nazwa').value = nazwa;
+      noweTr.querySelector('.in-ilosc').value = ilosc;
+      noweTr.querySelector('.in-cena').value  = cena;
+      noweTr.querySelector('.in-koszt').value = koszt;
+
+      odswiezNumery();
+      aktualizujSzacowanyZysk();
+      saveDraft();
+    }
+
+    function applyAdjustment(row, percentage) {
+      if (!row) return;
+      const input = row.querySelector('.in-cena');
+      if (!input) return;
+      const raw = String(input.value).replace(',', '.').trim();
+      const current = parseFloat(raw);
+      if (!Number.isFinite(current)) {
+        pokazKomunikat('Podaj cenę jednostkową, zanim zastosujesz korektę.', 'error');
+        input.focus();
+        return;
+      }
+      const next = current * (1 + percentage / 100);
+      const rounded = Math.max(0, Math.round(next * 100) / 100);
+      input.value = String(rounded);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function pokazKomunikat(tekst, typ) {
+      message.textContent = tekst;
+      message.className = 'message ' + typ;
+    }
+
+    function ukryjKomunikat() {
+      message.textContent = '';
+      message.className = 'message';
+    }
+
+    const profitBadge = document.getElementById('profit-badge');
+    const profitBadgeValue = document.getElementById('profit-badge-value');
+
+    function parsujLiczbeInput(el) {
+      if (!el) return NaN;
+      const raw = String(el.value || '').replace(',', '.').trim();
+      if (!raw) return NaN;
+      return parseFloat(raw);
+    }
+
+    function formatujKwote(v) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return '0,00 zł';
+      return n.toFixed(2).replace('.', ',') + ' zł';
+    }
+
+    function aktualizujSzacowanyZysk() {
+      if (!profitBadge || !profitBadgeValue) return;
+      let suma = 0;
+      let maPelneDane = false;
+      [...tbody.querySelectorAll('tr')].forEach(tr => {
+        const ilosc = parsujLiczbeInput(tr.querySelector('.in-ilosc'));
+        const cena  = parsujLiczbeInput(tr.querySelector('.in-cena'));
+        const koszt = parsujLiczbeInput(tr.querySelector('.in-koszt'));
+        if (!Number.isFinite(ilosc) || !Number.isFinite(cena) || !Number.isFinite(koszt)) return;
+        suma += (cena - koszt) * ilosc;
+        maPelneDane = true;
+      });
+      profitBadgeValue.textContent = formatujKwote(suma);
+      profitBadge.classList.remove('is-zero', 'is-loss');
+      if (!maPelneDane || Math.abs(suma) < 0.005) {
+        profitBadge.classList.add('is-zero');
+      } else if (suma < 0) {
+        profitBadge.classList.add('is-loss');
+      }
+    }
+
+    tbody.addEventListener('input', (e) => {
+      if (!e.target) return;
+      if (e.target.classList && (
+        e.target.classList.contains('in-ilosc') ||
+        e.target.classList.contains('in-cena') ||
+        e.target.classList.contains('in-koszt')
+      )) {
+        aktualizujSzacowanyZysk();
+      }
+    });
+
+    btnDodaj.addEventListener('click', dodajWiersz);
+
+    dodajWiersz();
+    aktualizujSzacowanyZysk();
+
+    (function ustawDomyslnaDateWaznosci() {
+      const input = document.getElementById('data_waznosci');
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      input.value = `${yyyy}-${mm}-${dd}`;
+    })();
+
+    function ustawDateZaDniOdDzis(dni) {
+      const input = document.getElementById('data_waznosci');
+      if (!input) return;
+      const d = new Date();
+      d.setDate(d.getDate() + dni);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      input.value = `${yyyy}-${mm}-${dd}`;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    document.querySelectorAll('.date-helpers .chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dni = parseInt(btn.dataset.days, 10);
+        if (Number.isFinite(dni)) ustawDateZaDniOdDzis(dni);
+      });
+    });
+
+    const uwagiTextarea = document.getElementById('uwagi');
+    const presetChips = document.querySelectorAll('.footer-presets .chip');
+
+    function presetLines() {
+      if (!uwagiTextarea) return [];
+      return uwagiTextarea.value.split('\n');
+    }
+
+    function togglePreset(text) {
+      if (!uwagiTextarea) return;
+      const target = String(text).trim();
+      if (!target) return;
+
+      const lines = presetLines();
+      const idx = lines.findIndex(l => l.trim() === target);
+
+      if (idx !== -1) {
+        lines.splice(idx, 1);
+        while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();
+        uwagiTextarea.value = lines.join('\n');
+      } else {
+        const current = uwagiTextarea.value;
+        const sep = current && !current.endsWith('\n') ? '\n' : '';
+        uwagiTextarea.value = current + sep + target;
+      }
+
+      uwagiTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+      odswiezStanPresetow();
+    }
+
+    function odswiezStanPresetow() {
+      if (!uwagiTextarea) return;
+      const lines = presetLines().map(l => l.trim());
+      presetChips.forEach(chip => {
+        const preset = (chip.dataset.preset || '').trim();
+        const aktywny = preset && lines.includes(preset);
+        chip.setAttribute('aria-pressed', aktywny ? 'true' : 'false');
+      });
+    }
+
+    presetChips.forEach(chip => {
+      chip.addEventListener('click', () => togglePreset(chip.dataset.preset || ''));
+    });
+
+    if (uwagiTextarea) {
+      uwagiTextarea.addEventListener('input', odswiezStanPresetow);
+    }
+
+    function budujPayloadZFormularza() {
+      const cfg = wczytajConfig();
+      const nazwaFirmy = String(cfg.nazwa_firmy || '').trim();
+      const klient = document.getElementById('klient').value.trim();
+      const pozycjeWiersze = [...tbody.querySelectorAll('tr')];
+      // Uwaga: pole .in-koszt jest celowo pomijane w payloadzie /quote.
+      // Backend Go (struct Pozycja w oferta.go) nie zna pola "koszt" — dorzucenie go
+      // zepsułoby parsowanie JSON-a po stronie serwera. Koszt własny pozostaje tylko
+      // w warstwie UI i służy wyłącznie do liczenia szacowanego zysku w przeglądarce
+      // oraz jest zapisywany razem z wpisem historii (osobno od payloadu) na potrzeby
+      // statystyk zysku.
+      const pozycje = pozycjeWiersze.map(tr => ({
+        nazwa: tr.querySelector('.in-nazwa').value.trim(),
+        ilosc: parseFloat(tr.querySelector('.in-ilosc').value),
+        cena_jednostkowa: parseFloat(tr.querySelector('.in-cena').value),
+      }));
+      const koszty = pozycjeWiersze.map(tr => {
+        const raw = String(tr.querySelector('.in-koszt').value || '').replace(',', '.').trim();
+        if (!raw) return null;
+        const v = parseFloat(raw);
+        return Number.isFinite(v) ? v : null;
+      });
+      const pozycjeOk = pozycje.filter(p => p.nazwa && Number.isFinite(p.ilosc) && p.ilosc > 0 && Number.isFinite(p.cena_jednostkowa) && p.cena_jednostkowa >= 0);
+
+      const gotowy = !!nazwaFirmy && !!klient && pozycjeOk.length > 0;
+
+      return {
+        gotowy,
+        nazwaFirmy,
+        klient,
+        koszty,
+        payload: {
+          nazwa_firmy: nazwaFirmy,
+          nip: String(cfg.nip || '').trim(),
+          adres: String(cfg.adres || '').trim(),
+          miasto: String(cfg.miasto || '').trim(),
+          telefon: String(cfg.telefon || '').trim(),
+          email: String(cfg.email || '').trim(),
+          logo_base64: String(cfg.logo_base64 || ''),
+          numer_konta: String(cfg.numer_konta || '').trim(),
+          klient: klient,
+          numer_oferty: document.getElementById('numer_oferty').value.trim(),
+          data_waznosci: document.getElementById('data_waznosci').value,
+          uwagi: document.getElementById('uwagi').value.trim(),
+          pozycje: pozycje,
+        },
+      };
+    }
+
+    const livePodgladMql = (window.matchMedia && window.matchMedia('(min-width: 1024px)')) || { matches: false, addEventListener() {}, addListener() {} };
+    const pdfFrame1 = document.getElementById('pdf-frame-1');
+    const pdfFrame2 = document.getElementById('pdf-frame-2');
+    const liveEmpty = document.getElementById('live-pdf-preview-empty');
+    const livePreviewFrame = document.querySelector('.live-preview-frame');
+    const livePreviewWrap = document.querySelector('.live-preview-wrap');
+    const kreatorCard = document.querySelector('.kreator-layout > .card');
+    const kreatorLayout = document.querySelector('.kreator-layout');
+    const pdfLightbox = document.getElementById('pdf-lightbox');
+    const pdfLightboxBackdrop = document.getElementById('pdf-lightbox-backdrop');
+    const pdfLightboxClose = document.getElementById('pdf-lightbox-close');
+    const pdfLightboxFrame = document.getElementById('pdf-lightbox-frame');
+    let activeFrame = pdfFrame1;
+    let bufferFrame = pdfFrame2;
+    let activeUrl = '';
+    let pendingUrl = '';
+    let livePodgladAbort = null;
+
+    const PDF_VIEW_PARAMS = '#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=FitH&zoom=page-fit';
+
+    function ustawHasPdf(stan) {
+      if (livePreviewFrame) livePreviewFrame.classList.toggle('has-pdf', stan);
+    }
+
+    let previewHeightSyncRaf = 0;
+    const A4_PREVIEW_RATIO = 1.414;
+
+    function applyPreviewSize() {
+      if (!livePreviewFrame || !kreatorCard || !livePreviewWrap) return;
+      if (!livePodgladMql.matches) {
+        livePreviewFrame.style.removeProperty('width');
+        livePreviewFrame.style.removeProperty('height');
+        return;
+      }
+      const cardH = kreatorCard.getBoundingClientRect().height;
+      const colW = livePreviewWrap.clientWidth;
+      if (cardH <= 0 || colW <= 0) return;
+      const h = Math.min(cardH, colW * A4_PREVIEW_RATIO);
+      const w = h / A4_PREVIEW_RATIO;
+      livePreviewFrame.style.width = Math.round(w) + 'px';
+      livePreviewFrame.style.height = Math.round(h) + 'px';
+    }
+
+    function synchronizujWysokoscPodgladu() {
+      cancelAnimationFrame(previewHeightSyncRaf);
+      previewHeightSyncRaf = requestAnimationFrame(() => {
+        applyPreviewSize();
+        requestAnimationFrame(applyPreviewSize);
+      });
+    }
+
+    if (window.ResizeObserver) {
+      const previewSizeRo = new ResizeObserver(synchronizujWysokoscPodgladu);
+      if (kreatorCard) previewSizeRo.observe(kreatorCard);
+      if (livePreviewWrap) previewSizeRo.observe(livePreviewWrap);
+      if (kreatorLayout) previewSizeRo.observe(kreatorLayout);
+    }
+    window.addEventListener('resize', synchronizujWysokoscPodgladu);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', synchronizujWysokoscPodgladu);
+      window.visualViewport.addEventListener('scroll', synchronizujWysokoscPodgladu);
+    }
+    [
+      '(min-width: 1024px) and (max-width: 1365px)',
+      '(min-width: 1366px) and (max-width: 1919px)',
+      '(min-width: 1920px) and (max-width: 2559px)',
+      '(min-width: 2560px)',
+    ].forEach((query) => {
+      const mql = window.matchMedia(query);
+      if (mql.addEventListener) mql.addEventListener('change', synchronizujWysokoscPodgladu);
+      else if (mql.addListener) mql.addListener(synchronizujWysokoscPodgladu);
+    });
+    synchronizujWysokoscPodgladu();
+
+    function pokazPlaceholderLive() {
+      if (!activeFrame || !bufferFrame || !liveEmpty) return;
+      activeFrame.classList.remove('active');
+      bufferFrame.classList.remove('active');
+      if (pendingUrl) {
+        URL.revokeObjectURL(pendingUrl);
+        pendingUrl = '';
+      }
+      liveEmpty.hidden = false;
+      ustawHasPdf(false);
+      if (pdfLightbox && pdfLightbox.classList.contains('is-open')) {
+        zamknijPdfLightbox();
+      }
+    }
+
+    function zaladujPdfDoBufora(blob) {
+      if (!activeFrame || !bufferFrame) return;
+      const nowyUrl = URL.createObjectURL(blob);
+      if (pendingUrl) {
+        URL.revokeObjectURL(pendingUrl);
+      }
+      pendingUrl = nowyUrl;
+      bufferFrame.src = nowyUrl + PDF_VIEW_PARAMS;
+    }
+
+    function onFrameLoad(frame) {
+      if (frame !== bufferFrame) return;
+      if (!pendingUrl) return;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (frame !== bufferFrame) return;
+          if (!pendingUrl) return;
+
+          bufferFrame.classList.add('active');
+          activeFrame.classList.remove('active');
+          if (liveEmpty) liveEmpty.hidden = true;
+          ustawHasPdf(true);
+
+          const oldUrl = activeUrl;
+          activeUrl = pendingUrl;
+          pendingUrl = '';
+
+          if (pdfLightbox && pdfLightbox.classList.contains('is-open') && pdfLightboxFrame) {
+            pdfLightboxFrame.src = activeUrl + PDF_VIEW_PARAMS;
+          }
+
+          const tmp = activeFrame;
+          activeFrame = bufferFrame;
+          bufferFrame = tmp;
+
+          if (oldUrl) {
+            setTimeout(() => URL.revokeObjectURL(oldUrl), 800);
+          }
+        });
+      });
+    }
+
+    if (pdfFrame1) pdfFrame1.addEventListener('load', () => onFrameLoad(pdfFrame1));
+    if (pdfFrame2) pdfFrame2.addEventListener('load', () => onFrameLoad(pdfFrame2));
+
+    function otworzPdfLightbox() {
+      if (!activeUrl || !pdfLightbox || !pdfLightboxFrame) return;
+      pdfLightboxFrame.src = activeUrl + PDF_VIEW_PARAMS;
+      pdfLightbox.hidden = false;
+      pdfLightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => pdfLightbox.classList.add('is-open'));
+    }
+
+    function zamknijPdfLightbox() {
+      if (!pdfLightbox) return;
+      pdfLightbox.classList.remove('is-open');
+      pdfLightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      setTimeout(() => {
+        if (pdfLightbox && !pdfLightbox.classList.contains('is-open')) {
+          pdfLightbox.hidden = true;
+          if (pdfLightboxFrame) pdfLightboxFrame.removeAttribute('src');
+        }
+      }, 220);
+    }
+
+    if (livePreviewFrame) {
+      livePreviewFrame.addEventListener('click', () => {
+        if (livePreviewFrame.classList.contains('has-pdf')) {
+          otworzPdfLightbox();
+        }
+      });
+    }
+    if (pdfLightboxBackdrop) pdfLightboxBackdrop.addEventListener('click', zamknijPdfLightbox);
+    if (pdfLightboxClose) pdfLightboxClose.addEventListener('click', zamknijPdfLightbox);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && pdfLightbox && pdfLightbox.classList.contains('is-open')) {
+        zamknijPdfLightbox();
+      }
+    });
+
+    function aktualizujTekstPrzyciskuGeneruj() {
+      if (!btnGeneruj) return;
+      btnGeneruj.textContent = livePodgladMql.matches ? 'Pobierz PDF' : 'Wygeneruj wycenę';
+    }
+    aktualizujTekstPrzyciskuGeneruj();
+
+    async function aktualizujLivePodglad() {
+      if (!livePodgladMql.matches) return;
+      if (!activeFrame || !bufferFrame) return;
+
+      const { gotowy, payload } = budujPayloadZFormularza();
+      if (!gotowy) {
+        pokazPlaceholderLive();
+        if (livePodgladAbort) { livePodgladAbort.abort(); livePodgladAbort = null; }
+        return;
+      }
+
+      if (livePodgladAbort) livePodgladAbort.abort();
+      const ctrl = new AbortController();
+      livePodgladAbort = ctrl;
+
+      try {
+        const res = await fetch('/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: ctrl.signal,
+        });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (ctrl.signal.aborted) return;
+
+        zaladujPdfDoBufora(blob);
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      } finally {
+        if (livePodgladAbort === ctrl) livePodgladAbort = null;
+      }
+    }
+
+    const btnUdostepnijPdfDesktop = document.getElementById('btn-udostepnij-pdf-desktop');
+
+    function aktualizujWidocznoscShareDesktop() {
+      if (!btnUdostepnijPdfDesktop) return;
+      btnUdostepnijPdfDesktop.hidden = !(shareSupported && livePodgladMql.matches);
+    }
+    aktualizujWidocznoscShareDesktop();
+
+    const livePodgladMqlHandler = () => {
+      aktualizujTekstPrzyciskuGeneruj();
+      aktualizujWidocznoscShareDesktop();
+      synchronizujWysokoscPodgladu();
+      if (livePodgladMql.matches) {
+        aktualizujLivePodglad();
+      } else if (livePodgladAbort) {
+        livePodgladAbort.abort();
+        livePodgladAbort = null;
+      }
+    };
+    if (livePodgladMql.addEventListener) livePodgladMql.addEventListener('change', livePodgladMqlHandler);
+    else if (livePodgladMql.addListener) livePodgladMql.addListener(livePodgladMqlHandler);
+
+    if (shareSupported && btnUdostepnijPdfDesktop) {
+      btnUdostepnijPdfDesktop.addEventListener('click', async () => {
+        ukryjKomunikat();
+
+        const cfg = wczytajConfig();
+        if (!String(cfg.nazwa_firmy || '').trim()) {
+          pokazKomunikat('Uzupełnij nazwę firmy w Ustawieniach firmy (ikona koła zębatego).', 'error');
+          otworzSettings();
+          return;
+        }
+
+        const { payload, koszty } = budujPayloadZFormularza();
+        const originalLabel = btnUdostepnijPdfDesktop.querySelector('span');
+        const originalText = originalLabel ? originalLabel.textContent : '';
+        btnUdostepnijPdfDesktop.disabled = true;
+        if (originalLabel) originalLabel.textContent = 'Przygotowuję…';
+
+        try {
+          const res = await fetch('/quote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) {
+            const tekst = await res.text();
+            throw new Error(tekst || `Błąd ${res.status}`);
+          }
+
+          const blob = await res.blob();
+          const nazwaPliku = `oferta-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
+          const file = new File([blob], nazwaPliku, { type: 'application/pdf' });
+
+          if (!navigator.canShare({ files: [file] })) {
+            pokazKomunikat('Ta przeglądarka nie wspiera wysyłania plików PDF. Użyj „Pobierz PDF" i załącz ręcznie.', 'error');
+            return;
+          }
+
+          await navigator.share({
+            files: [file],
+            title: 'Wycena PDF',
+            text: 'Wycena w załączniku.',
+          });
+
+          if (livePodgladMql.matches) {
+            zaladujPdfDoBufora(blob);
+          }
+          dodajDoHistorii(payload, koszty);
+          inkrementujNumeracje();
+          renderStatystyki();
+          const numerEl = document.getElementById('numer_oferty');
+          if (numerEl) numerEl.value = nastepnyNumerOferty();
+          aktualnyPayloadEmail = payload;
+          pokazKomunikat('Oferta wysłana do klienta. Wycena zapisana w historii.', 'success');
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          pokazKomunikat('Nie udało się wysłać pliku: ' + err.message, 'error');
+        } finally {
+          btnUdostepnijPdfDesktop.disabled = false;
+          if (originalLabel) originalLabel.textContent = originalText || 'Wyślij klientowi';
+        }
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      ukryjKomunikat();
+
+      const cfg = wczytajConfig();
+      if (!String(cfg.nazwa_firmy || '').trim()) {
+        pokazKomunikat('Uzupełnij nazwę firmy w Ustawieniach firmy (ikona koła zębatego).', 'error');
+        otworzSettings();
+        return;
+      }
+
+      const { payload, koszty } = budujPayloadZFormularza();
+      const desktopTryb = livePodgladMql.matches;
+
+      btnGeneruj.disabled = true;
+      btnGeneruj.textContent = desktopTryb ? 'Pobieranie...' : 'Generowanie...';
+
+      try {
+        const res = await fetch('/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const tekst = await res.text();
+          throw new Error(tekst || `Błąd ${res.status}`);
+        }
+
+        const blob = await res.blob();
+        const nazwaPliku = `oferta-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
+
+        if (desktopTryb) {
+          zaladujPdfDoBufora(blob);
+
+          const dlUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = dlUrl;
+          a.download = nazwaPliku;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(dlUrl), 10000);
+
+          dodajDoHistorii(payload, koszty);
+          inkrementujNumeracje();
+          renderStatystyki();
+          const numerEl = document.getElementById('numer_oferty');
+          if (numerEl) numerEl.value = nastepnyNumerOferty();
+          aktualnyPayloadEmail = payload;
+
+          pokazKomunikat('PDF pobrany. Wycena zapisana w historii.', 'success');
+        } else {
+          const url = URL.createObjectURL(blob);
+          pokazPodgladPdf(url, nazwaPliku, payload, blob, koszty);
+          pokazKomunikat('PDF wygenerowany. Otwórz podgląd, aby pobrać plik.', 'success');
+        }
+      } catch (err) {
+        pokazKomunikat('Nie udało się wygenerować PDF: ' + err.message, 'error');
+      } finally {
+        btnGeneruj.disabled = false;
+        aktualizujTekstPrzyciskuGeneruj();
+      }
+    });
+
+    const pdfModal = document.getElementById('pdf-modal');
+    const pdfModalBackdrop = document.getElementById('pdf-modal-backdrop');
+    const pdfPreview = document.getElementById('pdf-preview');
+    const btnPobierzPdf = document.getElementById('btn-pobierz-pdf');
+    const btnDrukujPdf = document.getElementById('btn-drukuj-pdf');
+    const btnPrzygotujEmail = document.getElementById('btn-przygotuj-email');
+    const btnZamknijModal = document.getElementById('btn-zamknij-modal');
+
+    let aktualnyPodgladUrl = '';
+    let aktualnaNazwaPliku = '';
+    let aktualnyPayload = null;
+    let aktualnyPayloadEmail = null;
+    let aktualnyBlobPdf = null;
+    let aktualneKoszty = null;
+
+    function pokazPodgladPdf(url, nazwaPliku, payload, blob, koszty) {
+      if (aktualnyPodgladUrl) {
+        URL.revokeObjectURL(aktualnyPodgladUrl);
+      }
+      aktualnyPodgladUrl = url;
+      aktualnaNazwaPliku = nazwaPliku;
+      aktualnyPayload = payload || null;
+      aktualnyPayloadEmail = payload || null;
+      aktualnyBlobPdf = blob || null;
+      aktualneKoszty = Array.isArray(koszty) ? koszty.slice() : null;
+      pdfPreview.src = url;
+      pdfModal.hidden = false;
+      pdfModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function zamknijPodgladPdf() {
+      pdfModal.hidden = true;
+      pdfModal.setAttribute('aria-hidden', 'true');
+      pdfPreview.removeAttribute('src');
+      document.body.style.overflow = '';
+      if (aktualnyPodgladUrl) {
+        URL.revokeObjectURL(aktualnyPodgladUrl);
+        aktualnyPodgladUrl = '';
+      }
+      aktualnaNazwaPliku = '';
+      aktualnyPayload = null;
+      aktualnyPayloadEmail = null;
+      aktualnyBlobPdf = null;
+      aktualneKoszty = null;
+    }
+
+    btnZamknijModal.addEventListener('click', zamknijPodgladPdf);
+    pdfModalBackdrop.addEventListener('click', zamknijPodgladPdf);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !pdfModal.hidden) {
+        zamknijPodgladPdf();
+      }
+    });
+
+    btnPobierzPdf.addEventListener('click', () => {
+      if (!aktualnyPodgladUrl) return;
+      const a = document.createElement('a');
+      a.href = aktualnyPodgladUrl;
+      a.download = aktualnaNazwaPliku;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      if (aktualnyPayload) {
+        dodajDoHistorii(aktualnyPayload, aktualneKoszty);
+        inkrementujNumeracje();
+        renderStatystyki();
+        aktualnyPayload = null;
+        aktualneKoszty = null;
+      }
+    });
+
+    const btnUdostepnijPdf = document.getElementById('btn-udostepnij-pdf');
+
+    if (shareSupported && btnUdostepnijPdf) {
+      btnUdostepnijPdf.hidden = false;
+      btnUdostepnijPdf.addEventListener('click', async () => {
+        if (!aktualnyBlobPdf) return;
+        const file = new File([aktualnyBlobPdf], aktualnaNazwaPliku || 'Oferta.pdf', { type: 'application/pdf' });
+          if (!navigator.canShare({ files: [file] })) {
+            pokazKomunikat('Ta przeglądarka nie wspiera wysyłania plików PDF.', 'error');
+            return;
+          }
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'Wycena PDF',
+              text: 'Wycena w załączniku.',
+            });
+            if (aktualnyPayload) {
+              dodajDoHistorii(aktualnyPayload, aktualneKoszty);
+              inkrementujNumeracje();
+              renderStatystyki();
+              aktualnyPayload = null;
+              aktualneKoszty = null;
+            }
+            pokazKomunikat('Oferta wysłana do klienta.', 'success');
+          } catch (err) {
+            if (err && err.name === 'AbortError') return;
+            pokazKomunikat('Nie udało się wysłać pliku: ' + err.message, 'error');
+          }
+      });
+    }
+
+    btnDrukujPdf.addEventListener('click', () => {
+      if (!aktualnyPodgladUrl) return;
+      try {
+        pdfPreview.contentWindow.focus();
+        pdfPreview.contentWindow.print();
+      } catch (e) {
+        pokazKomunikat('Nie udało się otworzyć dialogu drukowania. Pobierz PDF i wydrukuj z czytnika.', 'error');
+      }
+    });
+
+    btnPrzygotujEmail.addEventListener('click', () => {
+      if (!aktualnyPayloadEmail) {
+        pokazKomunikat('Najpierw wygeneruj wycenę, aby przygotować e-mail.', 'error');
+        return;
+      }
+      const p = aktualnyPayloadEmail;
+      const numer = String(p.numer_oferty || '').trim();
+      const firma = String(p.nazwa_firmy || '').trim();
+      const sumaNum = obliczSumePozycji(p.pozycje);
+      const sumaTxt = (Number.isFinite(sumaNum) ? sumaNum : 0).toFixed(2).replace('.', ',');
+
+      const numerTxt = numer || 'bez numeru';
+      const subject = firma
+        ? `Oferta ${numerTxt} - ${firma}`
+        : `Oferta ${numerTxt}`;
+      const podpis = firma ? `Pozdrawiam,\n${firma}` : 'Pozdrawiam';
+      const body = `Dzień dobry,\n\nw załączniku przesyłam ofertę ${numerTxt} na kwotę ${sumaTxt} zł. W razie pytań jestem do dyspozycji.\n\n${podpis}`;
+
+      const mailto = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      window.location.href = mailto;
+    });
+
+    const STORAGE_KEY_CONFIG = 'sumit_config';
+    const STORAGE_KEY_CONFIG_LEGACY = 'sumit_dane_firmy';
+    const POLA_CONFIG = ['nazwa_firmy', 'nip', 'adres', 'miasto', 'telefon', 'email', 'numer_konta'];
+    const MAX_LOGO_BYTES = 200 * 1024;
+
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsBackdrop = document.getElementById('settings-modal-backdrop');
+    const btnSettings = document.getElementById('btn-settings');
+    const btnCfgZamknij = document.getElementById('btn-cfg-zamknij');
+    const btnCfgWyczysc = document.getElementById('btn-cfg-wyczysc');
+    const settingsMessage = document.getElementById('settings-message');
+
+    const cfgLogoInput = document.getElementById('cfg-logo-input');
+    const btnCfgDodajLogo = document.getElementById('btn-cfg-dodaj-logo');
+    const btnCfgUsunLogo = document.getElementById('btn-cfg-usun-logo');
+    const cfgLogoPreviewWrap = document.getElementById('cfg-logo-preview-wrap');
+    const cfgLogoPreviewImg = document.getElementById('cfg-logo-preview');
+
+    let cfgLogoBase64 = '';
+
+    function pokazKomunikatCfg(tekst, typ) {
+      if (!settingsMessage) return;
+      settingsMessage.textContent = tekst;
+      settingsMessage.className = 'message ' + (typ || '');
+    }
+
+    function ukryjKomunikatCfg() {
+      if (!settingsMessage) return;
+      settingsMessage.textContent = '';
+      settingsMessage.className = 'message';
+    }
+
+    function migrujStaryConfig() {
+      try {
+        if (localStorage.getItem(STORAGE_KEY_CONFIG)) return;
+        const raw = localStorage.getItem(STORAGE_KEY_CONFIG_LEGACY);
+        if (!raw) return;
+        const stare = JSON.parse(raw);
+        if (!stare || typeof stare !== 'object') return;
+        const nowe = {};
+        POLA_CONFIG.forEach(k => {
+          if (typeof stare[k] === 'string') nowe[k] = stare[k];
+        });
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(nowe));
+        localStorage.removeItem(STORAGE_KEY_CONFIG_LEGACY);
+      } catch (e) {}
+    }
+
+    function wczytajConfig() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_CONFIG);
+        if (!raw) return {};
+        const dane = JSON.parse(raw);
+        if (!dane || typeof dane !== 'object') return {};
+        return dane;
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function zapiszConfig(cfg) {
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(cfg));
+      } catch (e) {
+        pokazKomunikatCfg('Nie udało się zapisać ustawień (brak miejsca w przeglądarce).', 'error');
+      }
+    }
+
+    function ustawPodgladLogo(dataUrl) {
+      if (dataUrl) {
+        cfgLogoBase64 = dataUrl;
+        cfgLogoPreviewImg.src = dataUrl;
+        cfgLogoPreviewWrap.hidden = false;
+        btnCfgDodajLogo.textContent = 'Zmień plik (PNG / JPG, ≤ 200 KB)';
+      } else {
+        cfgLogoBase64 = '';
+        cfgLogoPreviewImg.removeAttribute('src');
+        cfgLogoPreviewWrap.hidden = true;
+        btnCfgDodajLogo.textContent = 'Wybierz plik (PNG / JPG, ≤ 200 KB)';
+      }
+    }
+
+    function wypelnijFormularzCfg() {
+      const cfg = wczytajConfig();
+      POLA_CONFIG.forEach(k => {
+        const el = document.getElementById('cfg-' + k);
+        if (el) el.value = typeof cfg[k] === 'string' ? cfg[k] : '';
+      });
+      ustawPodgladLogo(typeof cfg.logo_base64 === 'string' ? cfg.logo_base64 : '');
+      ukryjKomunikatCfg();
+    }
+
+    function zbierzConfigZFormularza() {
+      const cfg = {};
+      POLA_CONFIG.forEach(k => {
+        const el = document.getElementById('cfg-' + k);
+        cfg[k] = el ? el.value.trim() : '';
+      });
+      cfg.logo_base64 = cfgLogoBase64 || '';
+      return cfg;
+    }
+
+    function walidujNumerKonta() {
+      const el = document.getElementById('cfg-numer_konta');
+      if (!el) return true;
+      const raw = el.value.trim().toUpperCase().replace(/^PL/, '');
+      const cyfry = raw.replace(/\D+/g, '');
+      if (cyfry.length === 0) return true;
+      if (cyfry.length !== 26) {
+        pokazKomunikatCfg('Numer konta musi mieć dokładnie 26 cyfr (obecnie ' + cyfry.length + ').', 'error');
+        el.focus();
+        return false;
+      }
+      return true;
+    }
+
+    function zapiszCfgZFormularza() {
+      zapiszConfig(zbierzConfigZFormularza());
+    }
+
+    btnCfgDodajLogo.addEventListener('click', () => cfgLogoInput.click());
+
+    cfgLogoInput.addEventListener('change', () => {
+      const file = cfgLogoInput.files && cfgLogoInput.files[0];
+      if (!file) return;
+      if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
+        pokazKomunikatCfg('Wybierz plik PNG lub JPG.', 'error');
+        cfgLogoInput.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || '');
+        if (dataUrl.length > MAX_LOGO_BYTES) {
+          const kb = Math.round(dataUrl.length / 1024);
+          pokazKomunikatCfg('Logo musi być ≤ 200 KB po konwersji (aktualnie ~' + kb + ' KB). Wybierz mniejszy plik.', 'error');
+          cfgLogoInput.value = '';
+          return;
+        }
+        ustawPodgladLogo(dataUrl);
+        ukryjKomunikatCfg();
+      };
+      reader.onerror = () => {
+        pokazKomunikatCfg('Nie udało się wczytać pliku logo.', 'error');
+        cfgLogoInput.value = '';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    btnCfgUsunLogo.addEventListener('click', () => {
+      ustawPodgladLogo('');
+      cfgLogoInput.value = '';
+    });
+
+    btnCfgWyczysc.addEventListener('click', () => {
+      POLA_CONFIG.forEach(k => {
+        const el = document.getElementById('cfg-' + k);
+        if (el) el.value = '';
+      });
+      ustawPodgladLogo('');
+      cfgLogoInput.value = '';
+      try { localStorage.removeItem(STORAGE_KEY_CONFIG); } catch (e) {}
+      pokazKomunikatCfg('Wyczyszczono ustawienia firmy.', 'success');
+    });
+
+    function otworzSettings() {
+      wypelnijFormularzCfg();
+      settingsModal.hidden = false;
+      settingsModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => {
+        const first = document.getElementById('cfg-nazwa_firmy');
+        if (first) first.focus();
+      }, 0);
+    }
+
+    function zamknijSettings() {
+      if (!walidujNumerKonta()) return;
+      zapiszCfgZFormularza();
+      settingsModal.hidden = true;
+      settingsModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    btnSettings.addEventListener('click', otworzSettings);
+    btnCfgZamknij.addEventListener('click', zamknijSettings);
+    settingsBackdrop.addEventListener('click', zamknijSettings);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !settingsModal.hidden) zamknijSettings();
+    });
+
+    migrujStaryConfig();
+
+    const STORAGE_KEY_DRAFT = 'sumit_draft';
+    const STORAGE_KEY_NUMERACJA = 'sumit_numeracja';
+    const POLA_DRAFT = [
+      'klient', 'numer_oferty', 'data_waznosci', 'uwagi',
+    ];
+
+    function wczytajNumeracje() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_NUMERACJA);
+        if (!raw) return { ostatniNumer: 0 };
+        const dane = JSON.parse(raw);
+        const n = Number(dane && dane.ostatniNumer);
+        return { ostatniNumer: Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0 };
+      } catch (e) {
+        return { ostatniNumer: 0 };
+      }
+    }
+
+    function zapiszNumeracje(stan) {
+      try {
+        localStorage.setItem(STORAGE_KEY_NUMERACJA, JSON.stringify(stan));
+      } catch (e) {}
+    }
+
+    function nastepnyNumerOferty() {
+      const { ostatniNumer } = wczytajNumeracje();
+      const rok = new Date().getFullYear();
+      return `${rok}/${String(ostatniNumer + 1).padStart(3, '0')}`;
+    }
+
+    function inkrementujNumeracje() {
+      const stan = wczytajNumeracje();
+      stan.ostatniNumer = (Number(stan.ostatniNumer) || 0) + 1;
+      zapiszNumeracje(stan);
+    }
+
+    function debounce(fn, wait) {
+      let t;
+      return function (...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), wait);
+      };
+    }
+
+    function zbierzPozycjeDoDraft() {
+      return [...tbody.querySelectorAll('tr')].map(tr => ({
+        nazwa: tr.querySelector('.in-nazwa').value,
+        ilosc: tr.querySelector('.in-ilosc').value,
+        cena: tr.querySelector('.in-cena').value,
+        koszt: tr.querySelector('.in-koszt').value,
+      }));
+    }
+
+    function saveDraft() {
+      const dane = { pozycje: zbierzPozycjeDoDraft() };
+      POLA_DRAFT.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) dane[id] = el.value;
+      });
+      try {
+        localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(dane));
+      } catch (e) {}
+      aktualizujLivePodglad();
+    }
+
+    const saveDraftDebounced = debounce(saveDraft, 500);
+
+    function wczytajDraft() {
+      let dane;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_DRAFT);
+        if (!raw) return;
+        dane = JSON.parse(raw);
+      } catch (e) {
+        return;
+      }
+      if (!dane || typeof dane !== 'object') return;
+
+      POLA_DRAFT.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && typeof dane[id] === 'string') el.value = dane[id];
+      });
+
+      if (Array.isArray(dane.pozycje) && dane.pozycje.length > 0) {
+        tbody.innerHTML = '';
+        dane.pozycje.forEach(p => {
+          dodajWiersz();
+          const tr = tbody.lastElementChild;
+          if (!tr) return;
+          if (typeof p.nazwa === 'string') tr.querySelector('.in-nazwa').value = p.nazwa;
+          if (typeof p.ilosc === 'string') tr.querySelector('.in-ilosc').value = p.ilosc;
+          if (typeof p.cena === 'string')  tr.querySelector('.in-cena').value  = p.cena;
+          if (typeof p.koszt === 'string') tr.querySelector('.in-koszt').value = p.koszt;
+        });
+      }
+
+      odswiezStanPresetow();
+      aktualizujSzacowanyZysk();
+    }
+
+    function ustawDomyslnaDate() {
+      const input = document.getElementById('data_waznosci');
+      if (!input) return;
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      input.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function wyczyscFormularz() {
+      try { localStorage.removeItem(STORAGE_KEY_DRAFT); } catch (e) {}
+
+      POLA_DRAFT.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+
+      tbody.innerHTML = '';
+      dodajWiersz();
+
+      ustawDomyslnaDate();
+
+      const numerEl = document.getElementById('numer_oferty');
+      if (numerEl) numerEl.value = nastepnyNumerOferty();
+
+      odswiezStanPresetow();
+      ukryjKomunikat();
+      aktualizujSzacowanyZysk();
+      aktualizujLivePodglad();
+    }
+
+    function oczyscNIPWejscie(s) {
+      return String(s || '').replace(/\D/g, '');
+    }
+
+    const modalNIP = document.getElementById('modal-nip');
+    const modalNIPBackdrop = document.getElementById('modal-nip-backdrop');
+    const nipInput = document.getElementById('nip-input');
+    const btnNipAnuluj = document.getElementById('btn-nip-anuluj');
+    const btnNipPobierz = document.getElementById('btn-nip-pobierz');
+
+    let nipFetchController = null;
+
+    function ustawStanLadowaniaNIP(loading) {
+      if (!btnNipPobierz || !nipInput) return;
+      btnNipPobierz.disabled = loading;
+      btnNipPobierz.textContent = loading ? 'Pobieram…' : 'Pobierz';
+      btnNipPobierz.setAttribute('aria-busy', loading ? 'true' : 'false');
+      nipInput.disabled = loading;
+    }
+
+    function otworzModalNIP() {
+      if (!modalNIP || !nipInput) return;
+      nipInput.value = '';
+      ustawStanLadowaniaNIP(false);
+      modalNIP.classList.remove('hidden');
+      modalNIP.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => nipInput.focus(), 0);
+    }
+
+    function zamknijModalNIP() {
+      if (!modalNIP) return;
+      if (nipFetchController) {
+        nipFetchController.abort();
+        nipFetchController = null;
+      }
+      modalNIP.classList.add('hidden');
+      modalNIP.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      ustawStanLadowaniaNIP(false);
+    }
+
+    async function wyslijZapytanieNIP() {
+      const klientEl = document.getElementById('klient');
+      if (!nipInput || !klientEl) return;
+
+      const nip = oczyscNIPWejscie(nipInput.value);
+      if (nip.length !== 10) {
+        window.alert('Nieprawidłowy NIP — musi zawierać dokładnie 10 cyfr.');
+        nipInput.focus();
+        return;
+      }
+
+      ustawStanLadowaniaNIP(true);
+      nipFetchController = new AbortController();
+
+      try {
+        const resp = await fetch('/api/nip?nip=' + encodeURIComponent(nip), {
+          headers: { 'Accept': 'application/json' },
+          signal: nipFetchController.signal,
+        });
+        let dane = null;
+        try { dane = await resp.json(); } catch (e) { dane = null; }
+
+        if (!resp.ok) {
+          const msg = (dane && dane.error) ? dane.error : 'Nie udało się pobrać danych z Białej Listy MF.';
+          window.alert(msg);
+          return;
+        }
+
+        const linie = [];
+        if (dane && dane.nazwa) linie.push(String(dane.nazwa));
+        if (dane && dane.adres) linie.push(String(dane.adres));
+        if (dane && dane.nip)   linie.push('NIP: ' + String(dane.nip));
+
+        if (linie.length === 0) {
+          window.alert('Biała Lista MF nie zwróciła danych firmy.');
+          return;
+        }
+
+        klientEl.value = linie.join('\n');
+        zamknijModalNIP();
+        saveDraft();
+        if (typeof zwinKlientaJesliWypelniony === 'function') zwinKlientaJesliWypelniony();
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        window.alert('Błąd sieci: nie udało się połączyć z serwerem.');
+      } finally {
+        nipFetchController = null;
+        if (!modalNIP.classList.contains('hidden')) {
+          ustawStanLadowaniaNIP(false);
+        }
+      }
+    }
+
+    function pobierzKlientaPoNIP() {
+      otworzModalNIP();
+    }
+
+    const klientTextarea = document.getElementById('klient');
+    const klientAutocompleteEl = document.getElementById('klient-autocomplete');
+    let autocompleteResults = [];
+    let autocompleteIndex = -1;
+    const MAX_PODPOWIEDZI_KLIENT = 8;
+
+    function getUnikalniKlienci() {
+      const seen = new Set();
+      const wynik = [];
+      const push = (blok) => {
+        const klucz = String(blok || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        if (!klucz || seen.has(klucz)) return;
+        seen.add(klucz);
+        wynik.push(blok);
+      };
+      wczytajKlientow().forEach(k => push(formatKlientBlok(k)));
+      wczytajHistorie().forEach(wpis => {
+        const raw = (wpis && (wpis.klient || (wpis.payload && wpis.payload.klient))) || '';
+        push(String(raw).trim());
+      });
+      return wynik;
+    }
+
+    function renderujAutocompleteKlient(matches) {
+      klientAutocompleteEl.innerHTML = '';
+      matches.forEach((klient, idx) => {
+        const li = document.createElement('li');
+        li.className = 'dropdown-item';
+        li.setAttribute('role', 'option');
+        li.dataset.idx = String(idx);
+        const linie = klient.split('\n').map(s => s.trim()).filter(Boolean);
+        const primary = document.createElement('span');
+        primary.textContent = linie[0] || klient;
+        li.appendChild(primary);
+        if (linie.length > 1) {
+          const meta = document.createElement('span');
+          meta.className = 'dropdown-item-meta';
+          meta.textContent = linie.slice(1).join(' · ');
+          li.appendChild(meta);
+        }
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          wybierzKlientaZAutocomplete(klient);
+        });
+        klientAutocompleteEl.appendChild(li);
+      });
+    }
+
+    function pokazAutocompleteKlient() {
+      klientAutocompleteEl.classList.remove('hidden');
+      if (klientTextarea) klientTextarea.setAttribute('aria-expanded', 'true');
+    }
+
+    function ukryjAutocompleteKlient() {
+      klientAutocompleteEl.classList.add('hidden');
+      autocompleteIndex = -1;
+      if (klientTextarea) klientTextarea.setAttribute('aria-expanded', 'false');
+    }
+
+    function odswiezAutocompleteKlient() {
+      if (!klientTextarea || !klientAutocompleteEl) return;
+      const zapytanie = klientTextarea.value.trim().toLowerCase();
+      if (zapytanie.length < 2) {
+        ukryjAutocompleteKlient();
+        return;
+      }
+      const unikalni = getUnikalniKlienci();
+      const dopasowane = unikalni.filter(k => {
+        const lower = k.toLowerCase();
+        return lower.includes(zapytanie) && lower !== zapytanie;
+      });
+      if (dopasowane.length === 0) {
+        ukryjAutocompleteKlient();
+        return;
+      }
+      autocompleteResults = dopasowane.slice(0, MAX_PODPOWIEDZI_KLIENT);
+      autocompleteIndex = -1;
+      renderujAutocompleteKlient(autocompleteResults);
+      pokazAutocompleteKlient();
+    }
+
+    function wybierzKlientaZAutocomplete(klient) {
+      if (!klientTextarea || !klient) return;
+      klientTextarea.dataset.klientAutofill = '1';
+      klientTextarea.value = klient;
+      delete klientTextarea.dataset.klientAutofill;
+      ukryjAutocompleteKlient();
+      saveDraft();
+      if (typeof zwinKlientaJesliWypelniony === 'function') zwinKlientaJesliWypelniony();
+      klientTextarea.blur();
+    }
+
+    function sprobujAutofillKlientaZKsiazki() {
+      if (!klientTextarea) return false;
+      if (klientTextarea.dataset.klientAutofill === '1') return false;
+      const raw = klientTextarea.value;
+      const linie = raw.split('\n').map(s => s.trim()).filter(Boolean);
+      if (linie.length !== 1) return false;
+      const trafiony = znajdzKlientaPoZapytaniu(linie[0]);
+      if (!trafiony) return false;
+      const blok = formatKlientBlok(trafiony);
+      if (!blok || blok === raw) return false;
+      klientTextarea.dataset.klientAutofill = '1';
+      klientTextarea.value = blok;
+      delete klientTextarea.dataset.klientAutofill;
+      saveDraft();
+      return true;
+    }
+
+    function obsluzInputKlienta() {
+      if (klientTextarea && klientTextarea.dataset.klientAutofill === '1') return;
+      if (sprobujAutofillKlientaZKsiazki()) {
+        ukryjAutocompleteKlient();
+        return;
+      }
+      odswiezAutocompleteKlient();
+    }
+
+    function ustawAktywnyItemAutocomplete(idx) {
+      const items = klientAutocompleteEl.querySelectorAll('.dropdown-item');
+      items.forEach((el, i) => {
+        if (i === idx) {
+          el.classList.add('is-active');
+          el.scrollIntoView({ block: 'nearest' });
+        } else {
+          el.classList.remove('is-active');
+        }
+      });
+      autocompleteIndex = idx;
+    }
+
+    if (klientTextarea && klientAutocompleteEl) {
+      klientTextarea.addEventListener('input', obsluzInputKlienta);
+      klientTextarea.addEventListener('focus', odswiezAutocompleteKlient);
+      klientTextarea.addEventListener('keydown', (e) => {
+        if (klientAutocompleteEl.classList.contains('hidden')) return;
+        const items = klientAutocompleteEl.querySelectorAll('.dropdown-item');
+        if (items.length === 0) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const next = (autocompleteIndex + 1) % items.length;
+          ustawAktywnyItemAutocomplete(next);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const prev = autocompleteIndex <= 0 ? items.length - 1 : autocompleteIndex - 1;
+          ustawAktywnyItemAutocomplete(prev);
+        } else if (e.key === 'Enter') {
+          if (autocompleteIndex >= 0 && autocompleteIndex < autocompleteResults.length) {
+            e.preventDefault();
+            wybierzKlientaZAutocomplete(autocompleteResults[autocompleteIndex]);
+          }
+        } else if (e.key === 'Escape') {
+          ukryjAutocompleteKlient();
+        }
+      });
+      document.addEventListener('click', (e) => {
+        if (klientAutocompleteEl.classList.contains('hidden')) return;
+        if (e.target === klientTextarea) return;
+        if (klientAutocompleteEl.contains(e.target)) return;
+        ukryjAutocompleteKlient();
+      });
+    }
+
+    if (nipInput) {
+      nipInput.addEventListener('input', () => {
+        const cleaned = nipInput.value.replace(/\D/g, '');
+        if (cleaned !== nipInput.value) nipInput.value = cleaned;
+      });
+      nipInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (!btnNipPobierz.disabled) wyslijZapytanieNIP();
+        }
+      });
+    }
+    if (btnNipPobierz) btnNipPobierz.addEventListener('click', wyslijZapytanieNIP);
+    if (btnNipAnuluj) btnNipAnuluj.addEventListener('click', zamknijModalNIP);
+    if (modalNIPBackdrop) modalNIPBackdrop.addEventListener('click', zamknijModalNIP);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalNIP && !modalNIP.classList.contains('hidden')) {
+        zamknijModalNIP();
+      }
+    });
+
+    const accordionMql = window.matchMedia('(max-width: 1023px)');
+
+    function zmierzWysokoscAkordeonu(body) {
+      const prev = body.style.maxHeight;
+      body.style.maxHeight = 'none';
+      const h = body.scrollHeight;
+      body.style.maxHeight = prev;
+      return h;
+    }
+
+    function ustawAkordeonOtwarty(section, otwarty) {
+      const body = section.querySelector('.accordion-body');
+      const header = section.querySelector('.accordion-header');
+      if (!body) return;
+
+      if (!accordionMql.matches) {
+        section.classList.add('is-open');
+        body.style.maxHeight = '';
+        if (header) header.setAttribute('aria-expanded', 'true');
+        return;
+      }
+
+      if (otwarty) {
+        section.classList.add('is-open');
+        body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
+        if (header) header.setAttribute('aria-expanded', 'true');
+        const klientSection = section.dataset.accordionId === 'klient';
+        if (klientSection) {
+          const preview = section.querySelector('.accordion-preview');
+          if (preview) preview.hidden = true;
+        }
+      } else {
+        const h = zmierzWysokoscAkordeonu(body);
+        body.style.maxHeight = h + 'px';
+        requestAnimationFrame(() => {
+          body.style.maxHeight = '0px';
+        });
+        section.classList.remove('is-open');
+        if (header) header.setAttribute('aria-expanded', 'false');
+        if (section.dataset.accordionId === 'klient') {
+          odswiezPodgladKlientaAkordeon();
+        }
+      }
+    }
+
+    function przelaczAkordeon(section) {
+      if (!accordionMql.matches) return;
+      ustawAkordeonOtwarty(section, !section.classList.contains('is-open'));
+    }
+
+    function odswiezPodgladKlientaAkordeon() {
+      const section = document.querySelector('[data-accordion-id="klient"]');
+      const klientEl = document.getElementById('klient');
+      if (!section || !klientEl) return;
+      const preview = section.querySelector('.accordion-preview');
+      if (!preview) return;
+
+      if (!accordionMql.matches || section.classList.contains('is-open')) {
+        preview.hidden = true;
+        preview.textContent = '';
+        return;
+      }
+
+      const pierwszaLinia = klientEl.value.split('\n').map(s => s.trim()).find(Boolean) || '';
+      if (pierwszaLinia) {
+        preview.textContent = '\u2713 ' + pierwszaLinia;
+        preview.hidden = false;
+      } else {
+        preview.textContent = '';
+        preview.hidden = true;
+      }
+    }
+
+    function zwinKlientaJesliWypelniony() {
+      if (!accordionMql.matches) return;
+      const section = document.querySelector('[data-accordion-id="klient"]');
+      const klientEl = document.getElementById('klient');
+      if (!section || !klientEl) return;
+      if (klientEl.value.trim() && section.classList.contains('is-open')) {
+        ustawAkordeonOtwarty(section, false);
+      } else {
+        odswiezPodgladKlientaAkordeon();
+      }
+    }
+
+    function odswiezWszystkieAkordeony() {
+      document.querySelectorAll('#oferta-form .accordion-section').forEach(section => {
+        const body = section.querySelector('.accordion-body');
+        if (!body) return;
+        if (!accordionMql.matches) {
+          section.classList.add('is-open');
+          body.style.maxHeight = '';
+          const header = section.querySelector('.accordion-header');
+          if (header) header.setAttribute('aria-expanded', 'true');
+          return;
+        }
+        const domyslnieOtwarty = section.dataset.accordionDefault === 'open';
+        const otwarty = section.classList.contains('is-open');
+        if (otwarty) {
+          body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
+        } else if (!body.style.maxHeight) {
+          body.style.maxHeight = domyslnieOtwarty ? zmierzWysokoscAkordeonu(body) + 'px' : '0px';
+        }
+      });
+      odswiezPodgladKlientaAkordeon();
+    }
+
+    function initFormAccordions() {
+      const sections = document.querySelectorAll('#oferta-form .accordion-section');
+      const klientEl = document.getElementById('klient');
+
+      sections.forEach(section => {
+        const domyslnieOtwarty = section.dataset.accordionDefault === 'open';
+        const body = section.querySelector('.accordion-body');
+        const header = section.querySelector('.accordion-header');
+
+        section.classList.toggle('is-open', domyslnieOtwarty);
+        if (header) header.setAttribute('aria-expanded', domyslnieOtwarty ? 'true' : 'false');
+
+        if (body) {
+          if (!accordionMql.matches) {
+            body.style.maxHeight = '';
+            section.classList.add('is-open');
+          } else if (domyslnieOtwarty) {
+            body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
+          } else {
+            body.style.maxHeight = '0px';
+          }
+        }
+
+        if (header) {
+          header.addEventListener('click', () => przelaczAkordeon(section));
+        }
+
+        if (body && typeof ResizeObserver !== 'undefined') {
+          const ro = new ResizeObserver(() => {
+            if (!accordionMql.matches || !section.classList.contains('is-open')) return;
+            body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
+          });
+          ro.observe(body);
+        }
+      });
+
+      if (klientEl) {
+        klientEl.addEventListener('blur', zwinKlientaJesliWypelniony);
+      }
+
+      accordionMql.addEventListener('change', odswiezWszystkieAkordeony);
+
+      if (klientEl && klientEl.value.trim()) {
+        const klientSection = document.querySelector('[data-accordion-id="klient"]');
+        if (klientSection && accordionMql.matches) {
+          ustawAkordeonOtwarty(klientSection, false);
+        }
+      }
+      odswiezPodgladKlientaAkordeon();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      wczytajDraft();
+
+      const numerEl = document.getElementById('numer_oferty');
+      if (numerEl && !numerEl.value.trim()) {
+        numerEl.value = nastepnyNumerOferty();
+      }
+
+      initFormAccordions();
+      initAiQuickInput();
+
+      form.addEventListener('input', saveDraftDebounced);
+      btnDodaj.addEventListener('click', saveDraftDebounced);
+      tbody.addEventListener('click', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('btn-remove')) {
+          saveDraftDebounced();
+        }
+      });
+
+      document.getElementById('btn-wyczysc-formularz').addEventListener('click', wyczyscFormularz);
+
+      const btnPobierzNIP = document.getElementById('btn-pobierz-nip');
+      if (btnPobierzNIP) btnPobierzNIP.addEventListener('click', pobierzKlientaPoNIP);
+
+      renderStatystyki();
+      initViewTabs();
+      aktualizujSzacowanyZysk();
+      aktualizujLivePodglad();
+      synchronizujWysokoscPodgladu();
+    });
+
+    function initViewTabs() {
+      const tabs = document.querySelectorAll('.view-tab[data-view-target]');
+      if (!tabs.length) return;
+
+      const widoki = new Map();
+      tabs.forEach(tab => {
+        const targetId = tab.getAttribute('data-view-target');
+        const widok = document.getElementById(targetId);
+        if (widok) widoki.set(targetId, widok);
+      });
+
+      function aktywuj(targetId) {
+        tabs.forEach(tab => {
+          const aktywny = tab.getAttribute('data-view-target') === targetId;
+          tab.classList.toggle('is-active', aktywny);
+          tab.setAttribute('aria-selected', aktywny ? 'true' : 'false');
+        });
+        widoki.forEach((widok, id) => {
+          const aktywny = id === targetId;
+          widok.classList.toggle('hidden', !aktywny);
+          if (aktywny) {
+            widok.removeAttribute('hidden');
+          } else {
+            widok.setAttribute('hidden', '');
+          }
+        });
+        if (targetId === 'view-statystyki') {
+          renderStatystyki();
+        }
+      }
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const targetId = tab.getAttribute('data-view-target');
+          if (targetId) aktywuj(targetId);
+        });
+      });
+    }
+
+    const STORAGE_KEY_KATALOG = 'sumit_katalog';
+    const STORAGE_KEY_KATALOG_VER = 'sumit_katalog_v';
+    const KATALOG_VERSION = 2;
+
+    const DOMYSLNY_KATALOG = [
+      { nazwa: 'Wymiana baterii umywalkowej',       cena_jednostkowa: 150, kategoria: 'Hydraulika' },
+      { nazwa: 'Naprawa spłuczki',                  cena_jednostkowa: 100, kategoria: 'Hydraulika' },
+      { nazwa: 'Udrożnienie odpływu',               cena_jednostkowa: 200, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż umywalki',                   cena_jednostkowa: 250, kategoria: 'Hydraulika' },
+      { nazwa: 'Wymiana zaworu kątowego',           cena_jednostkowa:  80, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż WC kompakt',                 cena_jednostkowa: 350, kategoria: 'Hydraulika' },
+      { nazwa: 'Wymiana grzejnika',                 cena_jednostkowa: 450, kategoria: 'Hydraulika' },
+
+      { nazwa: 'Montaż gniazda elektrycznego',      cena_jednostkowa:  80, kategoria: 'Elektryka' },
+      { nazwa: 'Wymiana włącznika',                 cena_jednostkowa:  60, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż lampy sufitowej',            cena_jednostkowa: 120, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż żyrandola',                  cena_jednostkowa: 150, kategoria: 'Elektryka' },
+      { nazwa: 'Pomiary elektryczne (protokół)',    cena_jednostkowa: 200, kategoria: 'Elektryka' },
+      { nazwa: 'Wymiana rozdzielni',                cena_jednostkowa: 800, kategoria: 'Elektryka' },
+
+      { nazwa: 'Malowanie ściany (m²)',             cena_jednostkowa:  35, kategoria: 'Wykończenia' },
+      { nazwa: 'Gładź gipsowa (m²)',                cena_jednostkowa:  50, kategoria: 'Wykończenia' },
+      { nazwa: 'Tapetowanie (m²)',                  cena_jednostkowa:  45, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż drzwi wewnętrznych',         cena_jednostkowa: 350, kategoria: 'Wykończenia' },
+      { nazwa: 'Listwy przypodłogowe (mb)',         cena_jednostkowa:  25, kategoria: 'Wykończenia' },
+      { nazwa: 'Układanie paneli (m²)',             cena_jednostkowa:  40, kategoria: 'Wykończenia' },
+      { nazwa: 'Układanie płytek (m²)',             cena_jednostkowa: 120, kategoria: 'Wykończenia' },
+
+      { nazwa: 'Wyburzenie ścianki działowej (m²)', cena_jednostkowa: 180, kategoria: 'Budowlanka' },
+      { nazwa: 'Stawianie ścianki działowej (m²)',  cena_jednostkowa: 220, kategoria: 'Budowlanka' },
+
+      { nazwa: 'Robocizna (godzina)',               cena_jednostkowa:  80, kategoria: 'Inne' },
+      { nazwa: 'Dojazd (km)',                       cena_jednostkowa:   3, kategoria: 'Inne' },
+      { nazwa: 'Wywóz gruzu (m³)',                  cena_jednostkowa: 350, kategoria: 'Inne' },
+    ];
+
+    function zapiszKatalog(items) {
+      try {
+        localStorage.setItem(STORAGE_KEY_KATALOG, JSON.stringify(items));
+        localStorage.setItem(STORAGE_KEY_KATALOG_VER, String(KATALOG_VERSION));
+      } catch (e) {}
+    }
+
+    function wczytajKatalog() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_KATALOG);
+        const ver = parseInt(localStorage.getItem(STORAGE_KEY_KATALOG_VER) || '0', 10);
+        if (!raw || ver < KATALOG_VERSION) {
+          zapiszKatalog(DOMYSLNY_KATALOG);
+          return DOMYSLNY_KATALOG.slice();
+        }
+        const dane = JSON.parse(raw);
+        if (!Array.isArray(dane)) return DOMYSLNY_KATALOG.slice();
+        return dane
+          .filter(it => it && typeof it.nazwa === 'string')
+          .map(it => ({
+            nazwa: it.nazwa,
+            cena_jednostkowa: Number(it.cena_jednostkowa) || 0,
+            kategoria: (typeof it.kategoria === 'string' && it.kategoria.trim()) || 'Inne',
+          }));
+      } catch (e) {
+        return DOMYSLNY_KATALOG.slice();
+      }
+    }
+
+    const catalogModal = document.getElementById('catalog-modal');
+    const catalogBackdrop = document.getElementById('catalog-modal-backdrop');
+    const catalogList = document.getElementById('catalog-list');
+    const catalogSearch = document.getElementById('catalog-search');
+    const catalogCategories = document.getElementById('catalog-categories');
+    const catalogFeedback = document.getElementById('catalog-feedback');
+    const btnKatalog = document.getElementById('btn-katalog');
+    const btnZamknijCatalog = document.getElementById('btn-zamknij-catalog');
+    const btnImportCatalog = document.getElementById('btn-import-catalog');
+    const btnExportCatalog = document.getElementById('btn-export-catalog');
+    const importCatalogInput = document.getElementById('import-catalog');
+
+    let aktywnyWiersz = null;
+    let aktywnaKategoria = '';
+
+    tbody.addEventListener('focusin', (e) => {
+      const tr = e.target && e.target.closest && e.target.closest('tr');
+      if (tr && tbody.contains(tr)) aktywnyWiersz = tr;
+    });
+
+    function formatujCene(cena) {
+      const n = Number(cena);
+      if (!Number.isFinite(n)) return '';
+      return n.toFixed(2).replace('.', ',') + ' zł';
+    }
+
+    function pokazFeedbackKatalog(tekst, typ) {
+      if (!catalogFeedback) return;
+      catalogFeedback.textContent = tekst;
+      catalogFeedback.className = 'catalog-feedback' + (typ === 'error' ? ' error' : '');
+      catalogFeedback.hidden = false;
+      if (typ !== 'error') {
+        setTimeout(() => { if (catalogFeedback.textContent === tekst) ukryjFeedbackKatalog(); }, 3000);
+      }
+    }
+
+    function ukryjFeedbackKatalog() {
+      if (!catalogFeedback) return;
+      catalogFeedback.hidden = true;
+      catalogFeedback.textContent = '';
+      catalogFeedback.className = 'catalog-feedback';
+    }
+
+    function dostepneKategorie(items) {
+      const set = new Set();
+      items.forEach(it => set.add(it.kategoria || 'Inne'));
+      return Array.from(set);
+    }
+
+    function renderujKategorie(items) {
+      catalogCategories.innerHTML = '';
+      const kategorie = dostepneKategorie(items);
+      const wszystkie = document.createElement('button');
+      wszystkie.type = 'button';
+      wszystkie.className = 'chip';
+      wszystkie.textContent = 'Wszystkie';
+      wszystkie.setAttribute('aria-pressed', aktywnaKategoria === '' ? 'true' : 'false');
+      wszystkie.addEventListener('click', () => {
+        aktywnaKategoria = '';
+        renderujKatalog();
+      });
+      catalogCategories.appendChild(wszystkie);
+      kategorie.forEach(kat => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = kat;
+        chip.setAttribute('aria-pressed', aktywnaKategoria === kat ? 'true' : 'false');
+        chip.addEventListener('click', () => {
+          aktywnaKategoria = aktywnaKategoria === kat ? '' : kat;
+          renderujKatalog();
+        });
+        catalogCategories.appendChild(chip);
+      });
+    }
+
+    function renderujKatalog() {
+      const items = wczytajKatalog();
+      renderujKategorie(items);
+
+      const q = (catalogSearch.value || '').trim().toLowerCase();
+      const widoczne = items.filter(it => {
+        if (aktywnaKategoria && (it.kategoria || 'Inne') !== aktywnaKategoria) return false;
+        if (q && !it.nazwa.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      catalogList.innerHTML = '';
+      if (widoczne.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'catalog-empty';
+        li.textContent = 'Brak pozycji pasujących do filtra.';
+        catalogList.appendChild(li);
+        return;
+      }
+      widoczne.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'catalog-item';
+        li.setAttribute('role', 'option');
+        li.tabIndex = 0;
+        li.dataset.kategoria = item.kategoria || 'Inne';
+        const nazwa = document.createElement('span');
+        nazwa.className = 'catalog-item-nazwa';
+        nazwa.textContent = item.nazwa;
+        const cena = document.createElement('span');
+        cena.className = 'catalog-item-cena';
+        cena.textContent = formatujCene(item.cena_jednostkowa);
+        li.appendChild(nazwa);
+        li.appendChild(cena);
+        li.addEventListener('click', () => addFromCatalog(item));
+        li.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            addFromCatalog(item);
+          }
+        });
+        catalogList.appendChild(li);
+      });
+    }
+
+    function czyWierszPusty(tr) {
+      if (!tr) return false;
+      const n = tr.querySelector('.in-nazwa');
+      const i = tr.querySelector('.in-ilosc');
+      const c = tr.querySelector('.in-cena');
+      const k = tr.querySelector('.in-koszt');
+      return (!n || !n.value.trim())
+        && (!i || !i.value.trim())
+        && (!c || !c.value.trim())
+        && (!k || !k.value.trim());
+    }
+
+    function znajdzDocelowyWiersz() {
+      if (aktywnyWiersz && tbody.contains(aktywnyWiersz)) return aktywnyWiersz;
+      const ostatni = tbody.lastElementChild;
+      if (ostatni && czyWierszPusty(ostatni)) return ostatni;
+      dodajWiersz();
+      return tbody.lastElementChild;
+    }
+
+    function addFromCatalog(item) {
+      if (!item || typeof item !== 'object') return;
+      const tr = znajdzDocelowyWiersz();
+      if (!tr) return;
+
+      const inNazwa = tr.querySelector('.in-nazwa');
+      const inIlosc = tr.querySelector('.in-ilosc');
+      const inCena  = tr.querySelector('.in-cena');
+
+      if (inNazwa && typeof item.nazwa === 'string') {
+        inNazwa.value = item.nazwa;
+        inNazwa.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (inIlosc && !inIlosc.value.trim()) {
+        inIlosc.value = '1';
+        inIlosc.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (inCena) {
+        const cena = Number(item.cena_jednostkowa);
+        if (Number.isFinite(cena)) {
+          inCena.value = String(cena);
+          inCena.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+
+      aktywnyWiersz = tr;
+      zamknijKatalog();
+    }
+
+    window.addFromCatalog = addFromCatalog;
+
+    const aiNotatka = document.getElementById('ai-notatka');
+    const btnAiParse = document.getElementById('btn-ai-parse');
+    const btnAiMic = document.getElementById('btn-ai-mic');
+    const aiParseStatus = document.getElementById('ai-parse-status');
+    const btnAiParseLabel = btnAiParse ? btnAiParse.querySelector('.btn-ai-parse-label') : null;
+    const btnAiParseSpinner = btnAiParse ? btnAiParse.querySelector('.btn-ai-parse-spinner') : null;
+
+    let aiParseController = null;
+    let speechRecognition = null;
+    let speechRecording = false;
+    let speechBaseText = '';
+
+    function ustawAiParseStatus(tekst, typ) {
+      if (!aiParseStatus) return;
+      aiParseStatus.textContent = tekst || '';
+      aiParseStatus.className = 'ai-parse-status' + (typ ? ' is-' + typ : '');
+    }
+
+    function ustawStanLadowaniaAiParse(loading) {
+      if (!btnAiParse) return;
+      btnAiParse.disabled = loading;
+      btnAiParse.setAttribute('aria-busy', loading ? 'true' : 'false');
+      if (btnAiMic) btnAiMic.disabled = loading;
+      if (btnAiParseLabel) {
+        btnAiParseLabel.textContent = loading ? 'Przetwarzam…' : 'Przetwórz tekst';
+      }
+      if (btnAiParseSpinner) {
+        btnAiParseSpinner.hidden = !loading;
+      }
+    }
+
+    function wstrzyknijPozycjeZAi(items) {
+      if (!Array.isArray(items) || items.length === 0) {
+        ustawAiParseStatus('Nie znaleziono pozycji w notatce.', 'error');
+        return;
+      }
+      items.forEach(item => {
+        if (!item || typeof item !== 'object') return;
+        const nazwa = typeof item.nazwa === 'string' ? item.nazwa.trim() : '';
+        const ilosc = Number(item.ilosc);
+        const cena = Number(item.cena);
+        if (!nazwa || !Number.isFinite(ilosc) || ilosc <= 0 || !Number.isFinite(cena) || cena < 0) return;
+
+        dodajWiersz();
+        const tr = tbody.lastElementChild;
+        if (!tr) return;
+
+        const inNazwa = tr.querySelector('.in-nazwa');
+        const inIlosc = tr.querySelector('.in-ilosc');
+        const inCena = tr.querySelector('.in-cena');
+
+        if (inNazwa) {
+          inNazwa.value = nazwa;
+          inNazwa.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (inIlosc) {
+          inIlosc.value = String(ilosc);
+          inIlosc.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (inCena) {
+          inCena.value = String(cena);
+          inCena.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+
+      aktualizujSzacowanyZysk();
+      saveDraft();
+      ustawAiParseStatus('Dodano ' + items.length + ' pozycji do wyceny.', 'success');
+    }
+
+    async function przetworzNotatkeAi() {
+      if (!aiNotatka || !btnAiParse) return;
+
+      const tekst = aiNotatka.value.trim();
+      if (!tekst) {
+        ustawAiParseStatus('Wklej lub podyktuj notatkę przed przetwarzaniem.', 'error');
+        return;
+      }
+
+      if (aiParseController) {
+        aiParseController.abort();
+      }
+      aiParseController = new AbortController();
+
+      ustawAiParseStatus('');
+      ustawStanLadowaniaAiParse(true);
+
+      try {
+        const resp = await fetch('/api/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tekst }),
+          signal: aiParseController.signal,
+        });
+
+        let dane = null;
+        try {
+          dane = await resp.json();
+        } catch (e) {
+          dane = null;
+        }
+
+        if (!resp.ok) {
+          const komunikat = (dane && dane.error)
+            ? dane.error
+            : (resp.status === 429
+              ? 'Zbyt wiele żądań — spróbuj ponownie za chwilę.'
+              : 'Nie udało się przetworzyć notatki.');
+          ustawAiParseStatus(komunikat, 'error');
+          return;
+        }
+
+        if (!Array.isArray(dane)) {
+          ustawAiParseStatus('Nieprawidłowa odpowiedź serwera.', 'error');
+          return;
+        }
+
+        wstrzyknijPozycjeZAi(dane);
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        ustawAiParseStatus('Błąd sieci — sprawdź połączenie i spróbuj ponownie.', 'error');
+      } finally {
+        ustawStanLadowaniaAiParse(false);
+        aiParseController = null;
+      }
+    }
+
+    function zatrzymajDyktowanie() {
+      if (!speechRecognition || !speechRecording) return;
+      speechRecording = false;
+      try {
+        speechRecognition.stop();
+      } catch (e) {}
+      if (btnAiMic) btnAiMic.classList.remove('is-recording');
+    }
+
+    function initAiQuickInput() {
+      if (btnAiParse) {
+        btnAiParse.addEventListener('click', przetworzNotatkeAi);
+      }
+
+      const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognitionCtor || !btnAiMic) {
+        if (btnAiMic) btnAiMic.style.display = 'none';
+        return;
+      }
+
+      speechRecognition = new SpeechRecognitionCtor();
+      speechRecognition.lang = 'pl-PL';
+      speechRecognition.continuous = true;
+      speechRecognition.interimResults = true;
+
+      speechRecognition.addEventListener('result', (e) => {
+        if (!aiNotatka) return;
+        let finalTranscript = '';
+        let interimTranscript = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const chunk = e.results[i][0].transcript;
+          if (e.results[i].isFinal) finalTranscript += chunk;
+          else interimTranscript += chunk;
+        }
+        if (finalTranscript) {
+          speechBaseText += finalTranscript;
+        }
+        aiNotatka.value = speechBaseText + interimTranscript;
+      });
+
+      speechRecognition.addEventListener('end', () => {
+        if (speechRecording) {
+          try {
+            speechRecognition.start();
+          } catch (e) {
+            zatrzymajDyktowanie();
+          }
+        } else if (btnAiMic) {
+          btnAiMic.classList.remove('is-recording');
+        }
+      });
+
+      speechRecognition.addEventListener('error', () => {
+        zatrzymajDyktowanie();
+        ustawAiParseStatus('Dyktowanie niedostępne w tej przeglądarce.', 'error');
+      });
+
+      btnAiMic.addEventListener('click', () => {
+        if (speechRecording) {
+          zatrzymajDyktowanie();
+          return;
+        }
+        try {
+          speechRecording = true;
+          speechBaseText = aiNotatka ? aiNotatka.value : '';
+          btnAiMic.classList.add('is-recording');
+          speechRecognition.start();
+        } catch (e) {
+          zatrzymajDyktowanie();
+          ustawAiParseStatus('Nie udało się uruchomić mikrofonu.', 'error');
+        }
+      });
+    }
+
+    function parsujCSV(text) {
+      const rows = [];
+      const src = text.replace(/^\uFEFF/, '');
+      let cur = '';
+      let row = [];
+      let inQuotes = false;
+      for (let i = 0; i < src.length; i++) {
+        const ch = src[i];
+        if (inQuotes) {
+          if (ch === '"') {
+            if (src[i + 1] === '"') { cur += '"'; i++; }
+            else { inQuotes = false; }
+          } else {
+            cur += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === ',' || ch === ';') {
+            row.push(cur); cur = '';
+          } else if (ch === '\n' || ch === '\r') {
+            if (ch === '\r' && src[i + 1] === '\n') i++;
+            row.push(cur); cur = '';
+            if (row.some(f => f.trim() !== '')) rows.push(row.map(f => f.trim()));
+            row = [];
+          } else {
+            cur += ch;
+          }
+        }
+      }
+      if (cur !== '' || row.length > 0) {
+        row.push(cur);
+        if (row.some(f => f.trim() !== '')) rows.push(row.map(f => f.trim()));
+      }
+      return rows;
+    }
+
+    function importujCSV(text) {
+      const rows = parsujCSV(text);
+      if (rows.length === 0) throw new Error('Plik jest pusty.');
+      let startIdx = 0;
+      const pierwsza = rows[0].map(f => f.toLowerCase());
+      if (pierwsza[0] === 'nazwa' || pierwsza[0] === 'name') startIdx = 1;
+
+      const items = [];
+      for (let i = startIdx; i < rows.length; i++) {
+        const r = rows[i];
+        const nazwa = r[0];
+        if (!nazwa) continue;
+        const cenaRaw = (r[1] || '0').replace(/\s/g, '').replace(',', '.');
+        const cena = parseFloat(cenaRaw);
+        const kategoria = r[2] || 'Inne';
+        items.push({
+          nazwa,
+          cena_jednostkowa: Number.isFinite(cena) ? cena : 0,
+          kategoria,
+        });
+      }
+      if (items.length === 0) throw new Error('Brak prawidłowych pozycji w pliku.');
+      zapiszKatalog(items);
+      return items;
+    }
+
+    const KOMUNIKAT_BLEDU_IMPORTU = 'Nie udało się odczytać pliku. Upewnij się, że zapisałeś go w Excelu jako CSV (rozdzielany przecinkami).';
+
+    function escCSV(wartosc) {
+      const s = String(wartosc == null ? '' : wartosc);
+      if (/[",\r\n]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    function eksportujKatalogCSV() {
+      const items = wczytajKatalog();
+      if (!items || items.length === 0) {
+        pokazFeedbackKatalog('Katalog jest pusty — nie ma czego eksportować.', 'error');
+        return;
+      }
+
+      const linie = ['nazwa,cena_jednostkowa,kategoria'];
+      items.forEach(it => {
+        const cena = Number(it.cena_jednostkowa);
+        const cenaTxt = Number.isFinite(cena) ? cena.toFixed(2) : '0.00';
+        linie.push(
+          escCSV(it.nazwa) + ',' +
+          escCSV(cenaTxt) + ',' +
+          escCSV(it.kategoria || 'Inne')
+        );
+      });
+
+      const csv = '\uFEFF' + linie.join('\r\n') + '\r\n';
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'moje_uslugi_sumit.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+
+      pokazFeedbackKatalog('Wyeksportowano ' + items.length + ' pozycji do pliku CSV.', 'success');
+    }
+
+    btnExportCatalog.addEventListener('click', eksportujKatalogCSV);
+
+    btnImportCatalog.addEventListener('click', () => importCatalogInput.click());
+
+    importCatalogInput.addEventListener('change', () => {
+      const file = importCatalogInput.files && importCatalogInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const items = importujCSV(String(reader.result || ''));
+          aktywnaKategoria = '';
+          catalogSearch.value = '';
+          renderujKatalog();
+          pokazFeedbackKatalog('Zaimportowano ' + items.length + ' pozycji z pliku Excela.', 'success');
+        } catch (err) {
+          console.warn('Import katalogu:', err);
+          pokazFeedbackKatalog(KOMUNIKAT_BLEDU_IMPORTU, 'error');
+        } finally {
+          importCatalogInput.value = '';
+        }
+      };
+      reader.onerror = () => {
+        pokazFeedbackKatalog(KOMUNIKAT_BLEDU_IMPORTU, 'error');
+        importCatalogInput.value = '';
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+
+    function otworzKatalog() {
+      if (!aktywnyWiersz || !tbody.contains(aktywnyWiersz)) {
+        aktywnyWiersz = tbody.lastElementChild;
+      }
+      catalogSearch.value = '';
+      aktywnaKategoria = '';
+      ukryjFeedbackKatalog();
+      renderujKatalog();
+      catalogModal.hidden = false;
+      catalogModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => catalogSearch.focus(), 0);
+    }
+
+    function zamknijKatalog() {
+      catalogModal.hidden = true;
+      catalogModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    btnKatalog.addEventListener('click', otworzKatalog);
+    btnZamknijCatalog.addEventListener('click', zamknijKatalog);
+    catalogBackdrop.addEventListener('click', zamknijKatalog);
+    catalogSearch.addEventListener('input', () => renderujKatalog());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !catalogModal.hidden) zamknijKatalog();
+    });
+
+    const STORAGE_KEY_HISTORIA = 'sumit_historia';
+    const MAX_HISTORIA = 100;
+
+    const historiaModal = document.getElementById('historia-modal');
+    const historiaBackdrop = document.getElementById('historia-modal-backdrop');
+    const historiaList = document.getElementById('historia-list');
+    const btnHistoria = document.getElementById('btn-historia');
+    const btnZamknijHistoria = document.getElementById('btn-zamknij-historia');
+    const btnHistoriaWyczysc = document.getElementById('btn-historia-wyczysc');
+
+    function wczytajHistorie() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_HISTORIA);
+        if (!raw) return [];
+        const dane = JSON.parse(raw);
+        if (!Array.isArray(dane)) return [];
+        return dane.filter(w => w && typeof w === 'object' && w.payload);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function zapiszHistorie(items) {
+      try {
+        localStorage.setItem(STORAGE_KEY_HISTORIA, JSON.stringify(items));
+      } catch (e) {}
+    }
+
+    function obliczSumePozycji(pozycje) {
+      if (!Array.isArray(pozycje)) return 0;
+      let suma = 0;
+      pozycje.forEach(p => {
+        const ilosc = Number(p && p.ilosc);
+        const cena = Number(p && p.cena_jednostkowa);
+        if (Number.isFinite(ilosc) && Number.isFinite(cena)) {
+          suma += ilosc * cena;
+        }
+      });
+      return Math.round(suma * 100) / 100;
+    }
+
+    // Zwraca { zysk, kompletny } gdzie:
+    //   zysk      — suma (cena - koszt) * ilosc dla pozycji z kompletem danych,
+    //   kompletny — true, gdy KAŻDA pozycja ma poprawny koszt; w przeciwnym razie
+    //               wpis traktujemy jako "częściowy" i pomijamy go w sumach statystyk.
+    function obliczZyskWpisu(pozycje, koszty) {
+      if (!Array.isArray(pozycje) || pozycje.length === 0) return { zysk: 0, kompletny: false };
+      if (!Array.isArray(koszty)) return { zysk: 0, kompletny: false };
+      let zysk = 0;
+      let kompletny = true;
+      pozycje.forEach((p, i) => {
+        const ilosc = Number(p && p.ilosc);
+        const cena  = Number(p && p.cena_jednostkowa);
+        const koszt = Number(koszty[i]);
+        if (Number.isFinite(ilosc) && Number.isFinite(cena) && Number.isFinite(koszt)) {
+          zysk += (cena - koszt) * ilosc;
+        } else {
+          kompletny = false;
+        }
+      });
+      return { zysk: Math.round(zysk * 100) / 100, kompletny };
+    }
+
+    function dodajDoHistorii(payload, koszty) {
+      if (!payload || typeof payload !== 'object') return;
+      const koszt = Array.isArray(koszty) ? koszty.slice() : null;
+      const { zysk, kompletny } = obliczZyskWpisu(payload.pozycje, koszt || []);
+      const wpis = {
+        id: Date.now(),
+        dataZapisu: new Date().toISOString(),
+        numerOferty: String(payload.numer_oferty || ''),
+        klient: String(payload.klient || ''),
+        suma: obliczSumePozycji(payload.pozycje),
+        // koszty i zysk są zapisywane WYŁĄCZNIE w localStorage — nie w payloadzie /quote.
+        koszty: koszt,
+        zysk: kompletny ? zysk : null,
+        payload: payload,
+      };
+      const lista = wczytajHistorie();
+      lista.unshift(wpis);
+      while (lista.length > MAX_HISTORIA) lista.pop();
+      zapiszHistorie(lista);
+      zapiszSzablonyZPayloadu(payload);
+      upsertKlientaZTekstu(payload.klient || '');
+    }
+
+    const STORAGE_KEY_KLIENCI = 'sumit_klienci';
+    const MAX_KLIENCI = 100;
+
+    function _canonNip(v) {
+      return String(v || '').replace(/\D/g, '').slice(0, 10);
+    }
+
+    function _canonNazwa(v) {
+      return String(v || '').trim().toLowerCase();
+    }
+
+    function wczytajKlientow() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_KLIENCI);
+        if (!raw) return [];
+        const dane = JSON.parse(raw);
+        if (!Array.isArray(dane)) return [];
+        return dane
+          .filter(k => k && typeof k === 'object')
+          .map(k => ({
+            nip: String(k.nip || '').trim(),
+            nazwa: String(k.nazwa || '').trim(),
+            adres: String(k.adres || '').trim(),
+          }))
+          .filter(k => k.nip || k.nazwa);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function zapiszKlientow(items) {
+      try {
+        localStorage.setItem(STORAGE_KEY_KLIENCI, JSON.stringify(items));
+      } catch (e) {}
+    }
+
+    function parseKlientBlok(text) {
+      const linie = String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
+      let nip = '';
+      const reszta = [];
+      linie.forEach(l => {
+        if (!nip) {
+          const m = l.match(/^NIP[\s:.-]*([\d\s-]+)$/i);
+          if (m) {
+            const cyfry = m[1].replace(/\D/g, '');
+            if (cyfry.length === 10) { nip = cyfry; return; }
+          }
+        }
+        reszta.push(l);
+      });
+      const nazwa = reszta.shift() || '';
+      const adres = reszta.join('\n');
+      return { nip, nazwa, adres };
+    }
+
+    function formatKlientBlok(rekord) {
+      if (!rekord) return '';
+      const linie = [];
+      if (rekord.nazwa) linie.push(String(rekord.nazwa));
+      if (rekord.adres) linie.push(String(rekord.adres));
+      if (rekord.nip)   linie.push('NIP: ' + String(rekord.nip));
+      return linie.join('\n');
+    }
+
+    function upsertKlienta(rekord) {
+      if (!rekord) return;
+      const r = {
+        nip: _canonNip(rekord.nip),
+        nazwa: String(rekord.nazwa || '').trim(),
+        adres: String(rekord.adres || '').trim(),
+      };
+      if (!r.nazwa && !r.nip) return;
+
+      const lista = wczytajKlientow();
+      let idx = -1;
+      if (r.nip) {
+        idx = lista.findIndex(k => _canonNip(k.nip) === r.nip);
+      }
+      if (idx === -1 && r.nazwa) {
+        const nz = _canonNazwa(r.nazwa);
+        idx = lista.findIndex(k => _canonNazwa(k.nazwa) === nz);
+      }
+
+      let scalony = r;
+      if (idx !== -1) {
+        const stary = lista[idx];
+        scalony = {
+          nip:   r.nip   || stary.nip   || '',
+          nazwa: r.nazwa || stary.nazwa || '',
+          adres: r.adres || stary.adres || '',
+        };
+        lista.splice(idx, 1);
+      }
+      lista.unshift(scalony);
+      while (lista.length > MAX_KLIENCI) lista.pop();
+      zapiszKlientow(lista);
+    }
+
+    function upsertKlientaZTekstu(text) {
+      const parsed = parseKlientBlok(text);
+      if (!parsed.nazwa && !parsed.nip) return;
+      upsertKlienta(parsed);
+    }
+
+    function znajdzKlientaPoZapytaniu(zapytanie) {
+      const raw = String(zapytanie || '').trim();
+      if (!raw) return null;
+      const lista = wczytajKlientow();
+      if (lista.length === 0) return null;
+      const cyfry = raw.replace(/\D/g, '');
+      if (cyfry.length === 10) {
+        const trafioneNip = lista.find(k => _canonNip(k.nip) === cyfry);
+        if (trafioneNip) return trafioneNip;
+      }
+      const nz = raw.toLowerCase();
+      const trafioneNazwa = lista.find(k => k.nazwa && k.nazwa.toLowerCase() === nz);
+      return trafioneNazwa || null;
+    }
+
+    const STORAGE_KEY_SZABLONY = 'sumit_szablony_pozycji';
+    const MAX_SZABLONY_POZYCJI = 200;
+    let _szablonyPozycjiCache = null;
+
+    function wczytajSzablonyPozycji() {
+      if (_szablonyPozycjiCache) return _szablonyPozycjiCache;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_SZABLONY);
+        if (!raw) { _szablonyPozycjiCache = []; return _szablonyPozycjiCache; }
+        const dane = JSON.parse(raw);
+        if (!Array.isArray(dane)) { _szablonyPozycjiCache = []; return _szablonyPozycjiCache; }
+        _szablonyPozycjiCache = dane
+          .filter(s => s && typeof s === 'object' && typeof s.nazwa === 'string' && s.nazwa.trim())
+          .map(s => ({
+            nazwa: String(s.nazwa).trim(),
+            jednostka: typeof s.jednostka === 'string' ? s.jednostka : '',
+            cena: Number(s.cena),
+          }))
+          .filter(s => Number.isFinite(s.cena) && s.cena >= 0);
+        return _szablonyPozycjiCache;
+      } catch (e) {
+        _szablonyPozycjiCache = [];
+        return _szablonyPozycjiCache;
+      }
+    }
+
+    function zapiszSzablonyPozycji(items) {
+      try {
+        localStorage.setItem(STORAGE_KEY_SZABLONY, JSON.stringify(items));
+        _szablonyPozycjiCache = items.slice();
+      } catch (e) {}
+    }
+
+    function zapiszSzablonyZPayloadu(payload) {
+      if (!payload || !Array.isArray(payload.pozycje)) return;
+      const mapa = new Map();
+      wczytajSzablonyPozycji().forEach(it => mapa.set(it.nazwa.toLowerCase(), it));
+
+      let zmienione = false;
+      payload.pozycje.forEach(p => {
+        const nazwa = String((p && p.nazwa) || '').trim();
+        const cena = Number(p && p.cena_jednostkowa);
+        if (!nazwa || !Number.isFinite(cena) || cena < 0) return;
+        const klucz = nazwa.toLowerCase();
+        const wpis = { nazwa, jednostka: '', cena: Math.round(cena * 100) / 100 };
+        mapa.delete(klucz);
+        mapa.set(klucz, wpis);
+        zmienione = true;
+      });
+
+      if (!zmienione) return;
+      const noweKolejne = Array.from(mapa.values()).reverse().slice(0, MAX_SZABLONY_POZYCJI);
+      zapiszSzablonyPozycji(noweKolejne);
+      odswiezDatalistSzablony();
+    }
+
+    function odswiezDatalistSzablony() {
+      const datalist = document.getElementById('szablony-pozycji-datalist');
+      if (!datalist) return;
+      const szablony = wczytajSzablonyPozycji();
+      datalist.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      szablony.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.nazwa;
+        const cenaFmt = (Number(s.cena) || 0).toFixed(2).replace('.', ',') + ' zł';
+        opt.label = 'Ostatnio: ' + cenaFmt;
+        frag.appendChild(opt);
+      });
+      datalist.appendChild(frag);
+    }
+
+    function aplikujSzablonDoWiersza(tr) {
+      if (!tr) return;
+      const nazwaInput = tr.querySelector('.in-nazwa');
+      const cenaInput = tr.querySelector('.in-cena');
+      if (!nazwaInput || !cenaInput) return;
+      const wartosc = String(nazwaInput.value || '').trim();
+      if (!wartosc) {
+        tr.dataset.szablonNazwa = '';
+        return;
+      }
+      const klucz = wartosc.toLowerCase();
+      const szablon = wczytajSzablonyPozycji().find(s => s.nazwa.toLowerCase() === klucz);
+      if (!szablon) {
+        tr.dataset.szablonNazwa = '';
+        return;
+      }
+      if (tr.dataset.szablonNazwa === szablon.nazwa) return;
+      cenaInput.value = String(szablon.cena);
+      cenaInput.dispatchEvent(new Event('input', { bubbles: true }));
+      tr.dataset.szablonNazwa = szablon.nazwa;
+    }
+
+    odswiezDatalistSzablony();
+
+    function usunZHistorii(id) {
+      const lista = wczytajHistorie().filter(w => w.id !== id);
+      zapiszHistorie(lista);
+    }
+
+    function formatujDateZapisu(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return String(iso || '');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${dd}.${mm}.${yyyy}, ${hh}:${min}`;
+    }
+
+    function formatujSume(suma) {
+      const n = Number(suma);
+      if (!Number.isFinite(n)) return '0,00 zł';
+      return n.toFixed(2).replace('.', ',') + ' zł';
+    }
+
+    const statsSection = document.getElementById('stats-section');
+
+    function tworzKarteStat(label, value, meta, modCls) {
+      const card = document.createElement('div');
+      card.className = 'stats-card' + (modCls ? ' ' + modCls : '');
+      const l = document.createElement('div');
+      l.className = 'stats-card-label';
+      l.textContent = label;
+      card.appendChild(l);
+      if (value != null) {
+        const v = document.createElement('div');
+        v.className = 'stats-card-value';
+        v.textContent = value;
+        card.appendChild(v);
+      }
+      if (meta != null) {
+        const m = document.createElement('div');
+        m.className = 'stats-card-meta';
+        m.textContent = meta;
+        card.appendChild(m);
+      }
+      return card;
+    }
+
+    const NAZWY_MIESIECY = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+    const NAZWY_DNI = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    const KOLEJNOSC_DNI_TYGODNIA = [1, 2, 3, 4, 5, 6, 0];
+
+    const STATS_OKRES_KEY = 'sumit_stats_okres';
+    const STATS_OKRES_DEFAULT = '30';
+    const STATS_OKRESY = [
+      { id: '7', label: '7 dni', dni: 7 },
+      { id: '30', label: '30 dni', dni: 30 },
+      { id: '90', label: '90 dni', dni: 90 },
+      { id: '365', label: 'Rok', dni: 365 },
+      { id: 'all', label: 'Wszystko', dni: null }
+    ];
+
+    function wczytajOkresStat() {
+      try {
+        const v = localStorage.getItem(STATS_OKRES_KEY);
+        if (STATS_OKRESY.some(o => o.id === v)) return v;
+      } catch (e) {}
+      return STATS_OKRES_DEFAULT;
+    }
+
+    function zapiszOkresStat(okres) {
+      try { localStorage.setItem(STATS_OKRES_KEY, okres); } catch (e) {}
+    }
+
+    function filtrujHistoriePoOkresie(lista, okres) {
+      if (!Array.isArray(lista)) return [];
+      const def = STATS_OKRESY.find(o => o.id === okres);
+      if (!def || def.dni == null) return lista.slice();
+      const odKiedy = Date.now() - def.dni * 24 * 60 * 60 * 1000;
+      return lista.filter(wpis => {
+        const data = new Date(wpis.dataZapisu);
+        if (Number.isNaN(data.getTime())) return false;
+        return data.getTime() >= odKiedy;
+      });
+    }
+
+    function policzTrendWzrostu(lista) {
+      const teraz = new Date();
+      const aktMies = teraz.getMonth();
+      const aktRok = teraz.getFullYear();
+      let prevMies = aktMies - 1;
+      let prevRok = aktRok;
+      if (prevMies < 0) { prevMies = 11; prevRok = aktRok - 1; }
+      let sumaAkt = 0;
+      let sumaPrev = 0;
+      lista.forEach(wpis => {
+        const data = new Date(wpis.dataZapisu);
+        if (Number.isNaN(data.getTime())) return;
+        const m = data.getMonth();
+        const r = data.getFullYear();
+        const suma = Number(wpis.suma) || 0;
+        if (m === aktMies && r === aktRok) sumaAkt += suma;
+        else if (m === prevMies && r === prevRok) sumaPrev += suma;
+      });
+      if (sumaPrev <= 0) {
+        return { dostepny: false, sumaAkt: sumaAkt, sumaPrev: sumaPrev };
+      }
+      const procent = ((sumaAkt - sumaPrev) / sumaPrev) * 100;
+      return { dostepny: true, procent: procent, sumaAkt: sumaAkt, sumaPrev: sumaPrev };
+    }
+
+    function policzTopDzienTygodnia(lista) {
+      const liczniki = [0, 0, 0, 0, 0, 0, 0];
+      lista.forEach(wpis => {
+        const data = new Date(wpis.dataZapisu);
+        if (Number.isNaN(data.getTime())) return;
+        liczniki[data.getDay()] += 1;
+      });
+      let najlepszy = -1;
+      let najwiecej = 0;
+      KOLEJNOSC_DNI_TYGODNIA.forEach(d => {
+        if (liczniki[d] > najwiecej) {
+          najwiecej = liczniki[d];
+          najlepszy = d;
+        }
+      });
+      return { indeks: najlepszy, liczba: najwiecej };
+    }
+
+    function sufiksOferty(n) {
+      if (n === 1) return 'wycena';
+      if (n >= 2 && n <= 4) return 'wyceny';
+      return 'wycen';
+    }
+
+    let chartTooltip = null;
+
+    function pokazTooltipWykresu(bar) {
+      const chartContainer = bar.closest('.chart-container');
+      if (!chartContainer) return;
+      if (!chartTooltip || chartTooltip.parentElement !== chartContainer) {
+        if (chartTooltip && chartTooltip.parentElement) {
+          chartTooltip.parentElement.removeChild(chartTooltip);
+        }
+        chartTooltip = document.createElement('div');
+        chartTooltip.className = 'chart-tooltip';
+        chartContainer.appendChild(chartTooltip);
+      }
+      const label = bar.dataset.label || '';
+      const suma = Number(bar.dataset.suma) || 0;
+      const liczba = parseInt(bar.dataset.liczba || '0', 10) || 0;
+
+      chartTooltip.innerHTML = '';
+      const t = document.createElement('div');
+      t.className = 'chart-tooltip-title';
+      t.textContent = label;
+      const a = document.createElement('div');
+      a.className = 'chart-tooltip-amount';
+      a.textContent = formatujSume(suma);
+      const c = document.createElement('div');
+      c.className = 'chart-tooltip-count';
+      c.textContent = liczba + ' ' + sufiksOferty(liczba);
+      chartTooltip.appendChild(t);
+      chartTooltip.appendChild(a);
+      chartTooltip.appendChild(c);
+
+      const barRect = bar.getBoundingClientRect();
+      const containerRect = chartContainer.getBoundingClientRect();
+      chartTooltip.style.left = (barRect.left - containerRect.left + barRect.width / 2) + 'px';
+      chartTooltip.style.top = (barRect.top - containerRect.top - 8) + 'px';
+      chartTooltip.style.transform = 'translate(-50%, -100%)';
+      chartTooltip.classList.add('is-visible');
+    }
+
+    function ukryjTooltipWykresu() {
+      if (chartTooltip) chartTooltip.classList.remove('is-visible');
+    }
+
+    function agregujMiesiacami(lista, ileMiesiecy) {
+      const teraz = new Date();
+      const buckets = [];
+      for (let i = ileMiesiecy - 1; i >= 0; i--) {
+        const d = new Date(teraz.getFullYear(), teraz.getMonth() - i, 1);
+        buckets.push({
+          key: d.getFullYear() + '-' + d.getMonth(),
+          label: NAZWY_MIESIECY[d.getMonth()],
+          suma: 0,
+          liczba: 0
+        });
+      }
+      const mapa = new Map(buckets.map(b => [b.key, b]));
+      lista.forEach(wpis => {
+        const data = new Date(wpis.dataZapisu);
+        if (Number.isNaN(data.getTime())) return;
+        const key = data.getFullYear() + '-' + data.getMonth();
+        const b = mapa.get(key);
+        if (!b) return;
+        b.suma += Number(wpis.suma) || 0;
+        b.liczba += 1;
+      });
+      return buckets;
+    }
+
+    function renderujWykres(buckets) {
+      const chart = document.getElementById('stat-chart');
+      const labels = document.getElementById('stat-chart-labels');
+      if (!chart || !labels) return;
+      ukryjTooltipWykresu();
+      chart.innerHTML = '';
+      labels.innerHTML = '';
+      const max = buckets.reduce((m, b) => Math.max(m, b.suma), 0);
+      const slupki = [];
+      buckets.forEach(b => {
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar' + (b.suma === 0 ? ' is-empty' : '');
+        const pct = max > 0 ? (b.suma / max) * 100 : 0;
+        const docelowa = b.suma === 0 ? '2px' : Math.max(pct, 2) + '%';
+        bar.dataset.docelowa = docelowa;
+        bar.dataset.label = b.label;
+        bar.dataset.suma = String(b.suma);
+        bar.dataset.liczba = String(b.liczba);
+        bar.style.height = '0%';
+        bar.style.minHeight = '0';
+
+        bar.addEventListener('mouseenter', () => pokazTooltipWykresu(bar));
+        bar.addEventListener('mouseleave', ukryjTooltipWykresu);
+
+        chart.appendChild(bar);
+        slupki.push(bar);
+
+        const lbl = document.createElement('div');
+        lbl.textContent = b.label;
+        labels.appendChild(lbl);
+      });
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          slupki.forEach(bar => {
+            bar.style.height = bar.dataset.docelowa;
+            bar.style.minHeight = '';
+          });
+        });
+      });
+    }
+
+    function nazwaKlientaPrimary(s) {
+      if (!s || typeof s !== 'string') return '';
+      return s.split('\n')[0].trim();
+    }
+
+    function agregujKlientow(lista) {
+      const mapa = new Map();
+      lista.forEach(wpis => {
+        const klient = nazwaKlientaPrimary(wpis && wpis.klient);
+        if (!klient) return;
+        const suma = Number(wpis.suma) || 0;
+        const dataMs = (() => {
+          const d = new Date(wpis.dataZapisu);
+          return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+        })();
+        let agg = mapa.get(klient);
+        if (!agg) {
+          agg = { klient: klient, liczba: 0, suma: 0, ostatniaMs: 0 };
+          mapa.set(klient, agg);
+        }
+        agg.liczba += 1;
+        agg.suma += suma;
+        if (dataMs > agg.ostatniaMs) agg.ostatniaMs = dataMs;
+      });
+      return Array.from(mapa.values()).map(a => ({
+        klient: a.klient,
+        liczba: a.liczba,
+        suma: a.suma,
+        srednia: a.liczba > 0 ? a.suma / a.liczba : 0,
+        ostatniaMs: a.ostatniaMs
+      })).sort((a, b) => b.suma - a.suma);
+    }
+
+    function formatujDateKrotka(ms) {
+      if (!ms) return '—';
+      const d = new Date(ms);
+      if (Number.isNaN(d.getTime())) return '—';
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      return dd + '.' + mm + '.' + d.getFullYear();
+    }
+
+    function renderujKarteTopKlienci(lista, okresLabel) {
+      const card = tworzKarteStat('Top klienci', null, null, 'stats-card-full stats-card-standalone');
+      const klienci = agregujKlientow(lista).slice(0, 5);
+
+      if (klienci.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'stats-klienci-empty';
+        empty.textContent = 'Brak danych klientów w wybranym okresie';
+        card.appendChild(empty);
+        return card;
+      }
+
+      const wrap = document.createElement('div');
+      wrap.className = 'stats-klienci-wrap';
+
+      const table = document.createElement('table');
+      table.className = 'stats-klienci-table';
+
+      const thead = document.createElement('thead');
+      const trh = document.createElement('tr');
+      [
+        { txt: 'Klient', cls: '' },
+        { txt: 'Liczba wycen', cls: 'col-num' },
+        { txt: 'Łączna wartość', cls: 'col-num' },
+        { txt: 'Średnia wartość', cls: 'col-num' },
+        { txt: 'Ostatnia wycena', cls: 'col-num' }
+      ].forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h.txt;
+        if (h.cls) th.className = h.cls;
+        trh.appendChild(th);
+      });
+      thead.appendChild(trh);
+      table.appendChild(thead);
+
+      const tbodyEl = document.createElement('tbody');
+      klienci.forEach(k => {
+        const tr = document.createElement('tr');
+
+        const tdK = document.createElement('td');
+        tdK.className = 'col-klient';
+        tdK.textContent = k.klient;
+        tdK.title = k.klient;
+        tr.appendChild(tdK);
+
+        const tdL = document.createElement('td');
+        tdL.className = 'col-num';
+        tdL.textContent = String(k.liczba);
+        tr.appendChild(tdL);
+
+        const tdS = document.createElement('td');
+        tdS.className = 'col-num';
+        tdS.textContent = formatujSume(k.suma);
+        tr.appendChild(tdS);
+
+        const tdA = document.createElement('td');
+        tdA.className = 'col-num';
+        tdA.textContent = formatujSume(k.srednia);
+        tr.appendChild(tdA);
+
+        const tdD = document.createElement('td');
+        tdD.className = 'col-num';
+        tdD.textContent = formatujDateKrotka(k.ostatniaMs);
+        tr.appendChild(tdD);
+
+        tbodyEl.appendChild(tr);
+      });
+      table.appendChild(tbodyEl);
+      wrap.appendChild(table);
+      card.appendChild(wrap);
+      return card;
+    }
+
+    const HEATMAPA_DNI_SKROTY = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
+    const HEATMAPA_NAZWY_DNI = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    const HEATMAPA_MIESIACE_PELNE = [
+      'Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze',
+      'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'
+    ];
+
+    function startTygodniaPnUTC(d) {
+      const out = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const day = out.getDay();
+      const offset = day === 0 ? 6 : day - 1;
+      out.setDate(out.getDate() - offset);
+      return out;
+    }
+
+    function dataKluczLokalna(d) {
+      const yy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return yy + '-' + mm + '-' + dd;
+    }
+
+    function agregujDniHeatmapy(historiaPelna) {
+      const mapa = new Map();
+      historiaPelna.forEach(wpis => {
+        const d = new Date(wpis.dataZapisu);
+        if (Number.isNaN(d.getTime())) return;
+        const klucz = dataKluczLokalna(d);
+        mapa.set(klucz, (mapa.get(klucz) || 0) + 1);
+      });
+      return mapa;
+    }
+
+    function poziomHeatmapy(n) {
+      if (n <= 0) return 0;
+      if (n === 1) return 1;
+      if (n <= 3) return 2;
+      return 3;
+    }
+
+    function renderujKarteHeatmapy(historiaPelna) {
+      const card = tworzKarteStat('Aktywność (ostatnie 52 tygodnie)', null, null, 'stats-card-full stats-card-standalone heatmap-card');
+
+      const mapa = agregujDniHeatmapy(historiaPelna);
+
+      const dzis = new Date();
+      const dzisLokalne = new Date(dzis.getFullYear(), dzis.getMonth(), dzis.getDate());
+      const dzisMs = dzisLokalne.getTime();
+      const lastMon = startTygodniaPnUTC(dzisLokalne);
+      const firstMon = new Date(lastMon.getFullYear(), lastMon.getMonth(), lastMon.getDate() - 51 * 7);
+
+      const scroll = document.createElement('div');
+      scroll.className = 'heatmap-scroll';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'heatmap-wrap';
+
+      const monthLabels = document.createElement('div');
+      monthLabels.className = 'heatmap-month-labels';
+
+      const dayLabels = document.createElement('div');
+      dayLabels.className = 'heatmap-day-labels';
+      [0, 1, 2, 3, 4, 5, 6].forEach(rowIdx => {
+        const span = document.createElement('span');
+        if (rowIdx === 0) span.textContent = 'Pn';
+        else if (rowIdx === 2) span.textContent = 'Śr';
+        else if (rowIdx === 4) span.textContent = 'Pt';
+        else span.textContent = '';
+        dayLabels.appendChild(span);
+      });
+
+      const grid = document.createElement('div');
+      grid.className = 'heatmap-grid';
+
+      let prevMonth = -1;
+      for (let w = 0; w < 52; w++) {
+        const tygStart = new Date(firstMon.getFullYear(), firstMon.getMonth(), firstMon.getDate() + w * 7);
+        if (tygStart.getMonth() !== prevMonth) {
+          const lbl = document.createElement('span');
+          lbl.textContent = HEATMAPA_MIESIACE_PELNE[tygStart.getMonth()];
+          lbl.style.setProperty('--hm-col', String(w));
+          monthLabels.appendChild(lbl);
+          prevMonth = tygStart.getMonth();
+        }
+
+        for (let d = 0; d < 7; d++) {
+          const dzien = new Date(tygStart.getFullYear(), tygStart.getMonth(), tygStart.getDate() + d);
+          const klucz = dataKluczLokalna(dzien);
+          const liczba = mapa.get(klucz) || 0;
+          const cell = document.createElement('div');
+          const poz = poziomHeatmapy(liczba);
+          cell.className = 'heatmap-cell' + (poz > 0 ? ' l' + poz : '');
+          if (dzien.getTime() > dzisMs) cell.classList.add('is-future');
+
+          const dataFmt = formatujDateKrotka(dzien.getTime());
+          const sufiks = liczba === 1 ? 'wycena' : (liczba >= 2 && liczba <= 4 ? 'wyceny' : 'wycen');
+          const dzienNazwa = HEATMAPA_NAZWY_DNI[dzien.getDay()];
+          cell.title = dzienNazwa + ', ' + dataFmt + ' — ' + liczba + ' ' + sufiks;
+          grid.appendChild(cell);
+        }
+      }
+
+      wrap.appendChild(monthLabels);
+      wrap.appendChild(dayLabels);
+      wrap.appendChild(grid);
+      scroll.appendChild(wrap);
+      card.appendChild(scroll);
+
+      const legend = document.createElement('div');
+      legend.className = 'heatmap-legend';
+      const lblMniej = document.createElement('span');
+      lblMniej.textContent = 'mniej';
+      legend.appendChild(lblMniej);
+      [0, 1, 2, 3].forEach(p => {
+        const c = document.createElement('div');
+        c.className = 'heatmap-cell' + (p > 0 ? ' l' + p : '');
+        legend.appendChild(c);
+      });
+      const lblWiecej = document.createElement('span');
+      lblWiecej.textContent = 'więcej';
+      legend.appendChild(lblWiecej);
+      card.appendChild(legend);
+
+      return card;
+    }
+
+    function renderStatystyki(okresArg) {
+      if (!statsSection) return;
+      ukryjTooltipWykresu();
+      const calaHistoria = wczytajHistorie();
+
+      statsSection.innerHTML = '';
+      const title = document.createElement('h2');
+      title.className = 'section-title';
+      title.textContent = 'Statystyki';
+      statsSection.appendChild(title);
+
+      if (!calaHistoria || calaHistoria.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'stats-empty';
+        empty.textContent = 'Brak danych — wygeneruj pierwszą wycenę, aby zobaczyć statystyki';
+        statsSection.appendChild(empty);
+        return;
+      }
+
+      const aktywnyOkres = STATS_OKRESY.some(o => o.id === okresArg)
+        ? okresArg
+        : wczytajOkresStat();
+      zapiszOkresStat(aktywnyOkres);
+
+      const okresBar = document.createElement('div');
+      okresBar.className = 'stats-okres-bar';
+      okresBar.setAttribute('role', 'tablist');
+      okresBar.setAttribute('aria-label', 'Filtr okresu statystyk');
+      STATS_OKRESY.forEach(o => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip' + (o.id === aktywnyOkres ? ' is-active' : '');
+        chip.textContent = o.label;
+        chip.setAttribute('aria-pressed', o.id === aktywnyOkres ? 'true' : 'false');
+        chip.dataset.okres = o.id;
+        chip.addEventListener('click', () => {
+          if (o.id === aktywnyOkres) return;
+          renderStatystyki(o.id);
+        });
+        okresBar.appendChild(chip);
+      });
+      statsSection.appendChild(okresBar);
+
+      const lista = filtrujHistoriePoOkresie(calaHistoria, aktywnyOkres);
+
+      if (lista.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'stats-empty';
+        empty.textContent = 'Brak wycen w wybranym okresie';
+        statsSection.appendChild(empty);
+        return;
+      }
+
+      const teraz = new Date();
+      const aktMies = teraz.getMonth();
+      const aktRok = teraz.getFullYear();
+
+      const liczbaLacznie = lista.length;
+      let liczbaWMiesiacu = 0;
+      let sumaLacznie = 0;
+      let sumaWMiesiacu = 0;
+      let sumaZyskuLacznie = 0;
+      let sumaZyskuWMiesiacu = 0;
+      let liczbaZeZyskiem = 0;
+      let liczbaZeZyskiemWMiesiacu = 0;
+      const liczniki = new Map();
+
+      lista.forEach(wpis => {
+        const data = new Date(wpis.dataZapisu);
+        const wMiesiacu = !Number.isNaN(data.getTime())
+          && data.getMonth() === aktMies
+          && data.getFullYear() === aktRok;
+        const suma = Number(wpis.suma) || 0;
+        sumaLacznie += suma;
+        if (wMiesiacu) {
+          liczbaWMiesiacu += 1;
+          sumaWMiesiacu += suma;
+        }
+        const zysk = (wpis.zysk == null) ? null : Number(wpis.zysk);
+        if (Number.isFinite(zysk)) {
+          sumaZyskuLacznie += zysk;
+          liczbaZeZyskiem += 1;
+          if (wMiesiacu) {
+            sumaZyskuWMiesiacu += zysk;
+            liczbaZeZyskiemWMiesiacu += 1;
+          }
+        }
+        const pozycje = (wpis.payload && Array.isArray(wpis.payload.pozycje))
+          ? wpis.payload.pozycje
+          : [];
+        pozycje.forEach(p => {
+          const nazwa = p && typeof p.nazwa === 'string' ? p.nazwa.trim() : '';
+          if (!nazwa) return;
+          liczniki.set(nazwa, (liczniki.get(nazwa) || 0) + 1);
+        });
+      });
+
+      const top5 = Array.from(liczniki.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      const trend = policzTrendWzrostu(lista);
+      const topDzien = policzTopDzienTygodnia(lista);
+
+      const grid = document.createElement('div');
+      grid.className = 'stats-grid';
+
+      grid.appendChild(tworzKarteStat(
+        'Wygenerowane wyceny',
+        String(liczbaLacznie),
+        'W tym miesiącu: ' + liczbaWMiesiacu
+      ));
+      grid.appendChild(tworzKarteStat(
+        'Wartość wycen',
+        formatujSume(sumaLacznie),
+        'W tym miesiącu: ' + formatujSume(sumaWMiesiacu)
+      ));
+
+      const zyskCard = document.createElement('div');
+      zyskCard.className = 'stats-card';
+      const zyskLabel = document.createElement('div');
+      zyskLabel.className = 'stats-card-label';
+      zyskLabel.textContent = 'Szacowany zysk';
+      zyskCard.appendChild(zyskLabel);
+      const zyskValue = document.createElement('div');
+      zyskValue.className = 'stats-card-value';
+      if (liczbaZeZyskiem > 0) {
+        zyskValue.textContent = formatujSume(sumaZyskuLacznie);
+        if (sumaZyskuLacznie > 0.005) {
+          zyskValue.classList.add('stats-trend-positive');
+        } else if (sumaZyskuLacznie < -0.005) {
+          zyskValue.classList.add('stats-trend-negative');
+        }
+      } else {
+        zyskValue.textContent = '—';
+      }
+      zyskCard.appendChild(zyskValue);
+      const zyskMeta = document.createElement('div');
+      zyskMeta.className = 'stats-card-meta';
+      if (liczbaZeZyskiem > 0) {
+        const wMies = formatujSume(sumaZyskuWMiesiacu);
+        const procentPokrycia = Math.round((liczbaZeZyskiem / liczbaLacznie) * 100);
+        zyskMeta.textContent = 'W tym miesiącu: ' + wMies
+          + ' · z ' + liczbaZeZyskiem + '/' + liczbaLacznie + ' wycen (' + procentPokrycia + '%)';
+      } else {
+        zyskMeta.textContent = 'Uzupełnij "Twój koszt" w nowych wycenach, aby liczyć zysk';
+      }
+      zyskCard.appendChild(zyskMeta);
+      zyskCard.title = 'Suma (cena dla klienta − Twój koszt) × ilość dla wycen, w których uzupełniłeś koszt własny. Liczone tylko lokalnie, na podstawie historii wycen.';
+      grid.appendChild(zyskCard);
+
+      const trendCard = document.createElement('div');
+      trendCard.className = 'stats-card';
+      const trendLabel = document.createElement('div');
+      trendLabel.className = 'stats-card-label';
+      trendLabel.textContent = 'Trend wzrostu';
+      trendCard.appendChild(trendLabel);
+      const trendValue = document.createElement('div');
+      trendValue.className = 'stats-card-value';
+      if (trend.dostepny) {
+        const znak = trend.procent >= 0 ? '+' : '';
+        trendValue.textContent = znak + trend.procent.toFixed(0) + '%';
+        trendValue.classList.add(trend.procent >= 0 ? 'stats-trend-positive' : 'stats-trend-negative');
+      } else {
+        trendValue.textContent = '—';
+      }
+      trendCard.appendChild(trendValue);
+      const trendMeta = document.createElement('div');
+      trendMeta.className = 'stats-card-meta';
+      trendMeta.textContent = trend.dostepny ? 'vs poprzedni miesiąc' : 'Brak danych do porównania';
+      trendCard.appendChild(trendMeta);
+      grid.appendChild(trendCard);
+
+      const topDzienValue = topDzien.indeks >= 0 ? NAZWY_DNI[topDzien.indeks] : '—';
+      const topDzienMeta = topDzien.indeks >= 0
+        ? topDzien.liczba + ' ' + sufiksOferty(topDzien.liczba)
+        : 'Brak danych';
+      grid.appendChild(tworzKarteStat(
+        'Top dzień tygodnia',
+        topDzienValue,
+        topDzienMeta
+      ));
+
+      statsSection.appendChild(grid);
+
+      const chartContainer = document.createElement('div');
+      chartContainer.className = 'chart-container';
+      const chartTitle = document.createElement('h3');
+      chartTitle.className = 'chart-title';
+      chartTitle.textContent = 'Wartość wycen (ostatnie 6 miesięcy)';
+      chartContainer.appendChild(chartTitle);
+      const chartBars = document.createElement('div');
+      chartBars.id = 'stat-chart';
+      chartContainer.appendChild(chartBars);
+      const chartLabels = document.createElement('div');
+      chartLabels.id = 'stat-chart-labels';
+      chartContainer.appendChild(chartLabels);
+      statsSection.appendChild(chartContainer);
+
+      const buckets = agregujMiesiacami(lista, 6);
+      renderujWykres(buckets);
+
+      const top5Card = tworzKarteStat('Najczęstsze pozycje', null, null, 'stats-card-full stats-card-standalone');
+      if (top5.length > 0) {
+        const ul = document.createElement('ul');
+        ul.className = 'stats-card-list';
+        top5.forEach(([nazwa, n]) => {
+          const li = document.createElement('li');
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'name';
+          nameSpan.textContent = nazwa;
+          const countSpan = document.createElement('span');
+          countSpan.className = 'count';
+          countSpan.textContent = n + 'x';
+          li.appendChild(nameSpan);
+          li.appendChild(countSpan);
+          ul.appendChild(li);
+        });
+        top5Card.appendChild(ul);
+      } else {
+        const meta = document.createElement('div');
+        meta.className = 'stats-card-meta';
+        meta.textContent = 'Brak pozycji do zliczenia';
+        top5Card.appendChild(meta);
+      }
+      statsSection.appendChild(top5Card);
+
+      const klienciCard = renderujKarteTopKlienci(lista, aktywnyOkres);
+      statsSection.appendChild(klienciCard);
+
+      const heatmapCard = renderujKarteHeatmapy(calaHistoria);
+      statsSection.appendChild(heatmapCard);
+    }
+
+    function renderujHistorie() {
+      const lista = wczytajHistorie();
+      historiaList.innerHTML = '';
+      btnHistoriaWyczysc.hidden = lista.length === 0;
+
+      if (lista.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'historia-empty';
+        li.textContent = 'Brak zapisanych wycen';
+        historiaList.appendChild(li);
+        return;
+      }
+
+      lista.forEach(wpis => {
+        const li = document.createElement('li');
+        li.className = 'historia-item';
+
+        const info = document.createElement('div');
+        info.className = 'historia-item-info';
+
+        const row1 = document.createElement('div');
+        row1.className = 'historia-item-row';
+        const numer = document.createElement('span');
+        numer.className = 'historia-item-numer';
+        numer.textContent = wpis.numerOferty || 'Bez numeru';
+        const suma = document.createElement('span');
+        suma.className = 'historia-item-suma';
+        suma.textContent = formatujSume(wpis.suma);
+        row1.appendChild(numer);
+        row1.appendChild(suma);
+
+        const row2 = document.createElement('div');
+        row2.className = 'historia-item-row historia-item-meta';
+        const klient = document.createElement('span');
+        klient.className = 'historia-item-klient';
+        klient.textContent = wpis.klient || 'Bez nazwy klienta';
+        const data = document.createElement('span');
+        data.className = 'historia-item-data';
+        data.textContent = formatujDateZapisu(wpis.dataZapisu);
+        row2.appendChild(klient);
+        row2.appendChild(data);
+
+        info.appendChild(row1);
+        info.appendChild(row2);
+
+        if (wpis.zysk != null && Number.isFinite(Number(wpis.zysk))) {
+          const zyskNum = Number(wpis.zysk);
+          const row3 = document.createElement('div');
+          row3.className = 'historia-item-row historia-item-meta';
+          const zyskInfo = document.createElement('span');
+          zyskInfo.textContent = 'Szacowany zysk: ' + formatujSume(zyskNum);
+          if (zyskNum > 0.005) zyskInfo.classList.add('stats-trend-positive');
+          else if (zyskNum < -0.005) zyskInfo.classList.add('stats-trend-negative');
+          row3.appendChild(zyskInfo);
+          info.appendChild(row3);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'historia-item-actions';
+
+        const btnLoad = document.createElement('button');
+        btnLoad.type = 'button';
+        btnLoad.className = 'btn-historia-action';
+        btnLoad.textContent = 'Wczytaj do formularza';
+        btnLoad.addEventListener('click', () => wczytajWpisDoFormularza(wpis));
+
+        const btnPdf = document.createElement('button');
+        btnPdf.type = 'button';
+        btnPdf.className = 'btn-historia-action';
+        btnPdf.textContent = 'Pobierz PDF ponownie';
+        btnPdf.addEventListener('click', () => pobierzPdfZHistorii(wpis, btnPdf));
+
+        const btnDel = document.createElement('button');
+        btnDel.type = 'button';
+        btnDel.className = 'btn-historia-action is-delete';
+        btnDel.textContent = 'Usuń';
+        btnDel.setAttribute('aria-label', 'Usuń wpis z historii');
+        btnDel.addEventListener('click', () => {
+          usunZHistorii(wpis.id);
+          renderujHistorie();
+          renderStatystyki();
+        });
+
+        actions.appendChild(btnLoad);
+        actions.appendChild(btnPdf);
+        actions.appendChild(btnDel);
+
+        li.appendChild(info);
+        li.appendChild(actions);
+        historiaList.appendChild(li);
+      });
+    }
+
+    function wczytajWpisDoFormularza(wpis) {
+      if (!wpis || !wpis.payload) return;
+      const ok = window.confirm('Wczytanie nadpisze obecny szkic wyceny. Kontynuować?');
+      if (!ok) return;
+
+      const p = wpis.payload;
+      const klientEl = document.getElementById('klient');
+      const numerEl = document.getElementById('numer_oferty');
+      const dataEl = document.getElementById('data_waznosci');
+      const uwagiEl = document.getElementById('uwagi');
+
+      if (klientEl) klientEl.value = String(p.klient || '');
+      if (numerEl) numerEl.value = String(p.numer_oferty || '');
+      if (dataEl) dataEl.value = String(p.data_waznosci || '');
+      if (uwagiEl) uwagiEl.value = String(p.uwagi || '');
+
+      const koszty = Array.isArray(wpis.koszty) ? wpis.koszty : [];
+      tbody.innerHTML = '';
+      if (Array.isArray(p.pozycje) && p.pozycje.length > 0) {
+        p.pozycje.forEach((poz, idx) => {
+          dodajWiersz();
+          const tr = tbody.lastElementChild;
+          if (!tr) return;
+          const inN = tr.querySelector('.in-nazwa');
+          const inI = tr.querySelector('.in-ilosc');
+          const inC = tr.querySelector('.in-cena');
+          const inK = tr.querySelector('.in-koszt');
+          if (inN && typeof poz.nazwa === 'string') inN.value = poz.nazwa;
+          const ilosc = Number(poz && poz.ilosc);
+          if (inI && Number.isFinite(ilosc)) inI.value = String(ilosc);
+          const cena = Number(poz && poz.cena_jednostkowa);
+          if (inC && Number.isFinite(cena)) inC.value = String(cena);
+          const koszt = Number(koszty[idx]);
+          if (inK && Number.isFinite(koszt)) inK.value = String(koszt);
+        });
+      } else {
+        dodajWiersz();
+      }
+
+      odswiezStanPresetow();
+      aktualizujSzacowanyZysk();
+      saveDraft();
+      zamknijHistorie();
+      pokazKomunikat('Wczytano wycenę z historii.', 'success');
+    }
+
+    async function pobierzPdfZHistorii(wpis, btn) {
+      if (!wpis || !wpis.payload) return;
+      const oryginalnyTekst = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Pobieranie...';
+      try {
+        const res = await fetch('/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(wpis.payload),
+        });
+        if (!res.ok) {
+          const tekst = await res.text();
+          throw new Error(tekst || `Błąd ${res.status}`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const klient = String(wpis.payload.klient || '').replace(/[^a-z0-9-_]+/gi, '_') || 'dokument';
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `oferta-${klient}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      } catch (err) {
+        window.alert('Nie udało się pobrać PDF: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oryginalnyTekst;
+      }
+    }
+
+    function otworzHistorie() {
+      renderujHistorie();
+      historiaModal.hidden = false;
+      historiaModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => {
+        const pierwszaAkcja = historiaList.querySelector('.btn-historia-action');
+        if (pierwszaAkcja) pierwszaAkcja.focus();
+        else if (btnZamknijHistoria) btnZamknijHistoria.focus();
+      }, 0);
+    }
+
+    function zamknijHistorie() {
+      historiaModal.hidden = true;
+      historiaModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    btnHistoria.addEventListener('click', otworzHistorie);
+    btnZamknijHistoria.addEventListener('click', zamknijHistorie);
+    historiaBackdrop.addEventListener('click', zamknijHistorie);
+    btnHistoriaWyczysc.addEventListener('click', () => {
+      const ok = window.confirm('Wyczyścić całą historię wycen? Tej operacji nie można cofnąć.');
+      if (!ok) return;
+      zapiszHistorie([]);
+      renderujHistorie();
+      renderStatystyki();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !historiaModal.hidden) zamknijHistorie();
+    });
+
+    const kalkulatorModal = document.getElementById('kalkulator-modal');
+    const kalkulatorBackdrop = document.getElementById('kalkulator-modal-backdrop');
+    const kalkDlugoscEl = document.getElementById('kalk-dlugosc');
+    const kalkSzerokoscEl = document.getElementById('kalk-szerokosc');
+    const kalkWynikEl = document.getElementById('kalk-wynik');
+    const btnKalkWstaw = document.getElementById('btn-kalk-wstaw');
+    const btnKalkZamknij = document.getElementById('btn-kalk-zamknij');
+
+    let aktywnyWierszKalkulatora = null;
+
+    function parsujLiczbeKalk(raw) {
+      const s = String(raw == null ? '' : raw).replace(',', '.').trim();
+      if (!s) return NaN;
+      return parseFloat(s);
+    }
+
+    function obliczPowierzchnieKalk() {
+      const d = parsujLiczbeKalk(kalkDlugoscEl.value);
+      const s = parsujLiczbeKalk(kalkSzerokoscEl.value);
+      if (!Number.isFinite(d) || !Number.isFinite(s) || d <= 0 || s <= 0) return NaN;
+      return Math.round(d * s * 100) / 100;
+    }
+
+    function formatujPowierzchnie(n) {
+      return n.toFixed(2).replace('.', ',');
+    }
+
+    function odswiezKalkulatorWynik() {
+      const wynik = obliczPowierzchnieKalk();
+      if (Number.isFinite(wynik) && wynik > 0) {
+        kalkWynikEl.textContent = 'Powierzchnia: ' + formatujPowierzchnie(wynik) + ' m²';
+        btnKalkWstaw.disabled = false;
+      } else {
+        kalkWynikEl.textContent = 'Powierzchnia: 0,00 m²';
+        btnKalkWstaw.disabled = true;
+      }
+    }
+
+    function otworzKalkulator(tr) {
+      if (!tr || !tbody.contains(tr)) return;
+      aktywnyWierszKalkulatora = tr;
+      kalkDlugoscEl.value = '';
+      kalkSzerokoscEl.value = '';
+      odswiezKalkulatorWynik();
+      kalkulatorModal.hidden = false;
+      kalkulatorModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => kalkDlugoscEl.focus(), 0);
+    }
+
+    function zamknijKalkulator() {
+      kalkulatorModal.hidden = true;
+      kalkulatorModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      aktywnyWierszKalkulatora = null;
+    }
+
+    function wstawWynikKalkulatora() {
+      const wynik = obliczPowierzchnieKalk();
+      if (!Number.isFinite(wynik) || wynik <= 0) return;
+      const tr = aktywnyWierszKalkulatora;
+      if (!tr || !tbody.contains(tr)) {
+        zamknijKalkulator();
+        return;
+      }
+      const inIlosc = tr.querySelector('.in-ilosc');
+      if (inIlosc) {
+        inIlosc.value = String(wynik);
+        inIlosc.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      zamknijKalkulator();
+      saveDraft();
+    }
+
+    kalkDlugoscEl.addEventListener('input', odswiezKalkulatorWynik);
+    kalkSzerokoscEl.addEventListener('input', odswiezKalkulatorWynik);
+    btnKalkWstaw.addEventListener('click', wstawWynikKalkulatora);
+    btnKalkZamknij.addEventListener('click', zamknijKalkulator);
+    kalkulatorBackdrop.addEventListener('click', zamknijKalkulator);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !kalkulatorModal.hidden) zamknijKalkulator();
+    });
