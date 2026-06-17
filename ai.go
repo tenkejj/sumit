@@ -30,6 +30,7 @@ const parseSystemPrompt = `Jesteś ścisłym parserem kosztorysów budowlanych. 
 
 ZASADY:
 - Ignoruj tekst poboczny, komentarze, nagłówki, stopki i wszelkie treści niebędące pozycjami kosztorysu.
+- Przed wygenerowaniem formatu JSON, dokonaj pełnej korekty ortograficznej wykrytych nazw materiałów i usług. Upewnij się, że każda nazwa pozycji zaczyna się od wielkiej litery i brzmi profesjonalnie w kontekście formalnego kosztorysu. Jednostki (np. m, szt.) pozostaw z małej litery.
 - Zwróć WYŁĄCZNIE surową tablicę JSON bez żadnego dodatkowego tekstu przed ani po tablicy.
 - ZAKAZ używania znaczników Markdown (np. ` + "```json" + ` lub ` + "```" + `).
 - Każdy element tablicy musi mieć dokładnie pola: "nazwa" (string), "ilosc" (number), "cena" (number).
