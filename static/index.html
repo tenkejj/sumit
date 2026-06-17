@@ -152,6 +152,27 @@
             </svg>
           </button>
           <div class="accordion-body" id="accordion-body-pozycje">
+          <details class="card ai-quick-input">
+            <summary class="ai-quick-input-summary">Szybkie wprowadzanie (Tekst / Mowa)</summary>
+            <div class="ai-quick-input-body">
+              <textarea id="ai-notatka" rows="4" placeholder="Wklej notatkę lub kliknij mikrofon i podyktuj..."></textarea>
+              <div class="ai-quick-input-actions">
+                <button type="button" class="btn-primary" id="btn-ai-parse" aria-busy="false">
+                  <span class="btn-ai-parse-label">Przetwórz tekst</span>
+                  <span class="btn-ai-parse-spinner" hidden aria-hidden="true"></span>
+                </button>
+                <button type="button" class="btn-secondary btn-ai-mic" id="btn-ai-mic" aria-label="Dyktuj notatkę" title="Dyktuj notatkę">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                  </svg>
+                </button>
+              </div>
+              <p id="ai-parse-status" class="ai-parse-status" role="status" aria-live="polite"></p>
+            </div>
+          </details>
           <table>
             <thead>
               <tr>
@@ -2079,6 +2100,7 @@
       }
 
       initFormAccordions();
+      initAiQuickInput();
 
       form.addEventListener('input', saveDraftDebounced);
       btnDodaj.addEventListener('click', saveDraftDebounced);
@@ -2374,6 +2396,207 @@
     }
 
     window.addFromCatalog = addFromCatalog;
+
+    const aiNotatka = document.getElementById('ai-notatka');
+    const btnAiParse = document.getElementById('btn-ai-parse');
+    const btnAiMic = document.getElementById('btn-ai-mic');
+    const aiParseStatus = document.getElementById('ai-parse-status');
+    const btnAiParseLabel = btnAiParse ? btnAiParse.querySelector('.btn-ai-parse-label') : null;
+    const btnAiParseSpinner = btnAiParse ? btnAiParse.querySelector('.btn-ai-parse-spinner') : null;
+
+    let aiParseController = null;
+    let speechRecognition = null;
+    let speechRecording = false;
+    let speechBaseText = '';
+
+    function ustawAiParseStatus(tekst, typ) {
+      if (!aiParseStatus) return;
+      aiParseStatus.textContent = tekst || '';
+      aiParseStatus.className = 'ai-parse-status' + (typ ? ' is-' + typ : '');
+    }
+
+    function ustawStanLadowaniaAiParse(loading) {
+      if (!btnAiParse) return;
+      btnAiParse.disabled = loading;
+      btnAiParse.setAttribute('aria-busy', loading ? 'true' : 'false');
+      if (btnAiMic) btnAiMic.disabled = loading;
+      if (btnAiParseLabel) {
+        btnAiParseLabel.textContent = loading ? 'Przetwarzam…' : 'Przetwórz tekst';
+      }
+      if (btnAiParseSpinner) {
+        btnAiParseSpinner.hidden = !loading;
+      }
+    }
+
+    function wstrzyknijPozycjeZAi(items) {
+      if (!Array.isArray(items) || items.length === 0) {
+        ustawAiParseStatus('Nie znaleziono pozycji w notatce.', 'error');
+        return;
+      }
+      items.forEach(item => {
+        if (!item || typeof item !== 'object') return;
+        const nazwa = typeof item.nazwa === 'string' ? item.nazwa.trim() : '';
+        const ilosc = Number(item.ilosc);
+        const cena = Number(item.cena);
+        if (!nazwa || !Number.isFinite(ilosc) || ilosc <= 0 || !Number.isFinite(cena) || cena < 0) return;
+
+        dodajWiersz();
+        const tr = tbody.lastElementChild;
+        if (!tr) return;
+
+        const inNazwa = tr.querySelector('.in-nazwa');
+        const inIlosc = tr.querySelector('.in-ilosc');
+        const inCena = tr.querySelector('.in-cena');
+
+        if (inNazwa) {
+          inNazwa.value = nazwa;
+          inNazwa.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (inIlosc) {
+          inIlosc.value = String(ilosc);
+          inIlosc.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (inCena) {
+          inCena.value = String(cena);
+          inCena.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+
+      aktualizujSzacowanyZysk();
+      saveDraft();
+      ustawAiParseStatus('Dodano ' + items.length + ' pozycji do wyceny.', 'success');
+    }
+
+    async function przetworzNotatkeAi() {
+      if (!aiNotatka || !btnAiParse) return;
+
+      const tekst = aiNotatka.value.trim();
+      if (!tekst) {
+        ustawAiParseStatus('Wklej lub podyktuj notatkę przed przetwarzaniem.', 'error');
+        return;
+      }
+
+      if (aiParseController) {
+        aiParseController.abort();
+      }
+      aiParseController = new AbortController();
+
+      ustawAiParseStatus('');
+      ustawStanLadowaniaAiParse(true);
+
+      try {
+        const resp = await fetch('/api/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tekst }),
+          signal: aiParseController.signal,
+        });
+
+        let dane = null;
+        try {
+          dane = await resp.json();
+        } catch (e) {
+          dane = null;
+        }
+
+        if (!resp.ok) {
+          const komunikat = (dane && dane.error)
+            ? dane.error
+            : (resp.status === 429
+              ? 'Zbyt wiele żądań — spróbuj ponownie za chwilę.'
+              : 'Nie udało się przetworzyć notatki.');
+          ustawAiParseStatus(komunikat, 'error');
+          return;
+        }
+
+        if (!Array.isArray(dane)) {
+          ustawAiParseStatus('Nieprawidłowa odpowiedź serwera.', 'error');
+          return;
+        }
+
+        wstrzyknijPozycjeZAi(dane);
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        ustawAiParseStatus('Błąd sieci — sprawdź połączenie i spróbuj ponownie.', 'error');
+      } finally {
+        ustawStanLadowaniaAiParse(false);
+        aiParseController = null;
+      }
+    }
+
+    function zatrzymajDyktowanie() {
+      if (!speechRecognition || !speechRecording) return;
+      speechRecording = false;
+      try {
+        speechRecognition.stop();
+      } catch (e) {}
+      if (btnAiMic) btnAiMic.classList.remove('is-recording');
+    }
+
+    function initAiQuickInput() {
+      if (btnAiParse) {
+        btnAiParse.addEventListener('click', przetworzNotatkeAi);
+      }
+
+      const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognitionCtor || !btnAiMic) {
+        if (btnAiMic) btnAiMic.style.display = 'none';
+        return;
+      }
+
+      speechRecognition = new SpeechRecognitionCtor();
+      speechRecognition.lang = 'pl-PL';
+      speechRecognition.continuous = true;
+      speechRecognition.interimResults = true;
+
+      speechRecognition.addEventListener('result', (e) => {
+        if (!aiNotatka) return;
+        let finalTranscript = '';
+        let interimTranscript = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const chunk = e.results[i][0].transcript;
+          if (e.results[i].isFinal) finalTranscript += chunk;
+          else interimTranscript += chunk;
+        }
+        if (finalTranscript) {
+          speechBaseText += finalTranscript;
+        }
+        aiNotatka.value = speechBaseText + interimTranscript;
+      });
+
+      speechRecognition.addEventListener('end', () => {
+        if (speechRecording) {
+          try {
+            speechRecognition.start();
+          } catch (e) {
+            zatrzymajDyktowanie();
+          }
+        } else if (btnAiMic) {
+          btnAiMic.classList.remove('is-recording');
+        }
+      });
+
+      speechRecognition.addEventListener('error', () => {
+        zatrzymajDyktowanie();
+        ustawAiParseStatus('Dyktowanie niedostępne w tej przeglądarce.', 'error');
+      });
+
+      btnAiMic.addEventListener('click', () => {
+        if (speechRecording) {
+          zatrzymajDyktowanie();
+          return;
+        }
+        try {
+          speechRecording = true;
+          speechBaseText = aiNotatka ? aiNotatka.value : '';
+          btnAiMic.classList.add('is-recording');
+          speechRecognition.start();
+        } catch (e) {
+          zatrzymajDyktowanie();
+          ustawAiParseStatus('Nie udało się uruchomić mikrofonu.', 'error');
+        }
+      });
+    }
 
     function parsujCSV(text) {
       const rows = [];
