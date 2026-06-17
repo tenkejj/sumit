@@ -30,18 +30,17 @@
       <div class="header-brand">
         <div class="logo">
           <div id="app-logo">
-            <div class="logo-hanko">
-              <img src="/static/sumit-logo.png" alt="SumIt logo">
-            </div>
-            <div class="logo-name">SumIt</div>
+            <img src="/static/sumit-logo.png" alt="SumIt logo">
           </div>
         </div>
       </div>
-      <nav class="view-tabs" role="tablist" aria-label="Widoki aplikacji">
-        <button type="button" class="view-tab is-active" role="tab" id="tab-kreator" aria-selected="true" aria-controls="view-kreator" data-view-target="view-kreator">Nowa wycena</button>
-        <button type="button" class="view-tab" role="tab" id="tab-statystyki" aria-selected="false" aria-controls="view-statystyki" data-view-target="view-statystyki">Statystyki</button>
-      </nav>
-      <div class="header-actions">
+      <p class="tagline">Twórz wyceny PDF w 30 sekund</p>
+      <div class="header-toolbar">
+        <nav class="view-tabs" role="tablist" aria-label="Widoki aplikacji">
+          <button type="button" class="view-tab is-active" role="tab" id="tab-kreator" aria-selected="true" aria-controls="view-kreator" data-view-target="view-kreator">Nowa wycena</button>
+          <button type="button" class="view-tab" role="tab" id="tab-statystyki" aria-selected="false" aria-controls="view-statystyki" data-view-target="view-statystyki">Statystyki</button>
+        </nav>
+        <div class="header-actions">
         <button type="button" class="btn-settings btn-theme" id="btn-theme" aria-label="Przełącz motyw" title="Przełącz motyw">
           <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -73,9 +72,8 @@
           <span>Ustawienia firmy</span>
         </button>
       </div>
+      </div>
     </header>
-
-    <p class="tagline">Twórz wyceny PDF w 30 sekund</p>
 
     <div id="view-kreator" class="view" role="tabpanel" aria-labelledby="tab-kreator">
     <div class="kreator-layout">
@@ -811,6 +809,9 @@
     const pdfFrame2 = document.getElementById('pdf-frame-2');
     const liveEmpty = document.getElementById('live-pdf-preview-empty');
     const livePreviewFrame = document.querySelector('.live-preview-frame');
+    const livePreviewWrap = document.querySelector('.live-preview-wrap');
+    const kreatorCard = document.querySelector('.kreator-layout > .card');
+    const kreatorLayout = document.querySelector('.kreator-layout');
     const pdfLightbox = document.getElementById('pdf-lightbox');
     const pdfLightboxBackdrop = document.getElementById('pdf-lightbox-backdrop');
     const pdfLightboxClose = document.getElementById('pdf-lightbox-close');
@@ -826,6 +827,56 @@
     function ustawHasPdf(stan) {
       if (livePreviewFrame) livePreviewFrame.classList.toggle('has-pdf', stan);
     }
+
+    let previewHeightSyncRaf = 0;
+    const A4_PREVIEW_RATIO = 1.414;
+
+    function applyPreviewSize() {
+      if (!livePreviewFrame || !kreatorCard || !livePreviewWrap) return;
+      if (!livePodgladMql.matches) {
+        livePreviewFrame.style.removeProperty('width');
+        livePreviewFrame.style.removeProperty('height');
+        return;
+      }
+      const cardH = kreatorCard.getBoundingClientRect().height;
+      const colW = livePreviewWrap.clientWidth;
+      if (cardH <= 0 || colW <= 0) return;
+      const h = Math.min(cardH, colW * A4_PREVIEW_RATIO);
+      const w = h / A4_PREVIEW_RATIO;
+      livePreviewFrame.style.width = Math.round(w) + 'px';
+      livePreviewFrame.style.height = Math.round(h) + 'px';
+    }
+
+    function synchronizujWysokoscPodgladu() {
+      cancelAnimationFrame(previewHeightSyncRaf);
+      previewHeightSyncRaf = requestAnimationFrame(() => {
+        applyPreviewSize();
+        requestAnimationFrame(applyPreviewSize);
+      });
+    }
+
+    if (window.ResizeObserver) {
+      const previewSizeRo = new ResizeObserver(synchronizujWysokoscPodgladu);
+      if (kreatorCard) previewSizeRo.observe(kreatorCard);
+      if (livePreviewWrap) previewSizeRo.observe(livePreviewWrap);
+      if (kreatorLayout) previewSizeRo.observe(kreatorLayout);
+    }
+    window.addEventListener('resize', synchronizujWysokoscPodgladu);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', synchronizujWysokoscPodgladu);
+      window.visualViewport.addEventListener('scroll', synchronizujWysokoscPodgladu);
+    }
+    [
+      '(min-width: 1024px) and (max-width: 1365px)',
+      '(min-width: 1366px) and (max-width: 1919px)',
+      '(min-width: 1920px) and (max-width: 2559px)',
+      '(min-width: 2560px)',
+    ].forEach((query) => {
+      const mql = window.matchMedia(query);
+      if (mql.addEventListener) mql.addEventListener('change', synchronizujWysokoscPodgladu);
+      else if (mql.addListener) mql.addListener(synchronizujWysokoscPodgladu);
+    });
+    synchronizujWysokoscPodgladu();
 
     function pokazPlaceholderLive() {
       if (!activeFrame || !bufferFrame || !liveEmpty) return;
@@ -976,6 +1027,7 @@
     const livePodgladMqlHandler = () => {
       aktualizujTekstPrzyciskuGeneruj();
       aktualizujWidocznoscShareDesktop();
+      synchronizujWysokoscPodgladu();
       if (livePodgladMql.matches) {
         aktualizujLivePodglad();
       } else if (livePodgladAbort) {
@@ -2045,6 +2097,7 @@
       initViewTabs();
       aktualizujSzacowanyZysk();
       aktualizujLivePodglad();
+      synchronizujWysokoscPodgladu();
     });
 
     function initViewTabs() {
