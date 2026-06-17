@@ -3,23 +3,91 @@
     const btnGeneruj = document.getElementById('btn-generuj');
     const form = document.getElementById('oferta-form');
     const message = document.getElementById('message');
+    var accordionFormReady = false;
 
     const shareSupported = typeof navigator !== 'undefined'
       && typeof navigator.canShare === 'function'
       && typeof navigator.share === 'function';
 
     const STORAGE_KEY_THEME = 'sumit_theme';
+    const STORAGE_KEY_APP_PREFS = 'sumit_app_prefs';
+    const DEFAULT_VALIDITY_DAYS = 14;
+    const VALIDITY_DAY_OPTIONS = [7, 14, 30];
     const btnTheme = document.getElementById('btn-theme');
+    const btnThemeMobile = document.getElementById('btn-theme-mobile');
+    const themeButtons = [btnTheme, btnThemeMobile].filter(Boolean);
+
+    function wczytajPreferencjeMotywu() {
+      try {
+        const zapis = localStorage.getItem(STORAGE_KEY_THEME);
+        if (zapis === 'dark' || zapis === 'light') return zapis;
+      } catch (e) {}
+      return 'system';
+    }
+
+    function wczytajDomyslnaWaznoscDni() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_APP_PREFS);
+        if (!raw) return DEFAULT_VALIDITY_DAYS;
+        const dane = JSON.parse(raw);
+        const n = Number(dane && dane.defaultValidityDays);
+        if (VALIDITY_DAY_OPTIONS.includes(n)) return n;
+      } catch (e) {}
+      return DEFAULT_VALIDITY_DAYS;
+    }
+
+    function zapiszDomyslnaWaznoscDni(dni) {
+      if (!VALIDITY_DAY_OPTIONS.includes(dni)) return;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_APP_PREFS);
+        const dane = raw ? JSON.parse(raw) : {};
+        dane.defaultValidityDays = dni;
+        localStorage.setItem(STORAGE_KEY_APP_PREFS, JSON.stringify(dane));
+      } catch (e) {}
+    }
+
+    function ustawPreferencjeMotywu(pref) {
+      if (pref === 'system') {
+        try { localStorage.removeItem(STORAGE_KEY_THEME); } catch (e) {}
+        const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        ustawMotyw(dark ? 'dark' : 'light', false);
+        return;
+      }
+      ustawMotyw(pref === 'dark' ? 'dark' : 'light', true);
+    }
+
+    function odswiezChipyMotywuApp() {
+      const wrap = document.getElementById('app-settings-theme');
+      if (!wrap) return;
+      const pref = wczytajPreferencjeMotywu();
+      wrap.querySelectorAll('.chip[data-theme-pref]').forEach((chip) => {
+        const active = chip.getAttribute('data-theme-pref') === pref;
+        chip.classList.toggle('is-active', active);
+        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    function odswiezChipyWaznosciApp() {
+      const wrap = document.getElementById('app-settings-validity');
+      if (!wrap) return;
+      const dni = wczytajDomyslnaWaznoscDni();
+      wrap.querySelectorAll('.chip[data-validity-days]').forEach((chip) => {
+        const active = Number(chip.getAttribute('data-validity-days')) === dni;
+        chip.classList.toggle('is-active', active);
+        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
 
     function aktualnyMotyw() {
       return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     }
 
     function aktualizujOpisPrzeciskaMotywu(motyw) {
-      if (!btnTheme) return;
       const opis = motyw === 'dark' ? 'Włącz tryb jasny' : 'Włącz tryb ciemny';
-      btnTheme.setAttribute('aria-label', opis);
-      btnTheme.setAttribute('title', opis);
+      themeButtons.forEach((btn) => {
+        btn.setAttribute('aria-label', opis);
+        btn.setAttribute('title', opis);
+      });
     }
 
     function ustawMotyw(motyw, zapisz) {
@@ -33,11 +101,13 @@
 
     aktualizujOpisPrzeciskaMotywu(aktualnyMotyw());
 
-    if (btnTheme) {
-      btnTheme.addEventListener('click', () => {
-        ustawMotyw(aktualnyMotyw() === 'dark' ? 'light' : 'dark', true);
+    themeButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const nowy = aktualnyMotyw() === 'dark' ? 'light' : 'dark';
+        ustawMotyw(nowy, true);
+        odswiezChipyMotywuApp();
       });
-    }
+    });
 
     if (window.matchMedia) {
       const mql = window.matchMedia('(prefers-color-scheme: dark)');
@@ -46,6 +116,7 @@
         try { zapis = localStorage.getItem(STORAGE_KEY_THEME); } catch (err) {}
         if (zapis !== 'dark' && zapis !== 'light') {
           ustawMotyw(e.matches ? 'dark' : 'light', false);
+          odswiezChipyMotywuApp();
         }
       };
       if (mql.addEventListener) mql.addEventListener('change', handler);
@@ -114,6 +185,7 @@
         tr.remove();
         odswiezNumery();
         aktualizujSzacowanyZysk();
+        odswiezPodgladPozycjiAkordeon();
       });
       tr.querySelector('.btn-duplicate').addEventListener('click', () => duplikujWiersz(tr));
       tr.querySelector('.btn-calc').addEventListener('click', () => otworzKalkulator(tr));
@@ -129,6 +201,7 @@
       }
       tbody.appendChild(tr);
       odswiezNumery();
+      if (accordionFormReady) odswiezPodgladPozycjiAkordeon();
     }
 
     function duplikujWiersz(originalTr) {
@@ -228,6 +301,9 @@
       )) {
         aktualizujSzacowanyZysk();
       }
+      if (e.target.classList && e.target.classList.contains('in-nazwa')) {
+        odswiezPodgladPozycjiAkordeon();
+      }
     });
 
     btnDodaj.addEventListener('click', dodajWiersz);
@@ -235,10 +311,11 @@
     dodajWiersz();
     aktualizujSzacowanyZysk();
 
-    (function ustawDomyslnaDateWaznosci() {
+    (function ustawDomyslnaDateWaznosciPrzyStarcie() {
       const input = document.getElementById('data_waznosci');
+      if (!input || input.value) return;
       const d = new Date();
-      d.setDate(d.getDate() + 14);
+      d.setDate(d.getDate() + wczytajDomyslnaWaznoscDni());
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
@@ -867,7 +944,11 @@
 
     const settingsModal = document.getElementById('settings-modal');
     const settingsBackdrop = document.getElementById('settings-modal-backdrop');
+    const appSettingsModal = document.getElementById('app-settings-modal');
+    const appSettingsBackdrop = document.getElementById('app-settings-modal-backdrop');
+    const btnAppSettingsZamknij = document.getElementById('btn-app-settings-zamknij');
     const btnSettings = document.getElementById('btn-settings');
+    const btnSettingsMobile = document.getElementById('btn-settings-mobile');
     const btnCfgZamknij = document.getElementById('btn-cfg-zamknij');
     const btnCfgWyczysc = document.getElementById('btn-cfg-wyczysc');
     const settingsMessage = document.getElementById('settings-message');
@@ -1025,7 +1106,23 @@
       pokazKomunikatCfg('Wyczyszczono ustawienia firmy.', 'success');
     });
 
-    function otworzSettings() {
+    let settingsOpenedFromTab = false;
+    let lastViewTabId = 'view-kreator';
+
+    function otworzSettings(zTabu) {
+      settingsOpenedFromTab = !!zTabu;
+      if (settingsOpenedFromTab) {
+        const aktywny = document.querySelector('.view-tab.is-active[data-view-target]');
+        if (aktywny) {
+          lastViewTabId = aktywny.getAttribute('data-view-target') || 'view-kreator';
+        }
+        const tabUstawienia = document.getElementById('tab-ustawienia');
+        document.querySelectorAll('.view-tab').forEach((tab) => {
+          const active = tab === tabUstawienia;
+          tab.classList.toggle('is-active', active);
+          tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+      }
       wypelnijFormularzCfg();
       settingsModal.hidden = false;
       settingsModal.setAttribute('aria-hidden', 'false');
@@ -1042,14 +1139,96 @@
       settingsModal.hidden = true;
       settingsModal.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
+      if (settingsOpenedFromTab) {
+        settingsOpenedFromTab = false;
+        const tabUstawienia = document.getElementById('tab-ustawienia');
+        if (tabUstawienia) {
+          tabUstawienia.classList.remove('is-active');
+          tabUstawienia.setAttribute('aria-selected', 'false');
+        }
+        const restoreId = lastViewTabId || 'view-kreator';
+        document.querySelectorAll('.view-tab[data-view-target]').forEach((tab) => {
+          const active = tab.getAttribute('data-view-target') === restoreId;
+          tab.classList.toggle('is-active', active);
+          tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        document.querySelectorAll('.view').forEach((widok) => {
+          const active = widok.id === restoreId;
+          widok.classList.toggle('hidden', !active);
+          if (active) widok.removeAttribute('hidden');
+          else widok.setAttribute('hidden', '');
+        });
+        if (restoreId === 'view-statystyki') renderStatystyki();
+      }
     }
 
-    btnSettings.addEventListener('click', otworzSettings);
+    function odswiezChipyStatsOkresApp() {
+      const wrap = document.getElementById('app-settings-stats-okres');
+      if (!wrap) return;
+      const okres = wczytajOkresStat();
+      wrap.querySelectorAll('.chip[data-stats-okres]').forEach((chip) => {
+        const active = chip.getAttribute('data-stats-okres') === okres;
+        chip.classList.toggle('is-active', active);
+        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    function odswiezWszystkieChipyAppSettings() {
+      odswiezChipyMotywuApp();
+      odswiezChipyWaznosciApp();
+      odswiezChipyStatsOkresApp();
+    }
+
+    function otworzAppSettings() {
+      if (!appSettingsModal) return;
+      if (!settingsModal.hidden) zamknijSettings();
+      odswiezWszystkieChipyAppSettings();
+      appSettingsModal.hidden = false;
+      appSettingsModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function zamknijAppSettings() {
+      if (!appSettingsModal || appSettingsModal.hidden) return;
+      appSettingsModal.hidden = true;
+      appSettingsModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    if (btnSettings) btnSettings.addEventListener('click', () => otworzAppSettings());
+    if (btnSettingsMobile) {
+      btnSettingsMobile.addEventListener('click', () => otworzAppSettings());
+    }
     btnCfgZamknij.addEventListener('click', zamknijSettings);
     settingsBackdrop.addEventListener('click', zamknijSettings);
+    if (btnAppSettingsZamknij) btnAppSettingsZamknij.addEventListener('click', zamknijAppSettings);
+    if (appSettingsBackdrop) appSettingsBackdrop.addEventListener('click', zamknijAppSettings);
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !settingsModal.hidden) zamknijSettings();
+      if (e.key !== 'Escape') return;
+      if (appSettingsModal && !appSettingsModal.hidden) zamknijAppSettings();
+      else if (!settingsModal.hidden) zamknijSettings();
     });
+
+    const appSettingsTheme = document.getElementById('app-settings-theme');
+    if (appSettingsTheme) {
+      appSettingsTheme.addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip[data-theme-pref]');
+        if (!chip) return;
+        ustawPreferencjeMotywu(chip.getAttribute('data-theme-pref'));
+        odswiezChipyMotywuApp();
+      });
+    }
+
+    const appSettingsValidity = document.getElementById('app-settings-validity');
+    if (appSettingsValidity) {
+      appSettingsValidity.addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip[data-validity-days]');
+        if (!chip) return;
+        const dni = Number(chip.getAttribute('data-validity-days'));
+        zapiszDomyslnaWaznoscDni(dni);
+        odswiezChipyWaznosciApp();
+      });
+    }
 
     migrujStaryConfig();
 
@@ -1154,14 +1333,7 @@
     }
 
     function ustawDomyslnaDate() {
-      const input = document.getElementById('data_waznosci');
-      if (!input) return;
-      const d = new Date();
-      d.setDate(d.getDate() + 14);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      input.value = `${yyyy}-${mm}-${dd}`;
+      ustawDateZaDniOdDzis(wczytajDomyslnaWaznoscDni());
     }
 
     function wyczyscFormularz() {
@@ -1471,45 +1643,31 @@
 
     const accordionMql = window.matchMedia('(max-width: 1023px)');
 
-    function zmierzWysokoscAkordeonu(body) {
-      const prev = body.style.maxHeight;
-      body.style.maxHeight = 'none';
-      const h = body.scrollHeight;
-      body.style.maxHeight = prev;
-      return h;
-    }
-
     function ustawAkordeonOtwarty(section, otwarty) {
       const body = section.querySelector('.accordion-body');
       const header = section.querySelector('.accordion-header');
       if (!body) return;
 
+      body.style.maxHeight = '';
+
       if (!accordionMql.matches) {
         section.classList.add('is-open');
-        body.style.maxHeight = '';
         if (header) header.setAttribute('aria-expanded', 'true');
         return;
       }
 
       if (otwarty) {
         section.classList.add('is-open');
-        body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
         if (header) header.setAttribute('aria-expanded', 'true');
-        const klientSection = section.dataset.accordionId === 'klient';
-        if (klientSection) {
-          const preview = section.querySelector('.accordion-preview');
-          if (preview) preview.hidden = true;
-        }
+        const preview = section.querySelector('.accordion-preview');
+        if (preview) preview.hidden = true;
       } else {
-        const h = zmierzWysokoscAkordeonu(body);
-        body.style.maxHeight = h + 'px';
-        requestAnimationFrame(() => {
-          body.style.maxHeight = '0px';
-        });
         section.classList.remove('is-open');
         if (header) header.setAttribute('aria-expanded', 'false');
         if (section.dataset.accordionId === 'klient') {
           odswiezPodgladKlientaAkordeon();
+        } else if (section.dataset.accordionId === 'pozycje') {
+          odswiezPodgladPozycjiAkordeon();
         }
       }
     }
@@ -1542,6 +1700,41 @@
       }
     }
 
+    function odswiezPodgladPozycjiAkordeon() {
+      if (!accordionFormReady) return;
+      const section = document.querySelector('[data-accordion-id="pozycje"]');
+      if (!section) return;
+      const preview = section.querySelector('.accordion-preview');
+      if (!preview) return;
+
+      if (!accordionMql.matches || section.classList.contains('is-open')) {
+        preview.hidden = true;
+        preview.textContent = '';
+        return;
+      }
+
+      const nazwy = [...tbody.querySelectorAll('tr')]
+        .map(tr => (tr.querySelector('.in-nazwa')?.value || '').trim())
+        .filter(Boolean);
+
+      if (nazwy.length === 0) {
+        preview.textContent = '';
+        preview.hidden = true;
+        return;
+      }
+
+      if (nazwy.length === 1) {
+        preview.textContent = '\u2713 ' + nazwy[0];
+      } else {
+        const n = nazwy.length;
+        const mod10 = n % 10;
+        const mod100 = n % 100;
+        const odmiana = (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) ? 'pozycje' : 'pozycji';
+        preview.textContent = '\u2713 ' + n + ' ' + odmiana;
+      }
+      preview.hidden = false;
+    }
+
     function zwinKlientaJesliWypelniony() {
       if (!accordionMql.matches) return;
       const section = document.querySelector('[data-accordion-id="klient"]');
@@ -1557,23 +1750,16 @@
     function odswiezWszystkieAkordeony() {
       document.querySelectorAll('#oferta-form .accordion-section').forEach(section => {
         const body = section.querySelector('.accordion-body');
+        const header = section.querySelector('.accordion-header');
         if (!body) return;
+        body.style.maxHeight = '';
         if (!accordionMql.matches) {
           section.classList.add('is-open');
-          body.style.maxHeight = '';
-          const header = section.querySelector('.accordion-header');
           if (header) header.setAttribute('aria-expanded', 'true');
-          return;
-        }
-        const domyslnieOtwarty = section.dataset.accordionDefault === 'open';
-        const otwarty = section.classList.contains('is-open');
-        if (otwarty) {
-          body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
-        } else if (!body.style.maxHeight) {
-          body.style.maxHeight = domyslnieOtwarty ? zmierzWysokoscAkordeonu(body) + 'px' : '0px';
         }
       });
       odswiezPodgladKlientaAkordeon();
+      odswiezPodgladPozycjiAkordeon();
     }
 
     function initFormAccordions() {
@@ -1589,26 +1775,14 @@
         if (header) header.setAttribute('aria-expanded', domyslnieOtwarty ? 'true' : 'false');
 
         if (body) {
+          body.style.maxHeight = '';
           if (!accordionMql.matches) {
-            body.style.maxHeight = '';
             section.classList.add('is-open');
-          } else if (domyslnieOtwarty) {
-            body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
-          } else {
-            body.style.maxHeight = '0px';
           }
         }
 
         if (header) {
           header.addEventListener('click', () => przelaczAkordeon(section));
-        }
-
-        if (body && typeof ResizeObserver !== 'undefined') {
-          const ro = new ResizeObserver(() => {
-            if (!accordionMql.matches || !section.classList.contains('is-open')) return;
-            body.style.maxHeight = zmierzWysokoscAkordeonu(body) + 'px';
-          });
-          ro.observe(body);
         }
       });
 
@@ -1624,7 +1798,103 @@
           ustawAkordeonOtwarty(klientSection, false);
         }
       }
+      accordionFormReady = true;
       odswiezPodgladKlientaAkordeon();
+      odswiezPodgladPozycjiAkordeon();
+    }
+
+    function initMobileStickyHeader() {
+      const chrome = document.getElementById('mobile-chrome');
+      const mql = window.matchMedia('(max-width: 1023px)');
+      if (!chrome) return;
+
+      let ticking = false;
+      function odswiez() {
+        if (!mql.matches) {
+          chrome.classList.remove('is-scrolled');
+          return;
+        }
+        const y = window.scrollY || document.documentElement.scrollTop || 0;
+        chrome.classList.toggle('is-scrolled', y > 6);
+      }
+
+      function onScroll() {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          odswiez();
+          ticking = false;
+        });
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      mql.addEventListener('change', odswiez);
+      odswiez();
+    }
+
+    function initMobileAiSheet() {
+      const fab = document.getElementById('btn-ai-fab');
+      const modal = document.getElementById('ai-input-modal');
+      const backdrop = document.getElementById('ai-input-modal-backdrop');
+      const closeBtn = document.getElementById('btn-ai-sheet-close');
+      const notatka = document.getElementById('ai-notatka');
+      const mql = window.matchMedia('(max-width: 1023px)');
+      if (!modal) return;
+
+      function zamknij() {
+        if (!mql.matches) return;
+        modal.classList.remove('is-open');
+        modal.classList.add('hidden');
+        modal.setAttribute('hidden', '');
+        modal.setAttribute('aria-hidden', 'true');
+        if (!document.querySelector('.modal:not(.hidden):not([hidden])')) {
+          document.body.style.overflow = '';
+        }
+      }
+
+      function otworz() {
+        if (!mql.matches) return;
+        modal.classList.remove('hidden');
+        modal.removeAttribute('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        requestAnimationFrame(() => {
+          modal.classList.add('is-open');
+          notatka?.focus();
+        });
+        document.body.style.overflow = 'hidden';
+      }
+
+      function syncAiSheetLayout() {
+        if (!mql.matches) {
+          modal.classList.remove('is-open', 'hidden');
+          modal.removeAttribute('hidden');
+          modal.setAttribute('aria-hidden', 'false');
+          return;
+        }
+        if (!modal.classList.contains('is-open')) {
+          modal.classList.add('hidden');
+          modal.setAttribute('hidden', '');
+          modal.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      fab?.addEventListener('click', otworz);
+      backdrop?.addEventListener('click', zamknij);
+      closeBtn?.addEventListener('click', zamknij);
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+          zamknij();
+        }
+      });
+
+      mql.addEventListener('change', () => {
+        syncAiSheetLayout();
+      });
+
+      syncAiSheetLayout();
+
+      window.zamknijAiInputSheet = zamknij;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -1637,6 +1907,8 @@
 
       initFormAccordions();
       initAiQuickInput();
+      initMobileStickyHeader();
+      initMobileAiSheet();
 
       form.addEventListener('input', saveDraftDebounced);
       btnDodaj.addEventListener('click', saveDraftDebounced);
@@ -1660,7 +1932,8 @@
 
     function initViewTabs() {
       const tabs = document.querySelectorAll('.view-tab[data-view-target]');
-      if (!tabs.length) return;
+      const actionTabs = document.querySelectorAll('.view-tab[data-tab-action]');
+      if (!tabs.length && !actionTabs.length) return;
 
       const widoki = new Map();
       tabs.forEach(tab => {
@@ -1670,6 +1943,12 @@
       });
 
       function aktywuj(targetId) {
+        settingsOpenedFromTab = false;
+        lastViewTabId = targetId;
+        document.querySelectorAll('.view-tab[data-tab-action]').forEach((tab) => {
+          tab.classList.remove('is-active');
+          tab.setAttribute('aria-selected', 'false');
+        });
         tabs.forEach(tab => {
           const aktywny = tab.getAttribute('data-view-target') === targetId;
           tab.classList.toggle('is-active', aktywny);
@@ -1693,6 +1972,13 @@
         tab.addEventListener('click', () => {
           const targetId = tab.getAttribute('data-view-target');
           if (targetId) aktywuj(targetId);
+        });
+      });
+
+      actionTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const action = tab.getAttribute('data-tab-action');
+          if (action === 'settings') otworzSettings(true);
         });
       });
     }
@@ -1975,7 +2261,7 @@
       if (btnAiPhoto) btnAiPhoto.disabled = loading;
       if (btnAiPhotoRemove) btnAiPhotoRemove.disabled = loading;
       if (btnAiParseLabel) {
-        btnAiParseLabel.textContent = loading ? 'Przetwarzam…' : 'Przetwórz tekst';
+        btnAiParseLabel.textContent = loading ? 'Przygotowuję…' : 'Pokaż propozycję';
       }
       if (btnAiParseSpinner) {
         btnAiParseSpinner.hidden = !loading;
@@ -2092,6 +2378,9 @@
     }
 
     function pokazPodgladAi(items) {
+      if (typeof window.zamknijAiInputSheet === 'function') {
+        window.zamknijAiInputSheet();
+      }
       if (!modalAiPreview || !aiPreviewTbody) return;
       aiPendingItems = items.slice();
 
@@ -2269,7 +2558,7 @@
 
       const tekst = aiNotatka ? aiNotatka.value.trim() : '';
       if (!tekst && !aiPhotoPayload) {
-        ustawAiParseStatus('Wklej notatkę, podyktuj lub dodaj zdjęcie przed przetwarzaniem.', 'error');
+        ustawAiParseStatus('Dodaj tekst, dyktuj lub zdjęcie notatki przed przetwarzaniem.', 'error');
         return;
       }
 
@@ -3016,6 +3305,24 @@
 
     function zapiszOkresStat(okres) {
       try { localStorage.setItem(STATS_OKRES_KEY, okres); } catch (e) {}
+    }
+
+    function initAppSettingsStatsChips() {
+      const wrap = document.getElementById('app-settings-stats-okres');
+      if (!wrap || wrap.dataset.bound === '1') return;
+      wrap.dataset.bound = '1';
+      wrap.addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip[data-stats-okres]');
+        if (!chip) return;
+        const okres = chip.getAttribute('data-stats-okres');
+        if (!STATS_OKRESY.some((o) => o.id === okres)) return;
+        zapiszOkresStat(okres);
+        odswiezChipyStatsOkresApp();
+        const widokStat = document.getElementById('view-statystyki');
+        if (widokStat && !widokStat.classList.contains('hidden') && !widokStat.hasAttribute('hidden')) {
+          renderStatystyki(okres);
+        }
+      });
     }
 
     function filtrujHistoriePoOkresie(lista, okres) {
@@ -3950,3 +4257,46 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !kalkulatorModal.hidden) zamknijKalkulator();
     });
+
+    initAppSettingsStatsChips();
+
+    const btnAppOpenCompany = document.getElementById('btn-app-open-company');
+    const btnAppOpenHistory = document.getElementById('btn-app-open-history');
+    const btnAppOpenCatalog = document.getElementById('btn-app-open-catalog');
+    const btnAppWyczyscSzkic = document.getElementById('btn-app-wyczysc-szkic');
+    const btnAppWyczyscHistorie = document.getElementById('btn-app-wyczysc-historie');
+
+    if (btnAppOpenCompany) {
+      btnAppOpenCompany.addEventListener('click', () => {
+        zamknijAppSettings();
+        otworzSettings(false);
+      });
+    }
+    if (btnAppOpenHistory) {
+      btnAppOpenHistory.addEventListener('click', () => {
+        zamknijAppSettings();
+        otworzHistorie();
+      });
+    }
+    if (btnAppOpenCatalog) {
+      btnAppOpenCatalog.addEventListener('click', () => {
+        zamknijAppSettings();
+        otworzKatalog();
+      });
+    }
+    if (btnAppWyczyscSzkic) {
+      btnAppWyczyscSzkic.addEventListener('click', () => {
+        const ok = window.confirm('Wyczyścić bieżącą wycenę? Pola formularza wrócą do wartości domyślnych.');
+        if (!ok) return;
+        wyczyscFormularz();
+      });
+    }
+    if (btnAppWyczyscHistorie) {
+      btnAppWyczyscHistorie.addEventListener('click', () => {
+        const ok = window.confirm('Wyczyścić całą historię wycen? Tej operacji nie można cofnąć.');
+        if (!ok) return;
+        zapiszHistorie([]);
+        renderujHistorie();
+        renderStatystyki();
+      });
+    }

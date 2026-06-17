@@ -13,7 +13,9 @@
 - assets/fonts/      — wbudowane TTF (Liberation Sans Regular + Bold)
 - static/index.html  — markup + JS aplikacji klienckiej (vanilla)
 - static/style.css   — wszystkie style aplikacji (wydzielone z `<style>` w index.html)
-- static/sumit-logo.png — logo aplikacji
+- static/sumit-logo.png — logo aplikacji (ryba + napis, header)
+- static/sumit-fish.png — ryba bez napisu (źródło do generowania ikon PWA/favicon)
+- static/icons/ — favicon-16.png, favicon-32.png, pwa-192.png, pwa-512.png
 - static/readme-banner.png — banner do README
 
 ## Pliki kontekstowe (gitignored)

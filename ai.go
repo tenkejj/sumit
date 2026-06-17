@@ -31,16 +31,19 @@ var groqAPIEndpoint = groqAPIURL
 
 var httpClientGroq = &http.Client{Timeout: 30 * time.Second}
 
-const parseSystemPrompt = `Jesteś ścisłym parserem kosztorysów budowlanych. Twoim jedynym zadaniem jest wyodrębnienie pozycji z tekstu lub zdjęcia notatki użytkownika.
+const parseSystemPrompt = `Jesteś parserem pozycji wyceny/oferty. Wyodrębnij z tekstu lub zdjęcia notatki użytkownika WSZYSTKIE pozycje do wyceny — dowolne produkty, usługi, materiały lub inne wpisy, bez względu na branżę.
 
 ZASADY:
-- Ignoruj tekst poboczny, komentarze, nagłówki, stopki i wszelkie treści niebędące pozycjami kosztorysu.
-- Przy zdjęciu notatki: odczytaj odręczny lub drukowany tekst (OCR), zignoruj tło i elementy niebędące pozycjami.
-- Przed wygenerowaniem formatu JSON, dokonaj pełnej korekty ortograficznej wykrytych nazw materiałów i usług. Upewnij się, że każda nazwa pozycji zaczyna się od wielkiej litery i brzmi profesjonalnie w kontekście formalnego kosztorysu. Jednostki (np. m, szt.) pozostaw z małej litery.
+- Każda linia lub fraza opisująca coś do wyceny to osobna pozycja.
+- Nie odrzucaj pozycji tylko dlatego, że nie brzmią jak materiał budowlany — użytkownik może wpisać cokolwiek (np. własną nazwę usługi, produkt spoza katalogu).
+- Opcjonalna lista kontekstu to tylko podpowiedź przy literówkach i brakujących cenach — NIE ogranicza tego, co można dodać.
+- Przy zdjęciu notatki: odczytaj odręczny lub drukowany tekst (OCR), zignoruj tło.
+- Nazwa: zachowaj sens użytkownika; popraw oczywiste literówki; pierwsza litera wielka. Jednostki (np. m, szt.) zostaw z małej litery.
+- Ilość: gdy użytkownik nie poda ilości, ustaw 1.
+- Cena jednostkowa w zł: rozpoznaj formy „za 50 zł”, „50zł”, „50 zl”; gdy brak ceny, ustaw 0.
 - Zwróć WYŁĄCZNIE surową tablicę JSON bez żadnego dodatkowego tekstu przed ani po tablicy.
 - ZAKAZ używania znaczników Markdown (np. ` + "```json" + ` lub ` + "```" + `).
 - Każdy element tablicy musi mieć dokładnie pola: "nazwa" (string), "ilosc" (number), "cena" (number).
-- "cena" to cena jednostkowa w złotych; gdy cena nie jest podana w notatce, ustaw "cena": 0.
 - Jeśli nie ma pozycji, zwróć pustą tablicę [].`
 
 type parseRequest struct {
@@ -189,6 +192,9 @@ func postProcessParseItems(items []parseItem) []parseItem {
 	out := make([]parseItem, 0, len(items))
 	for _, item := range items {
 		item.Nazwa = normalizeNazwa(item.Nazwa)
+		if item.Ilosc <= 0 && item.Nazwa != "" {
+			item.Ilosc = 1
+		}
 		if !isValidParseItem(item) {
 			continue
 		}
@@ -228,7 +234,7 @@ func buildUserMessage(in parseRequest) string {
 	var b strings.Builder
 	kontekst := sanitizeKontekst(in.Kontekst)
 	if len(kontekst) > 0 {
-		b.WriteString("ZNANE POZYCJE UŻYTKOWNIKA (użyj do dopasowania nazw; gdy brak ceny w notatce — podstaw typową cenę z kontekstu):\n")
+		b.WriteString("ZNANE POZYCJE UŻYTKOWNIKA (opcjonalna podpowiedź — użyj do literówek i uzupełnienia brakującej ceny; NIE odrzucaj pozycji spoza tej listy):\n")
 		for _, nazwa := range kontekst {
 			b.WriteString("- ")
 			b.WriteString(nazwa)
