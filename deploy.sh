@@ -13,7 +13,7 @@ fi
 
 readonly REMOTE_APP_DIR="/opt/sumit"
 readonly BINARY_NAME="sumit"
-readonly PROD_ENV_KEYS=(GEMINI_API_KEY)
+readonly PROD_ENV_KEYS=(GROQ_API_KEY)
 
 write_env_prod() {
   local dest="${SCRIPT_DIR}/.env.prod"

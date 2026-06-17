@@ -22,14 +22,14 @@ const (
 	parseRatePerMin     = 10
 	parseMaxKontekst    = 30
 	parseMaxKontekstLen = 120
-	geminiModel         = "gemini-2.5-flash"
-	geminiAPIBaseURL      = "https://generativelanguage.googleapis.com/v1beta/models"
+	groqModel   = "llama-3.3-70b-versatile"
+	groqAPIURL  = "https://api.groq.com/openai/v1/chat/completions"
 )
 
-// geminiAPIBaseURL pozwala podmienić endpoint Gemini w testach.
-var geminiAPIBase = geminiAPIBaseURL
+// groqAPIEndpoint pozwala podmienić endpoint Groq w testach.
+var groqAPIEndpoint = groqAPIURL
 
-var httpClientGemini = &http.Client{Timeout: 30 * time.Second}
+var httpClientGroq = &http.Client{Timeout: 30 * time.Second}
 
 const parseSystemPrompt = `Jesteś ścisłym parserem kosztorysów budowlanych. Twoim jedynym zadaniem jest wyodrębnienie pozycji z tekstu lub zdjęcia notatki użytkownika.
 
@@ -42,19 +42,6 @@ ZASADY:
 - Każdy element tablicy musi mieć dokładnie pola: "nazwa" (string), "ilosc" (number), "cena" (number).
 - "cena" to cena jednostkowa w złotych; gdy cena nie jest podana w notatce, ustaw "cena": 0.
 - Jeśli nie ma pozycji, zwróć pustą tablicę [].`
-
-var parseResponseSchema = map[string]any{
-	"type": "array",
-	"items": map[string]any{
-		"type": "object",
-		"properties": map[string]any{
-			"nazwa": map[string]any{"type": "string"},
-			"ilosc": map[string]any{"type": "number"},
-			"cena":  map[string]any{"type": "number"},
-		},
-		"required": []string{"nazwa", "ilosc", "cena"},
-	},
-}
 
 type parseRequest struct {
 	Tekst    string   `json:"tekst"`
@@ -69,45 +56,33 @@ type parseItem struct {
 	Cena  float64 `json:"cena"`
 }
 
-type geminiGenerateRequest struct {
-	SystemInstruction *geminiContent         `json:"systemInstruction,omitempty"`
-	Contents          []geminiContent        `json:"contents"`
-	GenerationConfig  geminiGenerationConfig `json:"generationConfig"`
+type groqChatRequest struct {
+	Model       string         `json:"model"`
+	Messages    []groqMessage  `json:"messages"`
+	Temperature float64        `json:"temperature"`
 }
 
-type geminiContent struct {
-	Parts []geminiPart `json:"parts"`
+type groqMessage struct {
+	Role    string `json:"role"`
+	Content any    `json:"content"`
 }
 
-type geminiInlineData struct {
-	MimeType string `json:"mime_type"`
-	Data     string `json:"data"`
+type groqContentPart struct {
+	Type     string       `json:"type"`
+	Text     string       `json:"text,omitempty"`
+	ImageURL *groqImageURL `json:"image_url,omitempty"`
 }
 
-type geminiPart struct {
-	Text       string            `json:"text,omitempty"`
-	InlineData *geminiInlineData `json:"inline_data,omitempty"`
+type groqImageURL struct {
+	URL string `json:"url"`
 }
 
-type geminiGenerationConfig struct {
-	Temperature      float64               `json:"temperature"`
-	ResponseMimeType string                `json:"responseMimeType"`
-	ResponseSchema   map[string]any        `json:"responseSchema,omitempty"`
-	ThinkingConfig   *geminiThinkingConfig `json:"thinkingConfig,omitempty"`
-}
-
-type geminiThinkingConfig struct {
-	ThinkingBudget int `json:"thinkingBudget"`
-}
-
-type geminiGenerateResponse struct {
-	Candidates []struct {
-		Content struct {
-			Parts []struct {
-				Text string `json:"text"`
-			} `json:"parts"`
-		} `json:"content"`
-	} `json:"candidates"`
+type groqChatResponse struct {
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
@@ -289,48 +264,48 @@ func validateImageInput(obraz, mimeType string) error {
 	return nil
 }
 
-func buildGeminiParts(in parseRequest) ([]geminiPart, error) {
-	parts := make([]geminiPart, 0, 2)
-	if strings.TrimSpace(in.Obraz) != "" {
+func buildGroqUserContent(in parseRequest) (any, error) {
+	userMsg := buildUserMessage(in)
+	hasObraz := strings.TrimSpace(in.Obraz) != ""
+	if hasObraz {
 		if err := validateImageInput(in.Obraz, in.MimeType); err != nil {
 			return nil, err
 		}
-		parts = append(parts, geminiPart{
-			InlineData: &geminiInlineData{
-				MimeType: strings.TrimSpace(strings.ToLower(in.MimeType)),
-				Data:     strings.TrimSpace(in.Obraz),
-			},
-		})
 	}
-	userMsg := buildUserMessage(in)
+	if !hasObraz {
+		if userMsg == "" {
+			return nil, fmt.Errorf("brak treści do przetworzenia")
+		}
+		return userMsg, nil
+	}
+
+	mimeType := strings.TrimSpace(strings.ToLower(in.MimeType))
+	dataURI := "data:" + mimeType + ";base64," + strings.TrimSpace(in.Obraz)
+	parts := []groqContentPart{
+		{
+			Type:     "image_url",
+			ImageURL: &groqImageURL{URL: dataURI},
+		},
+	}
 	if userMsg != "" {
-		parts = append(parts, geminiPart{Text: userMsg})
-	}
-	if len(parts) == 0 {
-		return nil, fmt.Errorf("brak treści do przetworzenia")
+		parts = append(parts, groqContentPart{Type: "text", Text: userMsg})
 	}
 	return parts, nil
 }
 
-func callGeminiParse(ctx context.Context, apiKey string, in parseRequest) ([]parseItem, error) {
-	parts, err := buildGeminiParts(in)
+func callGroqParse(ctx context.Context, apiKey string, in parseRequest) ([]parseItem, error) {
+	userContent, err := buildGroqUserContent(in)
 	if err != nil {
 		return nil, err
 	}
 
-	reqBody := geminiGenerateRequest{
-		SystemInstruction: &geminiContent{
-			Parts: []geminiPart{{Text: parseSystemPrompt}},
+	reqBody := groqChatRequest{
+		Model: groqModel,
+		Messages: []groqMessage{
+			{Role: "system", Content: parseSystemPrompt},
+			{Role: "user", Content: userContent},
 		},
-		Contents: []geminiContent{
-			{Parts: parts},
-		},
-		GenerationConfig: geminiGenerationConfig{
-			Temperature:      0,
-			ResponseMimeType: "application/json",
-			ResponseSchema:   parseResponseSchema,
-			ThinkingConfig:   &geminiThinkingConfig{ThinkingBudget: 0},
-		},
+		Temperature: 0,
 	}
 
 	payload, err := json.Marshal(reqBody)
@@ -338,17 +313,16 @@ func callGeminiParse(ctx context.Context, apiKey string, in parseRequest) ([]par
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/%s:generateContent", geminiAPIBase, geminiModel)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, groqAPIEndpoint, bytes.NewReader(payload))
 	if err != nil {
 		return nil, fmt.Errorf("new request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-goog-api-key", apiKey)
+	req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	resp, err := httpClientGemini.Do(req)
+	resp, err := httpClientGroq.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("gemini request: %w", err)
+		return nil, fmt.Errorf("groq request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -358,22 +332,22 @@ func callGeminiParse(ctx context.Context, apiKey string, in parseRequest) ([]par
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		var env geminiGenerateResponse
+		var env groqChatResponse
 		if json.Unmarshal(body, &env) == nil && env.Error != nil && env.Error.Message != "" {
-			return nil, fmt.Errorf("gemini status %d: %s", resp.StatusCode, env.Error.Message)
+			return nil, fmt.Errorf("groq status %d: %s", resp.StatusCode, env.Error.Message)
 		}
-		return nil, fmt.Errorf("gemini status %d", resp.StatusCode)
+		return nil, fmt.Errorf("groq status %d", resp.StatusCode)
 	}
 
-	var gen geminiGenerateResponse
+	var gen groqChatResponse
 	if err := json.Unmarshal(body, &gen); err != nil {
-		return nil, fmt.Errorf("decode gemini: %w", err)
+		return nil, fmt.Errorf("decode groq: %w", err)
 	}
-	if len(gen.Candidates) == 0 || len(gen.Candidates[0].Content.Parts) == 0 {
-		return nil, fmt.Errorf("empty gemini response")
+	if len(gen.Choices) == 0 || gen.Choices[0].Message.Content == "" {
+		return nil, fmt.Errorf("empty groq response")
 	}
 
-	raw := stripMarkdownJSON(gen.Candidates[0].Content.Parts[0].Text)
+	raw := stripMarkdownJSON(gen.Choices[0].Message.Content)
 	var items []parseItem
 	if err := json.Unmarshal([]byte(raw), &items); err != nil {
 		return nil, fmt.Errorf("decode items: %w", err)
@@ -403,7 +377,7 @@ func sanitizeParseRequest(in *parseRequest) error {
 	return nil
 }
 
-// handleParse proxy do Gemini API — parsuje notatkę tekstową lub zdjęcie na pozycje kosztorysu.
+// handleParse proxy do Groq API — parsuje notatkę tekstową lub zdjęcie na pozycje kosztorysu.
 // POST /api/parse {"tekst": "...", "kontekst": [...], "obraz": "...", "mime_type": "image/jpeg"}
 func handleParse(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -411,7 +385,7 @@ func handleParse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiKey := strings.TrimSpace(os.Getenv("GEMINI_API_KEY"))
+	apiKey := strings.TrimSpace(os.Getenv("GROQ_API_KEY"))
 	if apiKey == "" {
 		writeParseError(w, http.StatusServiceUnavailable, "Usługa parsowania AI jest tymczasowo niedostępna")
 		return
@@ -455,7 +429,7 @@ func handleParse(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
-	items, err := callGeminiParse(ctx, apiKey, in)
+	items, err := callGroqParse(ctx, apiKey, in)
 	if err != nil {
 		if strings.Contains(err.Error(), "no valid items") {
 			writeParseError(w, http.StatusBadRequest, "nie znaleziono poprawnych pozycji w notatce")

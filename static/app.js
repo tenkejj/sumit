@@ -2288,12 +2288,25 @@
       }
 
       try {
-        const resp = await fetch('/api/parse', {
+        let retried429 = false;
+        let resp = await fetch('/api/parse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
           signal: aiParseController.signal,
         });
+
+        if (resp.status === 429 && !retried429) {
+          ustawAiParseStatus('Przeciążenie serwera, ponawiam...');
+          await new Promise(function (resolve) { setTimeout(resolve, 2000); });
+          retried429 = true;
+          resp = await fetch('/api/parse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: aiParseController.signal,
+          });
+        }
 
         let dane = null;
         try {
