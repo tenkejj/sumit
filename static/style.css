@@ -3053,8 +3053,12 @@
         display: block;
       }
 
-      .mobile-chrome-signature {
-        display: none;
+      .page-signature--form {
+        display: none !important;
+      }
+
+      #view-kreator > .page-signature {
+        display: flex !important;
       }
 
       .page-nav-row.header-toolbar,

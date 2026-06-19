@@ -57,7 +57,8 @@
 #oferta-form > .accordion-section[data-accordion-id="klient"] { order: 2; }
 #oferta-form > .accordion-section[data-accordion-id="szczegoly"] { order: 3; }
 #oferta-form > .accordion-section[data-accordion-id="uwagi"] { order: 4; }
-#oferta-form > #message { order: 5; }
+#oferta-form > .page-signature--form { order: 5; }
+#oferta-form > #message { order: 6; }
 
 /* === Header: sticky logo + blur przy scrollu === */
 .page {
@@ -269,24 +270,6 @@ body[data-active-view="view-statystyki"] #view-statystyki {
   display: none;
 }
 
-.mobile-chrome-signature {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  grid-column: 1 / -1;
-  margin: 2px 0 0;
-  padding: 0;
-  font-size: 11px;
-  letter-spacing: 0.03em;
-  color: var(--text-muted);
-  line-height: 1;
-}
-
-.page.is-viewer-mode .mobile-chrome-signature {
-  display: none;
-}
-
 /* Desktopowe akcje w page-nav-row — zawsze ukryte na mobile (nadpisuje reguły .header-actions poniżej) */
 .page-nav-row.header-toolbar > .header-actions {
   display: none !important;
@@ -413,9 +396,31 @@ body[data-active-view="view-statystyki"] #view-statystyki {
   box-shadow: none !important;
 }
 
-/* Podpis w widokach — tylko desktop (mobile: pod logo) */
-.view > .page-signature {
+/* Podpis — w flow treści (mobile: koniec formularza; firma/statystyki: pod layoutem) */
+#view-kreator > .page-signature {
   display: none !important;
+}
+
+#oferta-form > .page-signature--form,
+.view > .page-signature {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0 var(--pad) 4px;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  position: static;
+  width: 100%;
+  pointer-events: none;
+}
+
+#oferta-form > .page-signature--form {
+  margin-top: 4px;
+  padding-top: 8px;
+  padding-left: var(--pad);
+  padding-right: var(--pad);
 }
 
 .page-signature-mark {
