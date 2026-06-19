@@ -597,6 +597,12 @@ body[data-active-view="view-statystyki"] #view-statystyki:not(.hidden):not([hidd
   margin-top: 0;
 }
 
+#accordion-body-szczegoly .ksef-hint {
+  margin: var(--space-2) 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 #oferta-form .accordion-section[data-accordion-id="szczegoly"].is-open .accordion-body {
   padding-top: var(--space-1);
 }
