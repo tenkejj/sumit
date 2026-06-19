@@ -24,25 +24,6 @@ var fontRegular []byte
 //go:embed assets/fonts/LiberationSans-Bold.ttf
 var fontBold []byte
 
-const watermarkAuthor = "Franciszek Dranka"
-
-func drawPDFWatermark(pdf *fpdf.Fpdf, family string) {
-	const pageW, pageH = 210.0, 297.0
-
-	pdf.SetAlpha(0.07, "Normal")
-	pdf.SetFont(family, "B", 44)
-	pdf.SetTextColor(140, 140, 140)
-
-	tw := pdf.GetStringWidth(watermarkAuthor)
-	pdf.TransformBegin()
-	pdf.TransformRotate(35, pageW/2, pageH/2)
-	pdf.Text((pageW-tw)/2, pageH/2, watermarkAuthor)
-	pdf.TransformEnd()
-
-	pdf.SetAlpha(1, "Normal")
-	pdf.SetTextColor(10, 10, 10)
-}
-
 func GeneratePDF(q Quote, w io.Writer) error {
 	const family = "LiberationSans"
 
@@ -52,9 +33,6 @@ func GeneratePDF(q Quote, w io.Writer) error {
 	pdf.SetFont(family, "", 11)
 	pdf.SetMargins(15, 15, 15)
 	pdf.SetAutoPageBreak(true, 18)
-	pdf.SetHeaderFunc(func() {
-		drawPDFWatermark(pdf, family)
-	})
 	pdf.AddPage()
 
 	const (
@@ -457,11 +435,6 @@ func GeneratePDF(q Quote, w io.Writer) error {
 				"Dziękujemy za zainteresowanie naszą ofertą.",
 			"", "L", false)
 	}
-
-	pdf.Ln(4)
-	pdf.SetFont(family, "", 7)
-	pdf.SetTextColor(180, 180, 180)
-	pdf.CellFormat(0, 4, "SumIt · "+watermarkAuthor, "", 0, "C", false, 0, "")
 
 	return pdf.Output(w)
 }

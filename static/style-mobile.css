@@ -369,8 +369,9 @@ body {
   box-shadow: none !important;
 }
 
-.footer {
-  display: none;
+.page-signature {
+  margin-top: 24px;
+  padding-bottom: 12px;
 }
 
 #btn-udostepnij-pdf-desktop {
@@ -1865,8 +1866,9 @@ select {
     padding-right: 16px;
   }
 
-  .footer {
-    display: none;
+  .page-signature {
+    margin-top: 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 
   .row {

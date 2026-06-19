@@ -10,8 +10,7 @@
       && typeof navigator.share === 'function';
 
     const STORAGE_KEY_SOURCE = 'sumit_source';
-    const WATERMARK_AUTHOR = 'Franciszek Dranka';
-    const WATERMARK_BYLINE = 'SumIt · ' + WATERMARK_AUTHOR;
+    const PAGE_SIGNATURE = 'Franciszek Dranka';
 
     (function initTrackingSource() {
       try {
@@ -5317,7 +5316,7 @@
       card.appendChild(akceptacjaWrap);
 
       container.appendChild(card);
-      container.appendChild(el('p', 'klient-viewer-footer', 'Wygenerowano przez ' + WATERMARK_BYLINE));
+      container.appendChild(el('p', 'page-signature klient-viewer-footer', PAGE_SIGNATURE));
 
       window._klientViewerDane = dane;
 
