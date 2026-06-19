@@ -1207,7 +1207,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
       width: 100%;
       margin-top: 16px;
       padding-bottom: 4px;
@@ -1217,11 +1217,24 @@
       font-weight: 400;
     }
 
-    .page-signature-icon {
-      width: 12px;
-      height: 12px;
-      opacity: 0.55;
+    .page-signature-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      font-size: 8px;
+      font-weight: 600;
+      line-height: 1;
+      color: #6b7280;
+      border: 1px solid color-mix(in srgb, #6b7280 35%, transparent);
+      border-radius: 2px;
+      opacity: 0.8;
       flex-shrink: 0;
+    }
+
+    .page-signature-name {
+      color: #6b7280;
     }
 
     .modal {

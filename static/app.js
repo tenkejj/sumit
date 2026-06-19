@@ -16,17 +16,23 @@
       const p = document.createElement('p');
       p.className = extraClass ? 'page-signature ' + extraClass : 'page-signature';
       p.setAttribute('aria-hidden', 'true');
-      const img = document.createElement('img');
-      img.src = '/static/sumit-fish.png';
-      img.alt = '';
-      img.className = 'page-signature-icon';
-      img.width = 12;
-      img.height = 12;
-      const span = document.createElement('span');
-      span.textContent = PAGE_SIGNATURE;
-      p.appendChild(img);
-      p.appendChild(span);
+      const mark = document.createElement('span');
+      mark.className = 'page-signature-mark';
+      mark.textContent = '™';
+      const name = document.createElement('span');
+      name.className = 'page-signature-name';
+      name.textContent = PAGE_SIGNATURE;
+      p.appendChild(mark);
+      p.appendChild(name);
       return p;
+    }
+
+    function zachowajPozycjeScroll(fn) {
+      const y = window.scrollY || document.documentElement.scrollTop || 0;
+      fn();
+      requestAnimationFrame(() => {
+        window.scrollTo(0, y);
+      });
     }
 
     (function initTrackingSource() {
@@ -484,21 +490,23 @@
       const target = String(text).trim();
       if (!target) return;
 
-      const lines = presetLines();
-      const idx = lines.findIndex(l => l.trim() === target);
+      zachowajPozycjeScroll(() => {
+        const lines = presetLines();
+        const idx = lines.findIndex(l => l.trim() === target);
 
-      if (idx !== -1) {
-        lines.splice(idx, 1);
-        while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();
-        uwagiTextarea.value = lines.join('\n');
-      } else {
-        const current = uwagiTextarea.value;
-        const sep = current && !current.endsWith('\n') ? '\n' : '';
-        uwagiTextarea.value = current + sep + target;
-      }
+        if (idx !== -1) {
+          lines.splice(idx, 1);
+          while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();
+          uwagiTextarea.value = lines.join('\n');
+        } else {
+          const current = uwagiTextarea.value;
+          const sep = current && !current.endsWith('\n') ? '\n' : '';
+          uwagiTextarea.value = current + sep + target;
+        }
 
-      uwagiTextarea.dispatchEvent(new Event('input', { bubbles: true }));
-      odswiezStanPresetow();
+        uwagiTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+        odswiezStanPresetow();
+      });
     }
 
     function odswiezStanPresetow() {
@@ -2159,7 +2167,7 @@
         return;
       }
 
-      const animuj = animacjeWlaczone();
+      const animuj = animacjeWlaczone() && !accordionMql.matches;
 
       if (otwarty) {
         if (section.classList.contains('is-open') && body.style.maxHeight === 'none') return;

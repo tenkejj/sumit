@@ -3,8 +3,10 @@
 
 :root {
   --touch-min: 44px;
-  --tab-bar-h: 52px;
-  --cta-bar-h: 72px;
+  --tab-bar-h: 56px;
+  --cta-bar-h: 68px;
+  --signature-h: 20px;
+  --chrome-gap: 8px;
   --pad: 20px;
   --content-pad-x: var(--pad);
   --space-1: 8px;
@@ -34,7 +36,11 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-bottom: calc(var(--cta-bar-h) + var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  overflow-anchor: none;
+  padding-bottom: calc(
+    var(--cta-bar-h) + var(--tab-bar-h) + var(--signature-h) +
+    env(safe-area-inset-bottom, 0px) + var(--chrome-gap) + 8px
+  );
 }
 
 #oferta-form > .accordion-section[data-accordion-id="pozycje"] { order: 1; }
@@ -54,6 +60,7 @@
 
 html {
   overflow-x: clip;
+  overflow-anchor: none;
 }
 
 body {
@@ -370,8 +377,68 @@ body {
 }
 
 .page-signature {
-  margin-top: 12px;
-  padding-bottom: 8px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  height: var(--signature-h);
+  color: #6b7280;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.page-signature-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1;
+  color: #6b7280;
+  border: 1px solid color-mix(in srgb, #6b7280 35%, transparent);
+  border-radius: 2px;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.page-signature-name {
+  color: #6b7280;
+}
+
+body[data-active-view="view-kreator"] #view-kreator:not(.hidden):not([hidden]) > .page-signature,
+body[data-active-view="view-firma"] #view-firma:not(.hidden):not([hidden]) > .page-signature {
+  display: flex;
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 79;
+  bottom: calc(
+    var(--tab-bar-h) + var(--cta-bar-h) +
+    env(safe-area-inset-bottom, 0px) + var(--chrome-gap)
+  );
+}
+
+body[data-active-view="view-statystyki"] #view-statystyki:not(.hidden):not([hidden]) > .page-signature {
+  display: flex;
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 79;
+  bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + var(--chrome-gap));
+}
+
+.page.is-viewer-mode .klient-viewer-footer.page-signature {
+  display: flex;
+  position: static;
+  height: auto;
+  margin-top: 24px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
 }
 
 #btn-udostepnij-pdf-desktop {
@@ -460,7 +527,9 @@ body {
   min-height: 44px;
   cursor: pointer;
   gap: var(--space-2);
-  scroll-margin-bottom: calc(var(--cta-bar-h) + var(--tab-bar-h) + 12px);
+  scroll-margin-bottom: calc(
+    var(--cta-bar-h) + var(--tab-bar-h) + var(--signature-h) + var(--chrome-gap) + 12px
+  );
 }
 
 #oferta-form .accordion-header::before {
@@ -904,7 +973,8 @@ body {
 .accordion-body {
   overflow: hidden;
   max-height: 0;
-  transition: max-height 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: none;
+  overflow-anchor: none;
   padding-top: 0;
 }
 
@@ -966,9 +1036,14 @@ body {
 
 .footer-presets {
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 12px;
+  margin-bottom: 4px;
 }
 
+.footer-presets .chip {
+  min-height: var(--touch-min);
+  padding: 10px 10px;
+}
 /* Ustawienia — wysuwany panel z dołu */
 #app-settings-modal {
   align-items: flex-end;
@@ -1516,9 +1591,9 @@ body[data-active-view="view-kreator"] #oferta-form .submit-wrap {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + var(--chrome-gap));
   z-index: 80;
-  padding: 8px var(--pad) 10px;
+  padding: 10px var(--pad) 12px;
   margin: 0;
   background: var(--bg-soft) !important;
   border-top: 1px solid var(--border);
@@ -1545,7 +1620,10 @@ body[data-active-view="view-firma"] .firma-save-status:not(:empty) {
   position: fixed;
   left: var(--pad);
   right: var(--pad);
-  bottom: calc(var(--tab-bar-h) + var(--cta-bar-h) + env(safe-area-inset-bottom, 0px) + 6px);
+  bottom: calc(
+    var(--tab-bar-h) + var(--cta-bar-h) + var(--signature-h) +
+    env(safe-area-inset-bottom, 0px) + var(--chrome-gap) + 4px
+  );
   z-index: 81;
   margin: 0;
   padding: 6px 12px;
@@ -1559,11 +1637,11 @@ body[data-active-view="view-firma"] .firma-section-actions {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + var(--chrome-gap));
   z-index: 80;
   display: block;
   margin: 0;
-  padding: 8px var(--pad) 10px;
+  padding: 10px var(--pad) 12px;
   border-top: 1px solid var(--border);
   border-bottom: none;
   background: var(--bg-soft) !important;
@@ -1580,7 +1658,10 @@ body[data-active-view="view-firma"] .firma-section-actions .cta-row {
 }
 
 body[data-active-view="view-firma"] #view-firma {
-  padding-bottom: calc(var(--cta-bar-h) + var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  padding-bottom: calc(
+    var(--cta-bar-h) + var(--tab-bar-h) + var(--signature-h) +
+    env(safe-area-inset-bottom, 0px) + var(--chrome-gap) + 8px
+  );
 }
 
 #view-firma:not(.hidden):not([hidden]) {
@@ -1792,7 +1873,10 @@ select {
   }
 
   #view-statystyki {
-    padding-bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 16px);
+    padding-bottom: calc(
+      var(--tab-bar-h) + var(--signature-h) +
+      env(safe-area-inset-bottom, 0px) + var(--chrome-gap) + 12px
+    );
   }
 
   .firma-layout {
@@ -1864,11 +1948,6 @@ select {
   #view-statystyki .stats-card-standalone {
     padding-left: 16px;
     padding-right: 16px;
-  }
-
-  .page-signature {
-    margin-top: 10px;
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 
   .row {
