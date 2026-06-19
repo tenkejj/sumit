@@ -16,15 +16,7 @@
       const p = document.createElement('p');
       p.className = extraClass ? 'page-signature ' + extraClass : 'page-signature';
       p.setAttribute('aria-hidden', 'true');
-      const mark = document.createElement('span');
-      mark.className = 'page-signature-mark';
-      mark.setAttribute('aria-hidden', 'true');
-      mark.textContent = 'TM';
-      const name = document.createElement('span');
-      name.className = 'page-signature-name';
-      name.textContent = PAGE_SIGNATURE;
-      p.appendChild(mark);
-      p.appendChild(name);
+      p.textContent = PAGE_SIGNATURE;
       return p;
     }
 
