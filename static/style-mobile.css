@@ -370,8 +370,8 @@ body {
 }
 
 .page-signature {
-  margin-top: 24px;
-  padding-bottom: 12px;
+  margin-top: 12px;
+  padding-bottom: 8px;
 }
 
 #btn-udostepnij-pdf-desktop {
@@ -1867,8 +1867,8 @@ select {
   }
 
   .page-signature {
-    margin-top: 16px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    margin-top: 10px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 
   .row {

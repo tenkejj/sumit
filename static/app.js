@@ -12,6 +12,23 @@
     const STORAGE_KEY_SOURCE = 'sumit_source';
     const PAGE_SIGNATURE = 'Franciszek Dranka';
 
+    function createPageSignatureElement(extraClass) {
+      const p = document.createElement('p');
+      p.className = extraClass ? 'page-signature ' + extraClass : 'page-signature';
+      p.setAttribute('aria-hidden', 'true');
+      const img = document.createElement('img');
+      img.src = '/static/sumit-fish.png';
+      img.alt = '';
+      img.className = 'page-signature-icon';
+      img.width = 12;
+      img.height = 12;
+      const span = document.createElement('span');
+      span.textContent = PAGE_SIGNATURE;
+      p.appendChild(img);
+      p.appendChild(span);
+      return p;
+    }
+
     (function initTrackingSource() {
       try {
         const src = new URLSearchParams(location.search).get('src');
@@ -5316,7 +5333,7 @@
       card.appendChild(akceptacjaWrap);
 
       container.appendChild(card);
-      container.appendChild(el('p', 'page-signature klient-viewer-footer', PAGE_SIGNATURE));
+      container.appendChild(createPageSignatureElement('klient-viewer-footer'));
 
       window._klientViewerDane = dane;
 

@@ -1204,13 +1204,24 @@
     }
 
     .page-signature {
-      text-align: center;
-      margin-top: 32px;
-      padding-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      margin-top: 16px;
+      padding-bottom: 4px;
       color: #6b7280;
       font-size: 10px;
       letter-spacing: 0.04em;
       font-weight: 400;
+    }
+
+    .page-signature-icon {
+      width: 12px;
+      height: 12px;
+      opacity: 0.55;
+      flex-shrink: 0;
     }
 
     .modal {
@@ -3647,8 +3658,7 @@
     .page.is-viewer-mode > .header,
     .page.is-viewer-mode > #view-kreator,
     .page.is-viewer-mode > #view-statystyki,
-    .page.is-viewer-mode > #view-firma,
-    .page.is-viewer-mode > .page-signature {
+    .page.is-viewer-mode > #view-firma {
       display: none !important;
     }
     .page.is-viewer-mode {
