@@ -18,7 +18,8 @@
       p.setAttribute('aria-hidden', 'true');
       const mark = document.createElement('span');
       mark.className = 'page-signature-mark';
-      mark.textContent = '™';
+      mark.setAttribute('aria-hidden', 'true');
+      mark.textContent = 'TM';
       const name = document.createElement('span');
       name.className = 'page-signature-name';
       name.textContent = PAGE_SIGNATURE;
