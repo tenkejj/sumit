@@ -26,7 +26,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16.png">
   <link rel="apple-touch-icon" href="/static/icons/pwa-512.png">
 </head>
-<body>
+<body data-active-view="view-kreator">
   <div class="page">
     <div class="mobile-chrome" id="mobile-chrome">
     <header class="header header-sticky" id="header-sticky">
@@ -66,7 +66,7 @@
     <div class="page-nav-row header-toolbar">
       <nav class="view-tabs" role="tablist" aria-label="Widoki aplikacji">
         <button type="button" class="view-tab is-active" role="tab" id="tab-kreator" aria-selected="true" aria-controls="view-kreator" data-view-target="view-kreator">Nowa wycena</button>
-        <button type="button" class="view-tab view-tab-settings" role="tab" id="tab-ustawienia" aria-selected="false" aria-controls="settings-modal" data-tab-action="settings">Moja firma</button>
+        <button type="button" class="view-tab" role="tab" id="tab-ustawienia" aria-selected="false" aria-controls="view-firma" data-view-target="view-firma">Moja firma</button>
         <button type="button" class="view-tab" role="tab" id="tab-statystyki" aria-selected="false" aria-controls="view-statystyki" data-view-target="view-statystyki">Statystyki</button>
       </nav>
       <div class="header-actions">
@@ -87,10 +87,6 @@
           </svg>
         </button>
         <button type="button" class="btn-settings" id="btn-historia" aria-haspopup="dialog" aria-controls="historia-modal" title="Historia wycen">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"></circle>
-            <polyline points="12 7 12 12 15 14"></polyline>
-          </svg>
           <span class="btn-settings-label">Historia wycen</span>
         </button>
         <button type="button" class="btn-settings btn-settings-primary" id="btn-settings" aria-haspopup="dialog" aria-controls="app-settings-modal" title="Ustawienia">
@@ -130,9 +126,17 @@
           </button>
           <div class="accordion-body" id="accordion-body-szczegoly">
           <p class="accordion-body-hint">Ustaw numer wyceny i datę ważności — skorzystaj z przycisków +7, +14 lub +30 dni.</p>
+
+          <div class="field field-doc-type">
+            <div class="doc-type-switcher" id="doc-type-switcher" role="group" aria-label="Typ dokumentu">
+              <button type="button" class="chip is-active" data-doc-type="" aria-pressed="true">Wycena</button>
+              <button type="button" class="chip" data-doc-type="faktura_vat" aria-pressed="false">Faktura VAT</button>
+            </div>
+          </div>
+
           <div class="row">
             <div class="field">
-              <label for="numer_oferty">Numer wyceny</label>
+              <label for="numer_oferty" id="label-numer-oferty">Numer wyceny</label>
               <input type="text" id="numer_oferty" name="numer_oferty" placeholder="np. 2026/001">
             </div>
             <div class="field">
@@ -145,6 +149,26 @@
               </div>
             </div>
           </div>
+
+          <div class="invoice-fields hidden" id="invoice-fields">
+            <div class="row">
+              <div class="field">
+                <label for="numer_faktury">Numer faktury</label>
+                <input type="text" id="numer_faktury" name="numer_faktury" placeholder="np. FV/2026/001">
+              </div>
+              <div class="field">
+                <label for="data_sprzedazy">Data sprzedaży</label>
+                <input type="date" id="data_sprzedazy" name="data_sprzedazy">
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="termin_platnosci">Termin płatności</label>
+                <input type="text" id="termin_platnosci" name="termin_platnosci" placeholder="np. 14 dni lub 2026-07-15">
+              </div>
+            </div>
+          </div>
+
           </div>
         </section>
 
@@ -199,6 +223,23 @@
           </button>
           <div class="accordion-body" id="accordion-body-pozycje">
           <p class="accordion-body-hint">Dodaj ręcznie, z katalogu albo wklej wiadomość od klienta (AI).</p>
+          <details class="manual-items" open>
+            <summary class="manual-items-summary">Edytuj pozycje ręcznie</summary>
+            <div class="manual-items-body">
+          <div class="items-actions">
+            <button type="button" class="btn-add btn-add-ai" id="btn-ai-fab" aria-expanded="true" aria-controls="ai-input-modal">
+              <span class="btn-add-ai-badge" aria-hidden="true">AI</span>
+              <span>Z wiadomości</span>
+            </button>
+            <button type="button" class="btn-add" id="btn-dodaj">
+              <span class="plus">+</span>
+              <span>Dodaj pozycję</span>
+            </button>
+            <button type="button" class="btn-add" id="btn-katalog" aria-haspopup="dialog" aria-controls="catalog-modal">
+              <span class="plus">+</span>
+              <span>Z katalogu</span>
+            </button>
+          </div>
           <div class="modal ai-sheet-modal hidden" id="ai-input-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="ai-input-modal-title">
             <div class="modal-backdrop" id="ai-input-modal-backdrop"></div>
             <div class="modal-card ai-sheet-card">
@@ -248,23 +289,6 @@
               </div>
             </div>
           </div>
-          <details class="manual-items" open>
-            <summary class="manual-items-summary">Edytuj pozycje ręcznie</summary>
-            <div class="manual-items-body">
-          <div class="items-actions">
-            <button type="button" class="btn-add btn-add-ai" id="btn-ai-fab" aria-haspopup="dialog" aria-controls="ai-input-modal">
-              <span class="btn-add-ai-badge" aria-hidden="true">AI</span>
-              <span>Wklej lub nagraj</span>
-            </button>
-            <button type="button" class="btn-add" id="btn-dodaj">
-              <span class="plus">+</span>
-              <span>Dodaj pozycję</span>
-            </button>
-            <button type="button" class="btn-add" id="btn-katalog" aria-haspopup="dialog" aria-controls="catalog-modal">
-              <span class="plus">+</span>
-              <span>Z katalogu</span>
-            </button>
-          </div>
           <table>
             <thead>
               <tr>
@@ -272,6 +296,7 @@
                 <th class="col-nazwa">Nazwa</th>
                 <th class="col-ilosc">Ilość</th>
                 <th class="col-cena">Cena dla klienta (zł)</th>
+                <th class="col-vat vat-col-hidden" id="th-vat">VAT %</th>
                 <th class="col-akcja" aria-label="Akcje"></th>
               </tr>
             </thead>
@@ -300,8 +325,7 @@
           <div class="accordion-body" id="accordion-body-uwagi">
           <p class="accordion-body-hint">Dodaj warunki widoczne na PDF pod tabelą — wstaw gotowe frazy jednym kliknięciem.</p>
           <div class="field">
-            <label for="uwagi">Notatki widoczne pod tabelą</label>
-            <textarea id="uwagi" name="uwagi" rows="4" placeholder="np. dodatkowe warunki, terminy, gwarancje"></textarea>
+            <textarea id="uwagi" name="uwagi" rows="4" placeholder="np. dodatkowe warunki, terminy, gwarancje" aria-label="Uwagi"></textarea>
             <div class="footer-presets" role="group" aria-label="Szybkie wstawianie uwag">
               <button type="button" class="chip" data-preset="Zaliczka 30%" aria-pressed="false">Zaliczka 30%</button>
               <button type="button" class="chip" data-preset="Termin 7 dni" aria-pressed="false">Termin 7 dni</button>
@@ -315,7 +339,7 @@
         <div class="submit-wrap">
           <div class="cta-row">
             <button type="submit" class="btn-primary" id="btn-generuj">Wygeneruj wycenę</button>
-            <button type="button" class="btn-cta-secondary" id="btn-udostepnij-pdf-desktop" hidden aria-label="Wyślij ofertę klientowi przez aplikację natywną">
+            <button type="button" class="btn-cta-secondary" id="btn-udostepnij-pdf-desktop" hidden aria-label="Wyślij wycenę klientowi przez aplikację natywną">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M22 2 11 13"/>
                 <path d="M22 2 15 22l-4-9-9-4 20-7z"/>
@@ -329,7 +353,16 @@
           </div>
           <div class="submit-actions">
             <button type="button" class="btn-clear" id="btn-wyczysc-formularz">Wyczyść formularz</button>
+            <button type="button" class="btn-link-copy" id="btn-kopiuj-link" title="Generuje link do wyceny (bez logo). Klient otwiera w przeglądarce i może pobrać PDF.">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="14" height="14"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              Kopiuj link
+            </button>
+            <button type="button" class="btn-link-copy btn-pobierz-xml hidden" id="btn-pobierz-xml" title="Generuje plik XML FA(3) do ręcznego wgrania na ksef.podatki.gov.pl">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+              Pobierz XML do KSeF
+            </button>
           </div>
+          <p class="ksef-hint hidden" id="ksef-hint">Wgraj plik na <a href="https://ksef.podatki.gov.pl" target="_blank" rel="noopener">ksef.podatki.gov.pl</a>, aby wysłać fakturę do KSeF. SumIt generuje plik pomocniczy — odpowiedzialność za poprawność i wysyłkę ponosi użytkownik.</p>
         </div>
 
         <div id="message" class="message"></div>
@@ -337,7 +370,7 @@
     </div>
       <aside class="live-preview-wrap" aria-label="Podgląd PDF na żywo">
         <div class="live-preview-frame">
-          <iframe id="pdf-frame-1" class="active" title="Podgląd PDF na żywo"></iframe>
+          <iframe id="pdf-frame-1" title="Podgląd PDF na żywo"></iframe>
           <iframe id="pdf-frame-2" title="Podgląd PDF na żywo (bufor)"></iframe>
           <div id="live-pdf-preview-empty" class="live-preview-empty">Wypełnij dane wyceny (nazwa firmy, klient i&nbsp;przynajmniej jedna pozycja), aby zobaczyć podgląd.</div>
         </div>
@@ -349,7 +382,114 @@
       <section class="stats-section" id="stats-section" aria-label="Statystyki wycen"></section>
     </div>
 
-    <p class="footer">© SumIt</p>
+    <div id="view-firma" class="view hidden" role="tabpanel" aria-labelledby="tab-ustawienia" hidden>
+      <div class="firma-layout">
+        <section class="firma-section card" id="firma-section" aria-label="Moja firma">
+          <form id="settings-form" class="settings-form firma-form" autocomplete="off" onsubmit="return false;">
+            <div class="firma-group">
+              <h3 class="firma-group-title">Tożsamość</h3>
+              <div class="firma-identity-row">
+                <div class="firma-logo-dropzone">
+                  <input type="file" id="cfg-logo-input" accept="image/png,image/jpeg" hidden>
+                  <button type="button" class="firma-logo-btn" id="btn-cfg-dodaj-logo" aria-label="Wybierz logo firmy (PNG lub JPG, maks. 200 KB)">
+                    <span class="firma-logo-placeholder" id="firma-logo-placeholder">
+                      <span class="firma-logo-plus" aria-hidden="true">+</span>
+                    </span>
+                    <img id="cfg-logo-preview" class="firma-logo-img" alt="Logo firmy" hidden>
+                  </button>
+                  <button type="button" class="btn-clear firma-logo-remove" id="btn-cfg-usun-logo" hidden>Usuń</button>
+                </div>
+                <div class="firma-identity-fields">
+                  <div class="field">
+                    <label for="cfg-nazwa_firmy">Nazwa firmy</label>
+                    <input type="text" id="cfg-nazwa_firmy" placeholder="Nazwa Twojej firmy">
+                  </div>
+                  <div class="field">
+                    <div class="label-row">
+                      <label for="cfg-nip">NIP</label>
+                      <button type="button" class="btn-link-nip" id="btn-cfg-pobierz-nip" aria-label="Pobierz dane firmy po NIP z Białej Listy MF">
+                        <svg viewBox="0 0 16 16" aria-hidden="true">
+                          <circle cx="7" cy="7" r="4.5"></circle>
+                          <line x1="10.5" y1="10.5" x2="14" y2="14"></line>
+                        </svg>
+                        <span class="btn-link-nip-label">Pobierz z MF</span>
+                      </button>
+                    </div>
+                    <input type="text" id="cfg-nip" placeholder="000-000-00-00" pattern="\d{3}-\d{3}-\d{2}-\d{2}" title="Format: 000-000-00-00">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="firma-group">
+              <h3 class="firma-group-title">Kontakt</h3>
+              <div class="firma-fields-grid">
+                <div class="field">
+                  <label for="cfg-telefon">Telefon</label>
+                  <input type="tel" id="cfg-telefon" placeholder="np. +48 600 000 000">
+                </div>
+                <div class="field">
+                  <label for="cfg-email">Email</label>
+                  <input type="email" id="cfg-email" placeholder="kontakt@twojafirma.pl">
+                </div>
+                <div class="field field-span-2">
+                  <label for="cfg-adres">Adres</label>
+                  <input type="text" id="cfg-adres" placeholder="np. ul. Przykładowa 12/3">
+                </div>
+                <div class="field field-span-2">
+                  <label for="cfg-miasto">Miasto i kod pocztowy</label>
+                  <input type="text" id="cfg-miasto" placeholder="00-000 Miasto" pattern="\d{2}-\d{3}\s+.+" title="Format: 00-000 Miasto">
+                </div>
+              </div>
+            </div>
+            <div class="firma-group">
+              <h3 class="firma-group-title">Płatności</h3>
+              <div class="field">
+                <label for="cfg-numer_konta">Numer konta (NRB)</label>
+                <input type="text" id="cfg-numer_konta" placeholder="12 3456 7890 1234 5678 9012 3456" inputmode="numeric" autocomplete="off" pattern="^(?:PL\s*)?(?:\d\s*){26}$" title="26 cyfr (spacje są opcjonalne)">
+                <p class="firma-field-hint">26 cyfr — wtedy na PDF pojawi się kod QR do przelewu.</p>
+              </div>
+            </div>
+          </form>
+          <div id="settings-message" class="message" role="alert"></div>
+          <div class="firma-footer-wrap">
+            <button type="button" class="btn-clear" id="btn-cfg-wyczysc" aria-label="Wyczyść ustawienia">Wyczyść ustawienia</button>
+            <p class="firma-save-status" id="firma-save-status" role="status" aria-live="polite"></p>
+            <div class="firma-section-actions">
+              <div class="cta-row">
+                <button type="button" class="btn-primary" id="btn-cfg-zapisz">Zapisz</button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <aside class="firma-preview-wrap" aria-label="Podgląd bloku sprzedawcy na PDF">
+          <div class="firma-preview-frame">
+            <div class="firma-preview-body">
+              <div class="firma-preview-seller" id="firma-preview-seller">
+                <img id="firma-preview-logo" class="firma-preview-logo" alt="" width="72" height="72" hidden>
+                <div class="firma-preview-text">
+                  <p class="firma-preview-name" id="firma-preview-nazwa">Nazwa firmy</p>
+                  <p class="firma-preview-line firma-preview-muted" id="firma-preview-nip" hidden></p>
+                  <p class="firma-preview-line" id="firma-preview-adres" hidden></p>
+                  <p class="firma-preview-line" id="firma-preview-miasto" hidden></p>
+                  <p class="firma-preview-line" id="firma-preview-telefon" hidden></p>
+                  <p class="firma-preview-line" id="firma-preview-email" hidden></p>
+                </div>
+              </div>
+            </div>
+            <div class="firma-status-bar" id="firma-status-list" aria-label="Status ustawień firmy">
+              <span class="firma-status-chip" id="firma-status-qr" data-state="warn">Bez QR</span>
+              <span class="firma-status-chip" id="firma-status-logo" data-state="warn">Bez logo</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div id="view-klient" class="view hidden" hidden aria-label="Podgląd wyceny dla klienta">
+      <div class="klient-viewer" id="klient-viewer-container"></div>
+    </div>
+
+    <p class="footer">© SumIt · Franciszek Dranka</p>
   </div>
 
   <div class="lightbox" id="pdf-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Pełny podgląd wyceny">
@@ -367,25 +507,50 @@
 
   <div class="modal" id="pdf-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pdf-modal-title">
     <div class="modal-backdrop" id="pdf-modal-backdrop"></div>
-    <div class="modal-card">
-      <div class="modal-header">
+    <div class="modal-card pdf-preview-sheet">
+      <div class="modal-header pdf-preview-header">
+        <span class="pdf-sheet-handle" aria-hidden="true"></span>
         <h3 class="modal-title" id="pdf-modal-title">Podgląd wyceny</h3>
+        <button type="button" class="pdf-preview-close" id="btn-zamknij-modal" aria-label="Zamknij podgląd">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
-      <div class="modal-body">
-        <iframe id="pdf-preview" title="Podgląd PDF"></iframe>
+      <div class="modal-body pdf-preview-body">
+        <div
+          class="pdf-preview-tap"
+          id="pdf-preview-tap"
+          role="button"
+          tabindex="0"
+          aria-label="Otwórz pełny podgląd na cały ekran"
+        >
+          <iframe id="pdf-preview" title="Podgląd PDF" tabindex="-1"></iframe>
+          <span class="pdf-preview-tap-hint" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h6v6"/>
+              <path d="M9 21H3v-6"/>
+              <path d="M21 3l-7 7"/>
+              <path d="M3 21l7-7"/>
+            </svg>
+            Pełny ekran
+          </span>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" id="btn-zamknij-modal">Zamknij</button>
-        <button type="button" class="btn-secondary" id="btn-drukuj-pdf">Drukuj</button>
-        <button type="button" class="btn-secondary" id="btn-przygotuj-email" title="Otworzy klienta poczty z gotowym tematem i treścią. Pamiętaj o dołączeniu pobranego PDF jako załącznika.">Przygotuj e-mail</button>
-        <button type="button" class="btn-secondary btn-with-icon" id="btn-udostepnij-pdf" hidden aria-label="Wyślij ofertę klientowi przez komunikator">
+      <div class="modal-footer pdf-preview-actions">
+        <button type="button" class="btn-primary pdf-action-primary" id="btn-pobierz-pdf">Pobierz PDF</button>
+        <button type="button" class="btn-secondary btn-with-icon pdf-action-share" id="btn-udostepnij-pdf" hidden aria-label="Wyślij wycenę klientowi przez komunikator">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M22 2 11 13"/>
             <path d="M22 2 15 22l-4-9-9-4 20-7z"/>
           </svg>
           <span>Wyślij klientowi</span>
         </button>
-        <button type="button" class="btn-primary" id="btn-pobierz-pdf">Pobierz PDF</button>
+        <div class="pdf-preview-actions-secondary">
+          <button type="button" class="btn-secondary pdf-action-secondary" id="btn-drukuj-pdf">Drukuj</button>
+          <button type="button" class="btn-secondary pdf-action-secondary" id="btn-przygotuj-email" title="Otworzy klienta poczty z gotowym tematem i treścią. Pamiętaj o dołączeniu pobranego PDF jako załącznika.">Przygotuj e-mail</button>
+        </div>
       </div>
     </div>
   </div>
@@ -397,6 +562,9 @@
         <h3 class="modal-title" id="app-settings-modal-title">Ustawienia</h3>
       </div>
       <div class="modal-body">
+        <div class="settings-mobile-actions">
+          <button type="button" class="btn-secondary" id="btn-historia-mobile" aria-haspopup="dialog" aria-controls="historia-modal">Historia wycen</button>
+        </div>
         <section class="settings-section">
           <h4 class="settings-section-title">Wygląd</h4>
           <div class="settings-chips" id="app-settings-theme" role="group" aria-label="Motyw aplikacji">
@@ -426,11 +594,18 @@
           </div>
         </section>
         <section class="settings-section">
-          <h4 class="settings-section-title">Skróty</h4>
-          <div class="settings-link-list">
-            <button type="button" class="btn-secondary settings-link-btn" id="btn-app-open-company">Moja firma</button>
-            <button type="button" class="btn-secondary settings-link-btn" id="btn-app-open-history">Historia wycen</button>
-            <button type="button" class="btn-secondary settings-link-btn" id="btn-app-open-catalog">Katalog usług</button>
+          <h4 class="settings-section-title">Opcje dodatkowe</h4>
+          <p class="settings-hint">Domyślny typ przy nowej wycenie i po wyczyszczeniu formularza.</p>
+          <div class="settings-chips" id="app-settings-doc-type" role="group" aria-label="Domyślny typ dokumentu">
+            <button type="button" class="chip" data-default-doc-type="" aria-pressed="false">Wycena</button>
+            <button type="button" class="chip" data-default-doc-type="faktura_vat" aria-pressed="false">Faktura VAT</button>
+          </div>
+          <p class="settings-hint settings-hint-gap">Domyślna stawka VAT nowych pozycji na fakturze.</p>
+          <div class="settings-chips" id="app-settings-vat" role="group" aria-label="Domyślna stawka VAT">
+            <button type="button" class="chip" data-default-vat="23" aria-pressed="false">23%</button>
+            <button type="button" class="chip" data-default-vat="8" aria-pressed="false">8%</button>
+            <button type="button" class="chip" data-default-vat="5" aria-pressed="false">5%</button>
+            <button type="button" class="chip" data-default-vat="0" aria-pressed="false">0%</button>
           </div>
         </section>
         <section class="settings-section settings-section-danger">
@@ -444,70 +619,6 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" id="btn-app-settings-zamknij">Zamknij</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal" id="settings-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
-    <div class="modal-backdrop" id="settings-modal-backdrop"></div>
-    <div class="modal-card settings-card">
-      <div class="modal-header">
-        <h3 class="modal-title" id="settings-modal-title">Moja firma</h3>
-      </div>
-      <div class="modal-body">
-        <p class="settings-hint">Dane sprzedawcy używane na każdej wycenie. Zapis automatyczny przy zamknięciu okna.</p>
-        <form id="settings-form" class="settings-form" autocomplete="off" onsubmit="return false;">
-          <div class="row">
-            <div class="field field-full">
-              <label for="cfg-nazwa_firmy">Nazwa firmy</label>
-              <input type="text" id="cfg-nazwa_firmy" placeholder="Nazwa Twojej firmy">
-            </div>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label for="cfg-nip">NIP</label>
-              <input type="text" id="cfg-nip" placeholder="000-000-00-00" pattern="\d{3}-\d{3}-\d{2}-\d{2}" title="Format: 000-000-00-00">
-            </div>
-            <div class="field">
-              <label for="cfg-telefon">Telefon</label>
-              <input type="tel" id="cfg-telefon" placeholder="np. +48 600 000 000">
-            </div>
-            <div class="field">
-              <label for="cfg-adres">Adres (ulica, numer)</label>
-              <input type="text" id="cfg-adres" placeholder="np. ul. Przykładowa 12/3">
-            </div>
-            <div class="field">
-              <label for="cfg-miasto">Miasto i kod pocztowy</label>
-              <input type="text" id="cfg-miasto" placeholder="00-000 Miasto" pattern="\d{2}-\d{3}\s+.+" title="Format: 00-000 Miasto">
-            </div>
-            <div class="field field-full">
-              <label for="cfg-email">Email</label>
-              <input type="email" id="cfg-email" placeholder="kontakt@twojafirma.pl">
-            </div>
-            <div class="field field-full">
-              <label for="cfg-numer_konta">Numer konta bankowego (NRB)</label>
-              <input type="text" id="cfg-numer_konta" placeholder="12 3456 7890 1234 5678 9012 3456" inputmode="numeric" autocomplete="off" pattern="^(?:PL\s*)?(?:\d\s*){26}$" title="26 cyfr (spacje są opcjonalne)">
-            </div>
-          </div>
-          <div class="row">
-            <div class="field field-full">
-              <label>Logo</label>
-              <div class="logo-wrap">
-                <input type="file" id="cfg-logo-input" accept="image/png,image/jpeg" hidden>
-                <button type="button" class="btn-secondary" id="btn-cfg-dodaj-logo">Wybierz plik (PNG / JPG, ≤ 200 KB)</button>
-                <div class="logo-preview" id="cfg-logo-preview-wrap" hidden>
-                  <img id="cfg-logo-preview" alt="Podgląd logo">
-                  <button type="button" class="btn-clear" id="btn-cfg-usun-logo">Usuń logo</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div id="settings-message" class="message" role="alert"></div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-clear" id="btn-cfg-wyczysc">Wyczyść ustawienia</button>
-        <button type="button" class="btn-secondary" id="btn-cfg-zamknij">Zamknij i zapisz</button>
       </div>
     </div>
   </div>

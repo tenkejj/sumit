@@ -29,20 +29,20 @@
   --fab-size: 56px;
 }
 
-/* === Workflow: AI → Generuj (fixed) → reszta poniżej === */
+/* === Workflow mobile: pozycje → klient → szczegóły → uwagi; CTA fixed na dole === */
 #oferta-form {
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-bottom: calc(var(--cta-bar-h) + var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 32px);
+  padding-bottom: calc(var(--cta-bar-h) + var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 16px);
 }
 
 #oferta-form > .accordion-section[data-accordion-id="pozycje"] { order: 1; }
-#oferta-form > .submit-wrap { order: 2; }
-#oferta-form > .accordion-section[data-accordion-id="klient"] { order: 3; }
-#oferta-form > .accordion-section[data-accordion-id="szczegoly"] { order: 4; }
-#oferta-form > .accordion-section[data-accordion-id="uwagi"] { order: 5; }
-#oferta-form > #message { order: 6; }
+#oferta-form > .accordion-section[data-accordion-id="klient"] { order: 2; }
+#oferta-form > .accordion-section[data-accordion-id="szczegoly"] { order: 3; }
+#oferta-form > .accordion-section[data-accordion-id="uwagi"] { order: 4; }
+#oferta-form > #message { order: 5; }
+#oferta-form > .submit-wrap { order: 6; }
 
 /* === Header: sticky logo + blur przy scrollu === */
 .page {
@@ -188,10 +188,13 @@ body {
   display: block;
   position: static;
   width: 100%;
+  height: 0;
+  min-height: 0;
   margin: 0;
   padding: 0;
   border: none;
   background: transparent;
+  overflow: visible;
 }
 
 .page-nav-row .header-actions {
@@ -311,7 +314,8 @@ body {
 }
 
 .header-actions .btn-theme,
-.header-actions #btn-historia {
+.header-actions #btn-historia,
+#btn-historia {
   display: none !important;
 }
 
@@ -388,7 +392,7 @@ body {
 [data-theme="dark"] #oferta-form .accordion-section {
   border-radius: 0 !important;
   border: none !important;
-  border-bottom: 1px solid var(--border) !important;
+  border-bottom: none !important;
   background: transparent !important;
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
@@ -401,7 +405,7 @@ body {
   padding: 0 var(--pad) !important;
   background: transparent !important;
   border: none !important;
-  border-bottom: 1px solid var(--border) !important;
+  border-bottom: none !important;
 }
 
 #oferta-form .accordion-section:not(.is-open) .accordion-header {
@@ -436,7 +440,7 @@ body {
 [data-theme="dark"] #oferta-form .accordion-section {
   border-radius: 0 !important;
   border: none !important;
-  border-bottom: 1px solid var(--border) !important;
+  border-bottom: none !important;
   background: transparent !important;
   box-shadow: none !important;
   margin: 0 !important;
@@ -501,10 +505,6 @@ body {
   padding-right: var(--pad) !important;
 }
 
-#oferta-form .accordion-section[data-accordion-id="pozycje"] {
-  padding-top: var(--space-2) !important;
-}
-
 .accordion-body-hint {
   margin: 0 0 var(--space-2);
   font-size: 13px;
@@ -512,6 +512,23 @@ body {
   letter-spacing: -0.01em;
   color: var(--text-muted);
   line-height: 1.4;
+}
+
+#accordion-body-szczegoly > .field-doc-type {
+  margin: var(--space-2) 0 var(--space-3);
+}
+
+#accordion-body-szczegoly .doc-type-switcher {
+  padding: 6px;
+  gap: 5px;
+}
+
+#accordion-body-szczegoly > .row {
+  margin-top: 0;
+}
+
+#oferta-form .accordion-section[data-accordion-id="szczegoly"].is-open .accordion-body {
+  padding-top: var(--space-1);
 }
 
 .step-badge {
@@ -636,6 +653,19 @@ body {
   letter-spacing: -0.01em;
 }
 
+.items-actions .btn-add-ai > span:not(.btn-add-ai-badge) {
+  font-size: 0;
+  line-height: 0;
+}
+
+.items-actions .btn-add-ai > span:not(.btn-add-ai-badge)::after {
+  content: 'Wklej lub nagraj';
+  font-size: 14px;
+  font-weight: var(--mobile-fw-action);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
 .btn-add-ai-badge,
 .ai-pill {
   display: inline-flex;
@@ -664,6 +694,24 @@ body {
 
 .items-actions .btn-add-ai .plus {
   display: none;
+}
+
+.items-actions .btn-add:not(.btn-add-ai) .plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: var(--accent);
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1;
+  color: #ffffff;
 }
 
 /* --- Lista pozycji: karty zamiast tabeli --- */
@@ -844,24 +892,47 @@ body {
   flex: 0 0 18px;
   margin-top: 5px;
   color: var(--text-muted);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
 }
 
 .accordion-section.is-open .accordion-chevron {
   transform: rotate(180deg);
+  color: var(--text);
 }
 
 .accordion-body {
   overflow: hidden;
   max-height: 0;
-  transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: max-height 0.32s cubic-bezier(0.16, 1, 0.3, 1);
   padding-top: 0;
 }
 
+/* Zamknięte akordeony — zero wysokości w scrollu (nadpisuje inline max-height: none) */
+#oferta-form .accordion-section:not(.is-open) .accordion-body {
+  max-height: 0 !important;
+  padding-top: 0 !important;
+  overflow: hidden !important;
+}
+
 #oferta-form .accordion-section.is-open .accordion-body {
-  max-height: 5000px;
   padding-top: 2px;
-  overflow: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accordion-chevron,
+  .accordion-body {
+    transition: none;
+  }
+
+  #app-settings-modal,
+  #app-settings-modal .app-settings-card {
+    transition: none;
+  }
+
+  #pdf-modal,
+  #pdf-modal .pdf-preview-sheet {
+    transition: none;
+  }
 }
 
 /* --- Pola formularza: więcej oddechu --- */
@@ -895,6 +966,283 @@ body {
 .footer-presets {
   gap: 8px;
   margin-top: 14px;
+}
+
+/* Ustawienia — wysuwany panel z dołu */
+#app-settings-modal {
+  align-items: flex-end;
+  padding: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+}
+
+#app-settings-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+#app-settings-modal .app-settings-card {
+  width: 100%;
+  max-width: none;
+  max-height: min(92vh, 720px);
+  margin: 0;
+  border-radius: 16px 16px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#app-settings-modal.is-open .app-settings-card {
+  transform: translateY(0);
+}
+
+/* Podgląd PDF — bottom sheet z animacją */
+#pdf-modal {
+  align-items: flex-end;
+  padding: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+}
+
+#pdf-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+#pdf-modal .pdf-preview-sheet {
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: min(98dvh, 100%);
+  margin: 0;
+  border-radius: 16px 16px 0 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#pdf-modal.is-open .pdf-preview-sheet {
+  transform: translateY(0);
+}
+
+#pdf-modal .pdf-sheet-handle {
+  display: block;
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+#pdf-modal .pdf-preview-header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 16px 52px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+#pdf-modal .pdf-preview-header .modal-title {
+  font-size: 15px;
+  text-align: center;
+}
+
+#pdf-modal .pdf-preview-close {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  margin: 0;
+}
+
+#pdf-modal .pdf-preview-body {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+#pdf-modal .pdf-preview-tap {
+  width: 100%;
+  aspect-ratio: 210 / 297;
+  max-height: min(48dvh, 420px);
+  min-height: 0;
+  height: auto;
+}
+
+#pdf-modal .pdf-preview-body iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+#pdf-modal .pdf-preview-actions {
+  flex-shrink: 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+#pdf-modal .pdf-action-primary {
+  padding: 12px 20px;
+  font-size: 15px;
+}
+
+#pdf-modal .pdf-action-share {
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+#pdf-modal .pdf-preview-actions-secondary {
+  gap: 8px;
+}
+
+#pdf-modal .pdf-action-secondary {
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+/* Zakładki Moja firma / Statystyki — bez fade-in (przyciski nie migają) */
+#view-firma.view-enter,
+#view-statystyki.view-enter,
+#view-kreator.view-enter {
+  animation: none;
+}
+
+/* Widoki — treść zaraz pod headerem */
+#view-kreator,
+#view-statystyki,
+#view-firma {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+#view-kreator .kreator-layout {
+  margin-top: 0;
+}
+
+#view-kreator .kreator-layout > .card {
+  padding-top: 0;
+}
+
+#oferta-form .accordion-section[data-accordion-id="pozycje"] {
+  padding-top: 0 !important;
+}
+
+#oferta-form .accordion-section[data-accordion-id="pozycje"] .accordion-header {
+  padding-top: 0;
+}
+
+#oferta-form .accordion-section[data-accordion-id="pozycje"].is-open .accordion-header {
+  padding-top: 0;
+}
+
+#view-statystyki .stats-section {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+#view-firma .firma-layout {
+  margin-top: 0;
+}
+
+#view-firma .firma-section {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+#view-firma .firma-group:first-child {
+  padding-top: 0;
+}
+
+#view-firma .firma-group:first-child .firma-group-title {
+  margin-top: 0;
+}
+
+/* Lightbox — pełny ekran na mobile (z modala podglądu) */
+#pdf-lightbox.is-from-modal {
+  z-index: 1600;
+  padding: 0;
+  background: var(--bg);
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+#pdf-lightbox.is-from-modal .lightbox-close {
+  position: relative;
+  top: auto;
+  right: auto;
+  align-self: flex-end;
+  flex-shrink: 0;
+  margin: calc(6px + env(safe-area-inset-top, 0px)) 10px 4px auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  box-shadow: none;
+  z-index: 2;
+}
+
+#pdf-lightbox.is-from-modal .lightbox-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+#pdf-lightbox.is-from-modal .lightbox-content {
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 210 / 297;
+  height: auto;
+  min-height: 0;
+  max-width: none;
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 44px);
+  border-radius: 0;
+  transform: none;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+#pdf-lightbox.is-from-modal.is-open .lightbox-content {
+  transform: none;
+}
+
+#pdf-lightbox.is-from-modal .lightbox-content iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  touch-action: pan-y pinch-zoom;
+}
+
+#pdf-lightbox {
+  z-index: 1600;
+  padding: 0;
+}
+
+#pdf-lightbox .lightbox-content {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: unset;
+  border-radius: 0;
+}
+
+#pdf-lightbox .lightbox-close {
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: 12px;
 }
 
 .ai-sheet-modal {
@@ -1157,8 +1505,13 @@ body {
   display: none;
 }
 
-/* Pasek CTA — fixed nad zakładkami na dole */
+/* Pasek CTA — fixed nad zakładkami; tylko na widoku kreatora (bez migotania przy zmianie zakładki) */
 #oferta-form .submit-wrap {
+  display: none !important;
+}
+
+body[data-active-view="view-kreator"] #oferta-form .submit-wrap {
+  display: block !important;
   position: fixed;
   left: 0;
   right: 0;
@@ -1173,14 +1526,77 @@ body {
   backdrop-filter: none !important;
 }
 
+/* Moja firma — pasek CTA 1:1 jak „Wygeneruj wycenę” */
+body[data-active-view="view-firma"] .firma-footer-wrap {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+body[data-active-view="view-firma"] .firma-footer-wrap .btn-clear {
+  display: block;
+  margin: 0 var(--pad) 10px;
+  padding: 0;
+  font-size: 12px;
+}
+
+body[data-active-view="view-firma"] .firma-save-status:not(:empty) {
+  position: fixed;
+  left: var(--pad);
+  right: var(--pad);
+  bottom: calc(var(--tab-bar-h) + var(--cta-bar-h) + env(safe-area-inset-bottom, 0px) + 6px);
+  z-index: 81;
+  margin: 0;
+  padding: 6px 12px;
+  text-align: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+
+body[data-active-view="view-firma"] .firma-section-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
+  z-index: 80;
+  display: block;
+  margin: 0;
+  padding: 8px var(--pad) 10px;
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+  background: var(--bg-soft) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+body[data-active-view="view-firma"] .firma-section-actions .cta-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+body[data-active-view="view-firma"] #view-firma {
+  padding-bottom: calc(var(--cta-bar-h) + var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+#view-firma:not(.hidden):not([hidden]) {
+  opacity: 1 !important;
+}
+
 .cta-row {
   flex-direction: row;
   align-items: center;
   gap: 8px;
 }
 
-#btn-generuj {
+#btn-generuj,
+body[data-active-view="view-firma"] #btn-cfg-zapisz {
   flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
   min-height: 46px;
   padding: 11px 16px;
   font-size: 15px;
@@ -1370,16 +1786,73 @@ select {
     padding: var(--body-pad-top) 0 var(--body-pad-bottom);
   }
 
-  .header-actions .btn-settings:not(.btn-settings-primary):not(.btn-theme) svg {
-    display: block;
-  }
-
   .logo {
     font-size: 26px;
   }
 
   #view-statystyki {
     padding-bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+
+  .firma-layout {
+    margin-top: 0;
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .firma-preview-wrap {
+    display: block;
+    order: 1;
+    margin-top: 8px;
+    padding: 0 var(--pad);
+  }
+
+  .firma-preview-frame {
+    padding: 16px;
+    border-radius: var(--radius);
+    background: #ffffff;
+  }
+
+  #view-firma .firma-section {
+    order: 0;
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+    border: none;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  body[data-active-view="view-firma"] .firma-footer-wrap .btn-clear {
+    margin-bottom: 12px;
+  }
+
+  .firma-preview-body {
+    padding: 16px;
+  }
+
+  .firma-preview-seller {
+    width: auto;
+    max-width: 100%;
+  }
+
+  .firma-fields-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .firma-fields-grid .field-span-2 {
+    grid-column: auto;
+  }
+
+  .firma-identity-row {
+    flex-direction: row;
+    align-items: flex-start;
   }
 
   #view-statystyki .stats-section,
@@ -1423,7 +1896,7 @@ select {
     grid-template-columns: 1fr;
   }
   .stats-section {
-    margin-top: 32px;
+    margin-top: 0;
   }
   .stats-card {
     padding: 12px 14px;

@@ -7,3 +7,6 @@ sumit
 KONTEKST.MD
 deploy.env
 .cursor/
+acceptances.json
+analytics.csv
+scripts/node_modules/

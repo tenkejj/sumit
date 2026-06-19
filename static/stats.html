@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SumIt — Statystyki</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --accent: #C0143C;
+      --bg: #0a0a0a;
+      --bg-soft: #141414;
+      --bg-card: #111111;
+      --border: #262626;
+      --text: #ffffff;
+      --text-muted: #6b7280;
+      --success: #16a34a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 24px 64px;
+      line-height: 1.5;
+    }
+
+    .wrap { max-width: 1100px; margin: 0 auto; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .meta {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .auth-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .auth-bar input {
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      padding: 8px 12px;
+      width: 200px;
+    }
+
+    .auth-bar input:focus {
+      outline: none;
+      border-color: var(--text-muted);
+    }
+
+    .btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+    }
+
+    .btn:hover { opacity: 0.92; }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .card-full { grid-column: 1 / -1; }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 280px;
+    }
+
+    .funnel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .funnel-step {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--bg-soft);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .funnel-name {
+      font-weight: 500;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+    }
+
+    .funnel-count {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    .funnel-pct {
+      font-size: 12px;
+      color: var(--text-muted);
+      min-width: 72px;
+      text-align: right;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 10px 8px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    tbody tr:hover { background: var(--bg-soft); }
+
+    .mobile-split {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .donut-wrap {
+      width: 160px;
+      height: 160px;
+      flex-shrink: 0;
+    }
+
+    .mobile-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    .state {
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--text-muted);
+    }
+
+    .state-error { color: #f87171; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <div>
+          <h1>SumIt Analytics</h1>
+          <p class="meta" id="meta-line">Cookieless · ostatnie 30 dni</p>
+        </div>
+      </div>
+      <div class="auth-bar" id="auth-bar">
+        <input type="password" id="stats-key" placeholder="STATS_KEY" autocomplete="off">
+        <button type="button" class="btn" id="btn-load">Odśwież</button>
+      </div>
+    </header>
+
+    <div id="state-loading" class="state">Ładowanie danych…</div>
+    <div id="state-error" class="state state-error hidden"></div>
+
+    <div id="dashboard" class="hidden">
+      <div class="grid">
+        <div class="card card-full">
+          <div class="card-title">Wejścia i PDF (30 dni)</div>
+          <div class="chart-wrap">
+            <canvas id="chart-traffic"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Lejek konwersji</div>
+          <div class="funnel" id="funnel"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Mobile vs desktop (page_view)</div>
+          <div class="mobile-split">
+            <div class="donut-wrap">
+              <canvas id="chart-mobile"></canvas>
+            </div>
+            <div class="mobile-legend" id="mobile-legend"></div>
+          </div>
+        </div>
+
+        <div class="card card-full">
+          <div class="card-title">Źródła ruchu (?src=)</div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Źródło</th>
+                  <th style="text-align:right">Wejścia</th>
+                  <th style="text-align:right">PDF</th>
+                  <th style="text-align:right">Konwersja</th>
+                </tr>
+              </thead>
+              <tbody id="sources-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'sumit_stats_key';
+    let trafficChart = null;
+    let mobileChart = null;
+
+    function getKey() {
+      const input = document.getElementById('stats-key');
+      return (input && input.value.trim()) || sessionStorage.getItem(STORAGE_KEY) || '';
+    }
+
+    function saveKey(key) {
+      if (key) sessionStorage.setItem(STORAGE_KEY, key);
+    }
+
+    function fmtPct(n) {
+      return (Math.round(n * 10) / 10).toFixed(1) + '%';
+    }
+
+    function showError(msg) {
+      document.getElementById('state-loading').classList.add('hidden');
+      document.getElementById('dashboard').classList.add('hidden');
+      const el = document.getElementById('state-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function renderFunnel(steps) {
+      const wrap = document.getElementById('funnel');
+      wrap.innerHTML = '';
+      steps.forEach(function (s, i) {
+        const row = document.createElement('div');
+        row.className = 'funnel-step';
+        const pctLabel = i === 0
+          ? fmtPct(100)
+          : fmtPct(s.percent) + ' · krok ' + fmtPct(s.stepRate);
+        row.innerHTML =
+          '<span class="funnel-name">' + s.name + '</span>' +
+          '<span class="funnel-count">' + s.count + '</span>' +
+          '<span class="funnel-pct">' + pctLabel + '</span>';
+        wrap.appendChild(row);
+      });
+    }
+
+    function renderSources(rows) {
+      const tbody = document.getElementById('sources-body');
+      tbody.innerHTML = '';
+      if (!rows.length) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="4" style="color:var(--text-muted)">Brak danych źródeł</td>';
+        tbody.appendChild(tr);
+        return;
+      }
+      rows.forEach(function (r) {
+        const conv = r.pageViews > 0 ? (r.pdfGenerated / r.pageViews * 100) : 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + escapeHtml(r.source) + '</td>' +
+          '<td class="num">' + r.pageViews + '</td>' +
+          '<td class="num">' + r.pdfGenerated + '</td>' +
+          '<td class="num">' + fmtPct(conv) + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderCharts(data) {
+      const labels = data.eventsPerDay.map(function (d) { return d.date.slice(5); });
+      const pv = data.eventsPerDay.map(function (d) { return d.page_view; });
+      const pdf = data.eventsPerDay.map(function (d) { return d.pdf_generated; });
+
+      if (trafficChart) trafficChart.destroy();
+      trafficChart = new Chart(document.getElementById('chart-traffic'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'page_view',
+              data: pv,
+              borderColor: '#6b7280',
+              backgroundColor: 'rgba(107,114,128,0.1)',
+              tension: 0.3,
+              fill: true,
+            },
+            {
+              label: 'pdf_generated',
+              data: pdf,
+              borderColor: '#C0143C',
+              backgroundColor: 'rgba(192,20,60,0.12)',
+              tension: 0.3,
+              fill: true,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#ffffff', font: { family: 'Inter' } } },
+          },
+          scales: {
+            x: {
+              ticks: { color: '#6b7280', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+              grid: { color: '#262626' },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#6b7280', precision: 0 },
+              grid: { color: '#262626' },
+            },
+          },
+        },
+      });
+
+      const m = data.mobile;
+      if (mobileChart) mobileChart.destroy();
+      mobileChart = new Chart(document.getElementById('chart-mobile'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Mobile', 'Desktop'],
+          datasets: [{
+            data: [m.mobile, m.desktop],
+            backgroundColor: ['#C0143C', '#262626'],
+            borderWidth: 0,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false } },
+          cutout: '65%',
+        },
+      });
+
+      document.getElementById('mobile-legend').innerHTML =
+        '<div class="legend-row"><span class="legend-dot" style="background:#C0143C"></span>Mobile: ' +
+        m.mobile + ' (' + fmtPct(m.mobilePercent) + ')</div>' +
+        '<div class="legend-row"><span class="legend-dot" style="background:#262626;border:1px solid #404040"></span>Desktop: ' +
+        m.desktop + ' (' + fmtPct(100 - m.mobilePercent) + ')</div>';
+    }
+
+    async function loadStats() {
+      document.getElementById('state-error').classList.add('hidden');
+      document.getElementById('state-loading').classList.remove('hidden');
+      document.getElementById('dashboard').classList.add('hidden');
+
+      const key = getKey();
+      const headers = {};
+      if (key) headers['X-Stats-Key'] = key;
+
+      try {
+        const res = await fetch('/api/stats-data', { headers: headers });
+        if (res.status === 401) {
+          showError('Nieprawidłowy klucz dostępu (401). Wpisz STATS_KEY i spróbuj ponownie.');
+          return;
+        }
+        if (!res.ok) {
+          showError('Błąd serwera: ' + res.status);
+          return;
+        }
+
+        saveKey(key);
+        const data = await res.json();
+
+        document.getElementById('state-loading').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('meta-line').textContent =
+          'Cookieless · ' + data.totalEvents + ' eventów · ostatnie 30 dni';
+
+        renderFunnel(data.funnel);
+        renderSources(data.topSources);
+        renderCharts(data);
+      } catch (err) {
+        showError('Błąd połączenia: ' + err.message);
+      }
+    }
+
+    document.getElementById('btn-load').addEventListener('click', loadStats);
+    document.getElementById('stats-key').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') loadStats();
+    });
+
+    (function init() {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      const input = document.getElementById('stats-key');
+      if (saved && input) input.value = saved;
+
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        loadStats();
+        return;
+      }
+
+      if (saved) {
+        loadStats();
+      } else {
+        document.getElementById('state-loading').classList.add('hidden');
+        const k = window.prompt('Podaj STATS_KEY:');
+        if (k) {
+          if (input) input.value = k;
+          saveKey(k);
+          loadStats();
+        } else {
+          showError('Wymagany klucz STATS_KEY.');
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

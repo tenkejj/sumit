@@ -36,6 +36,12 @@ func main() {
 	mux.HandleFunc("POST /quote", handleQuote)
 	mux.HandleFunc("GET /api/nip", handleNIP)
 	mux.HandleFunc("POST /api/parse", rateLimitParse(handleParse))
+	mux.HandleFunc("POST /api/accept", handleAccept)
+	mux.HandleFunc("GET /api/accept", handleAcceptStatus)
+	mux.HandleFunc("POST /api/xml", handleXML)
+	mux.HandleFunc("POST /api/track", handleTrack)
+	mux.Handle("GET /stats", utf8Middleware(http.HandlerFunc(handleStatsPage)))
+	mux.HandleFunc("GET /api/stats-data", handleStatsData)
 
 	const addr = ":8080"
 	log.Printf("SumIt nasłuchuje na http://localhost%s", addr)

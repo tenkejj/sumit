@@ -14,6 +14,7 @@ type LineItem struct {
 	Name      string  `json:"nazwa"`
 	Quantity  float64 `json:"ilosc"`
 	UnitPrice float64 `json:"cena_jednostkowa"`
+	VatRate   float64 `json:"stawka_vat,omitempty"` // % VAT (0/5/8/23); 0 = nie dotyczy / zw.
 }
 
 func (li LineItem) Total() float64 {
@@ -34,13 +35,24 @@ type Company struct {
 	BankAccount string `json:"numer_konta"`
 }
 
+// DocType określa typ dokumentu. Pusta wartość lub "oferta" = OFERTA HANDLOWA (domyślne zachowanie).
+const (
+	DocTypeOferta        = ""
+	DocTypeProforma      = "faktura_proforma"
+	DocTypeFakturaVAT    = "faktura_vat"
+)
+
 type Quote struct {
-	Company    Company    `json:"-"`
-	Client     string     `json:"klient"`
-	Number     string     `json:"numer_oferty"`
-	ValidUntil string     `json:"data_waznosci"`
-	Notes      string     `json:"uwagi"`
-	Items      []LineItem `json:"pozycje"`
+	Company       Company    `json:"-"`
+	Client        string     `json:"klient"`
+	Number        string     `json:"numer_oferty"`
+	ValidUntil    string     `json:"data_waznosci"`
+	Notes         string     `json:"uwagi"`
+	Items         []LineItem `json:"pozycje"`
+	DocType       string     `json:"typ_dokumentu,omitempty"`
+	InvoiceNumber string     `json:"numer_faktury,omitempty"`
+	SaleDate      string     `json:"data_sprzedazy,omitempty"`
+	PaymentDue    string     `json:"termin_platnosci,omitempty"`
 }
 
 // quoteJSON to wewnętrzna reprezentacja serializacji przyjmująca płaski
@@ -49,11 +61,15 @@ type Quote struct {
 // (Un)MarshalJSON, dzięki czemu kontrakt JSON pozostaje niezmieniony.
 type quoteJSON struct {
 	Company
-	Client     string     `json:"klient"`
-	Number     string     `json:"numer_oferty"`
-	ValidUntil string     `json:"data_waznosci"`
-	Notes      string     `json:"uwagi"`
-	Items      []LineItem `json:"pozycje"`
+	Client        string     `json:"klient"`
+	Number        string     `json:"numer_oferty"`
+	ValidUntil    string     `json:"data_waznosci"`
+	Notes         string     `json:"uwagi"`
+	Items         []LineItem `json:"pozycje"`
+	DocType       string     `json:"typ_dokumentu,omitempty"`
+	InvoiceNumber string     `json:"numer_faktury,omitempty"`
+	SaleDate      string     `json:"data_sprzedazy,omitempty"`
+	PaymentDue    string     `json:"termin_platnosci,omitempty"`
 }
 
 func (q *Quote) UnmarshalJSON(data []byte) error {
@@ -62,24 +78,32 @@ func (q *Quote) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*q = Quote{
-		Company:    raw.Company,
-		Client:     raw.Client,
-		Number:     raw.Number,
-		ValidUntil: raw.ValidUntil,
-		Notes:      raw.Notes,
-		Items:      raw.Items,
+		Company:       raw.Company,
+		Client:        raw.Client,
+		Number:        raw.Number,
+		ValidUntil:    raw.ValidUntil,
+		Notes:         raw.Notes,
+		Items:         raw.Items,
+		DocType:       raw.DocType,
+		InvoiceNumber: raw.InvoiceNumber,
+		SaleDate:      raw.SaleDate,
+		PaymentDue:    raw.PaymentDue,
 	}
 	return nil
 }
 
 func (q Quote) MarshalJSON() ([]byte, error) {
 	return json.Marshal(quoteJSON{
-		Company:    q.Company,
-		Client:     q.Client,
-		Number:     q.Number,
-		ValidUntil: q.ValidUntil,
-		Notes:      q.Notes,
-		Items:      q.Items,
+		Company:       q.Company,
+		Client:        q.Client,
+		Number:        q.Number,
+		ValidUntil:    q.ValidUntil,
+		Notes:         q.Notes,
+		Items:         q.Items,
+		DocType:       q.DocType,
+		InvoiceNumber: q.InvoiceNumber,
+		SaleDate:      q.SaleDate,
+		PaymentDue:    q.PaymentDue,
 	})
 }
 
@@ -89,6 +113,12 @@ func (q Quote) Total() float64 {
 		s += li.Total()
 	}
 	return s
+}
+
+var validVatRates = map[float64]bool{0: true, 5: true, 8: true, 23: true}
+
+func (q Quote) IsInvoice() bool {
+	return q.DocType == DocTypeProforma || q.DocType == DocTypeFakturaVAT
 }
 
 func (q Quote) Validate() error {
@@ -110,6 +140,17 @@ func (q Quote) Validate() error {
 		}
 		if li.UnitPrice < 0 {
 			return fmt.Errorf("pozycja #%d (%s): cena_jednostkowa nie może być ujemna", i+1, li.Name)
+		}
+		if q.DocType == DocTypeFakturaVAT && !validVatRates[li.VatRate] {
+			return fmt.Errorf("pozycja #%d (%s): stawka_vat musi być jedną z: 0, 5, 8, 23", i+1, li.Name)
+		}
+	}
+	if q.IsInvoice() {
+		if strings.TrimSpace(q.InvoiceNumber) == "" {
+			return fmt.Errorf("pole numer_faktury jest wymagane dla faktury")
+		}
+		if strings.TrimSpace(q.SaleDate) == "" {
+			return fmt.Errorf("pole data_sprzedazy jest wymagane dla faktury")
 		}
 	}
 	return nil

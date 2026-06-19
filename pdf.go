@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +24,25 @@ var fontRegular []byte
 //go:embed assets/fonts/LiberationSans-Bold.ttf
 var fontBold []byte
 
+const watermarkAuthor = "Franciszek Dranka"
+
+func drawPDFWatermark(pdf *fpdf.Fpdf, family string) {
+	const pageW, pageH = 210.0, 297.0
+
+	pdf.SetAlpha(0.07, "Normal")
+	pdf.SetFont(family, "B", 44)
+	pdf.SetTextColor(140, 140, 140)
+
+	tw := pdf.GetStringWidth(watermarkAuthor)
+	pdf.TransformBegin()
+	pdf.TransformRotate(35, pageW/2, pageH/2)
+	pdf.Text((pageW-tw)/2, pageH/2, watermarkAuthor)
+	pdf.TransformEnd()
+
+	pdf.SetAlpha(1, "Normal")
+	pdf.SetTextColor(10, 10, 10)
+}
+
 func GeneratePDF(q Quote, w io.Writer) error {
 	const family = "LiberationSans"
 
@@ -32,6 +52,9 @@ func GeneratePDF(q Quote, w io.Writer) error {
 	pdf.SetFont(family, "", 11)
 	pdf.SetMargins(15, 15, 15)
 	pdf.SetAutoPageBreak(true, 18)
+	pdf.SetHeaderFunc(func() {
+		drawPDFWatermark(pdf, family)
+	})
 	pdf.AddPage()
 
 	const (
@@ -47,7 +70,7 @@ func GeneratePDF(q Quote, w io.Writer) error {
 	colorLine := func() { pdf.SetDrawColor(220, 220, 220) }
 	colorLineStrong := func() { pdf.SetDrawColor(10, 10, 10) }
 
-	// Nagłówek: logo po lewej, blok "OFERTA / nr / data" po prawej.
+	// Nagłówek: logo po lewej, blok "WYCENA / nr / data" po prawej.
 	const logoY = 12.0
 	const logoH = 16.0
 	if strings.TrimSpace(q.Company.LogoBase64) != "" {
@@ -59,19 +82,43 @@ func GeneratePDF(q Quote, w io.Writer) error {
 		}
 	}
 
+	// Tytuł dokumentu zależny od DocType
+	docTitle := "WYCENA"
+	switch q.DocType {
+	case DocTypeFakturaVAT:
+		docTitle = "FAKTURA VAT"
+	case DocTypeProforma:
+		docTitle = "FAKTURA PRO FORMA"
+	}
+
 	pdf.SetXY(marginL, logoY)
 	pdf.SetFont(family, "B", 26)
 	colorDark()
-	pdf.CellFormat(usableW, 10, "OFERTA", "", 1, "R", false, 0, "")
+	pdf.CellFormat(usableW, 10, docTitle, "", 1, "R", false, 0, "")
 
 	pdf.SetFont(family, "", 10)
 	colorMuted()
-	if s := strings.TrimSpace(q.Number); s != "" {
+	// Numer dokumentu
+	numDoc := strings.TrimSpace(q.InvoiceNumber)
+	if numDoc == "" {
+		numDoc = strings.TrimSpace(q.Number)
+	}
+	if numDoc != "" {
 		pdf.SetX(marginL)
-		pdf.CellFormat(usableW, 5, "Nr "+s, "", 1, "R", false, 0, "")
+		pdf.CellFormat(usableW, 5, "Nr "+numDoc, "", 1, "R", false, 0, "")
 	}
 	pdf.SetX(marginL)
 	pdf.CellFormat(usableW, 5, "Data wystawienia: "+time.Now().Format("2006-01-02"), "", 1, "R", false, 0, "")
+	if q.IsInvoice() {
+		if s := strings.TrimSpace(q.SaleDate); s != "" {
+			pdf.SetX(marginL)
+			pdf.CellFormat(usableW, 5, "Data sprzedaży: "+s, "", 1, "R", false, 0, "")
+		}
+		if s := strings.TrimSpace(q.PaymentDue); s != "" {
+			pdf.SetX(marginL)
+			pdf.CellFormat(usableW, 5, "Termin płatności: "+s, "", 1, "R", false, 0, "")
+		}
+	}
 
 	headerEnd := maxF(logoY+logoH, pdf.GetY())
 	pdf.SetY(headerEnd)
@@ -136,70 +183,203 @@ func GeneratePDF(q Quote, w io.Writer) error {
 	pdf.SetY(maxF(leftEnd, rightEnd))
 	pdf.Ln(12)
 
-	// Tabela pozycji — bez pionowych linii, jasne poziome separatory.
-	const (
-		colLp    = 10.0
-		colNazwa = 85.0
-		colIlosc = 20.0
-		colCena  = 30.0
-		colWart  = 35.0
-	)
-
+	// Tabela pozycji — dwa tryby: oferta/pro forma (bez VAT) i faktura VAT (z VAT).
 	pdf.SetLineWidth(0.2)
 	colorLine()
 
-	pdf.SetFont(family, "B", 10)
-	pdf.SetFillColor(245, 245, 245)
-	colorDark()
-	pdf.CellFormat(colLp, 8, "Lp.", "", 0, "C", true, 0, "")
-	pdf.CellFormat(colNazwa, 8, "Nazwa", "", 0, "L", true, 0, "")
-	pdf.CellFormat(colIlosc, 8, "Ilość", "", 0, "R", true, 0, "")
-	pdf.CellFormat(colCena, 8, "Cena jedn.", "", 0, "R", true, 0, "")
-	pdf.CellFormat(colWart, 8, "Wartość", "", 1, "R", true, 0, "")
+	if q.DocType == DocTypeFakturaVAT {
+		// ── Kolumny faktury VAT ──────────────────────────────────────────
+		const (
+			fLp    = 8.0
+			fNazwa = 50.0
+			fIl    = 14.0
+			fNetJ  = 22.0
+			fNetW  = 24.0
+			fVatP  = 13.0
+			fVatK  = 22.0
+			fBrut  = 27.0
+		)
 
-	yLine := pdf.GetY()
-	pdf.SetLineWidth(0.2)
-	colorLine()
-	pdf.Line(marginL, yLine, rightX, yLine)
+		pdf.SetFont(family, "B", 8)
+		pdf.SetFillColor(245, 245, 245)
+		colorDark()
+		pdf.CellFormat(fLp, 7, "Lp.", "", 0, "C", true, 0, "")
+		pdf.CellFormat(fNazwa, 7, "Nazwa", "", 0, "L", true, 0, "")
+		pdf.CellFormat(fIl, 7, "Ilość", "", 0, "R", true, 0, "")
+		pdf.CellFormat(fNetJ, 7, "Cena netto", "", 0, "R", true, 0, "")
+		pdf.CellFormat(fNetW, 7, "Wart. netto", "", 0, "R", true, 0, "")
+		pdf.CellFormat(fVatP, 7, "VAT%", "", 0, "R", true, 0, "")
+		pdf.CellFormat(fVatK, 7, "Kwota VAT", "", 0, "R", true, 0, "")
+		pdf.CellFormat(fBrut, 7, "Brutto", "", 1, "R", true, 0, "")
 
-	pdf.SetFont(family, "", 10)
-	colorDark()
-	for i, li := range q.Items {
-		pdf.CellFormat(colLp, 7, strconv.Itoa(i+1), "", 0, "C", false, 0, "")
-		pdf.CellFormat(colNazwa, 7, li.Name, "", 0, "L", false, 0, "")
-		pdf.CellFormat(colIlosc, 7, formatNumber(li.Quantity), "", 0, "R", false, 0, "")
-		pdf.CellFormat(colCena, 7, formatPLN(li.UnitPrice), "", 0, "R", false, 0, "")
-		pdf.CellFormat(colWart, 7, formatPLN(li.Total()), "", 1, "R", false, 0, "")
-		yRow := pdf.GetY()
+		yLine := pdf.GetY()
+		pdf.Line(marginL, yLine, rightX, yLine)
+
+		pdf.SetFont(family, "", 9)
+		colorDark()
+
+		type vatGroup struct{ netto, vat, brutto float64 }
+		vatGroups := make(map[float64]*vatGroup)
+
+		for i, li := range q.Items {
+			netto := li.Quantity * li.UnitPrice
+			vatAmt := roundCents(netto * li.VatRate / 100)
+			brutto := netto + vatAmt
+
+			pdf.CellFormat(fLp, 6, strconv.Itoa(i+1), "", 0, "C", false, 0, "")
+			pdf.CellFormat(fNazwa, 6, li.Name, "", 0, "L", false, 0, "")
+			pdf.CellFormat(fIl, 6, formatNumber(li.Quantity), "", 0, "R", false, 0, "")
+			pdf.CellFormat(fNetJ, 6, formatPLN(li.UnitPrice), "", 0, "R", false, 0, "")
+			pdf.CellFormat(fNetW, 6, formatPLN(netto), "", 0, "R", false, 0, "")
+			pdf.CellFormat(fVatP, 6, strconv.FormatFloat(li.VatRate, 'f', 0, 64)+"%", "", 0, "R", false, 0, "")
+			pdf.CellFormat(fVatK, 6, formatPLN(vatAmt), "", 0, "R", false, 0, "")
+			pdf.CellFormat(fBrut, 6, formatPLN(brutto), "", 1, "R", false, 0, "")
+
+			if g, ok := vatGroups[li.VatRate]; ok {
+				g.netto += netto; g.vat += vatAmt; g.brutto += brutto
+			} else {
+				vatGroups[li.VatRate] = &vatGroup{netto, vatAmt, brutto}
+			}
+
+			yRow := pdf.GetY()
+			pdf.Line(marginL, yRow, rightX, yRow)
+		}
+
+		// Gruba linia + razem brutto
+		yBefore := pdf.GetY()
+		pdf.SetLineWidth(0.5)
+		colorLineStrong()
+		pdf.Line(marginL, yBefore, rightX, yBefore)
+
+		var totalNetto, totalVAT, totalBrutto float64
+		for _, g := range vatGroups {
+			totalNetto += g.netto
+			totalVAT += g.vat
+			totalBrutto += g.brutto
+		}
+		pdf.SetFont(family, "B", 10)
+		colorDark()
+		pdf.CellFormat(fLp+fNazwa+fIl+fNetJ+fNetW, 8, "Razem:", "", 0, "R", false, 0, "")
+		pdf.CellFormat(fVatP+fVatK, 8, formatPLN(totalVAT), "", 0, "R", false, 0, "")
+		pdf.CellFormat(fBrut, 8, formatPLN(totalBrutto), "", 1, "R", false, 0, "")
+
+		yAfter := pdf.GetY()
+		pdf.Line(marginL, yAfter, rightX, yAfter)
 		pdf.SetLineWidth(0.2)
 		colorLine()
-		pdf.Line(marginL, yRow, rightX, yRow)
+
+		// Rozbicie VAT wg stawek
+		if len(vatGroups) > 0 {
+			pdf.Ln(6)
+			pdf.SetFont(family, "B", 8)
+			colorMuted()
+			pdf.CellFormat(usableW, 4, "ZESTAWIENIE PODATKU VAT", "", 1, "L", false, 0, "")
+			pdf.Ln(2)
+			pdf.SetFont(family, "B", 8)
+			colorDark()
+			pdf.CellFormat(20, 6, "Stawka", "", 0, "C", false, 0, "")
+			pdf.CellFormat(50, 6, "Wartość netto", "", 0, "R", false, 0, "")
+			pdf.CellFormat(50, 6, "Kwota VAT", "", 0, "R", false, 0, "")
+			pdf.CellFormat(50, 6, "Wartość brutto", "", 1, "R", false, 0, "")
+			colorLine()
+			pdf.Line(marginL, pdf.GetY(), rightX, pdf.GetY())
+
+			// Sortowanie stawek
+			rates := make([]float64, 0, len(vatGroups))
+			for r := range vatGroups { rates = append(rates, r) }
+			for i := 0; i < len(rates)-1; i++ {
+				for j := i + 1; j < len(rates); j++ {
+					if rates[j] < rates[i] { rates[i], rates[j] = rates[j], rates[i] }
+				}
+			}
+			pdf.SetFont(family, "", 8)
+			colorDark()
+			for _, r := range rates {
+				g := vatGroups[r]
+				label := strconv.FormatFloat(r, 'f', 0, 64) + "%"
+				pdf.CellFormat(20, 5, label, "", 0, "C", false, 0, "")
+				pdf.CellFormat(50, 5, formatPLN(g.netto), "", 0, "R", false, 0, "")
+				pdf.CellFormat(50, 5, formatPLN(g.vat), "", 0, "R", false, 0, "")
+				pdf.CellFormat(50, 5, formatPLN(g.brutto), "", 1, "R", false, 0, "")
+			}
+			pdf.SetFont(family, "B", 8)
+			pdf.CellFormat(20, 5, "Razem", "", 0, "C", false, 0, "")
+			pdf.CellFormat(50, 5, formatPLN(totalNetto), "", 0, "R", false, 0, "")
+			pdf.CellFormat(50, 5, formatPLN(totalVAT), "", 0, "R", false, 0, "")
+			pdf.CellFormat(50, 5, formatPLN(totalBrutto), "", 1, "R", false, 0, "")
+		}
+	} else {
+		// ── Kolumny oferty / pro formy (bez VAT) ─────────────────────────
+		const (
+			colLp    = 10.0
+			colNazwa = 85.0
+			colIlosc = 20.0
+			colCena  = 30.0
+			colWart  = 35.0
+		)
+
+		pdf.SetFont(family, "B", 10)
+		pdf.SetFillColor(245, 245, 245)
+		colorDark()
+		pdf.CellFormat(colLp, 8, "Lp.", "", 0, "C", true, 0, "")
+		pdf.CellFormat(colNazwa, 8, "Nazwa", "", 0, "L", true, 0, "")
+		pdf.CellFormat(colIlosc, 8, "Ilość", "", 0, "R", true, 0, "")
+		pdf.CellFormat(colCena, 8, "Cena jedn.", "", 0, "R", true, 0, "")
+		pdf.CellFormat(colWart, 8, "Wartość", "", 1, "R", true, 0, "")
+
+		yLine := pdf.GetY()
+		pdf.Line(marginL, yLine, rightX, yLine)
+
+		pdf.SetFont(family, "", 10)
+		colorDark()
+		for i, li := range q.Items {
+			pdf.CellFormat(colLp, 7, strconv.Itoa(i+1), "", 0, "C", false, 0, "")
+			pdf.CellFormat(colNazwa, 7, li.Name, "", 0, "L", false, 0, "")
+			pdf.CellFormat(colIlosc, 7, formatNumber(li.Quantity), "", 0, "R", false, 0, "")
+			pdf.CellFormat(colCena, 7, formatPLN(li.UnitPrice), "", 0, "R", false, 0, "")
+			pdf.CellFormat(colWart, 7, formatPLN(li.Total()), "", 1, "R", false, 0, "")
+			yRow := pdf.GetY()
+			pdf.Line(marginL, yRow, rightX, yRow)
+		}
+
+		yBeforeRazem := pdf.GetY()
+		pdf.SetLineWidth(0.5)
+		colorLineStrong()
+		pdf.Line(marginL, yBeforeRazem, rightX, yBeforeRazem)
+
+		pdf.SetFont(family, "B", 12)
+		colorDark()
+		pdf.CellFormat(colLp+colNazwa+colIlosc+colCena, 9, "Razem:", "", 0, "R", false, 0, "")
+		pdf.CellFormat(colWart, 9, formatPLN(q.Total()), "", 1, "R", false, 0, "")
+
+		yAfterRazem := pdf.GetY()
+		pdf.SetLineWidth(0.5)
+		colorLineStrong()
+		pdf.Line(marginL, yAfterRazem, rightX, yAfterRazem)
+
+		pdf.SetLineWidth(0.2)
+		colorLine()
 	}
-
-	// Grubsza linia oddzielająca podsumowanie od listy pozycji.
-	yBeforeRazem := pdf.GetY()
-	pdf.SetLineWidth(0.5)
-	colorLineStrong()
-	pdf.Line(marginL, yBeforeRazem, rightX, yBeforeRazem)
-
-	pdf.SetFont(family, "B", 12)
-	colorDark()
-	pdf.CellFormat(colLp+colNazwa+colIlosc+colCena, 9, "Razem:", "", 0, "R", false, 0, "")
-	pdf.CellFormat(colWart, 9, formatPLN(q.Total()), "", 1, "R", false, 0, "")
-
-	yAfterRazem := pdf.GetY()
-	pdf.SetLineWidth(0.5)
-	colorLineStrong()
-	pdf.Line(marginL, yAfterRazem, rightX, yAfterRazem)
-
-	pdf.SetLineWidth(0.2)
-	colorLine()
 
 	// QR + dane do przelewu pod tabelą.
 	if nrb := sanitizeNRB(q.Company.BankAccount); len(nrb) == 26 {
-		paymentTitle := "Oferta"
-		if s := strings.TrimSpace(q.Number); s != "" {
-			paymentTitle = "Oferta " + s
+		var paymentTitle string
+		switch q.DocType {
+		case DocTypeFakturaVAT:
+			paymentTitle = "Faktura"
+			if s := strings.TrimSpace(q.InvoiceNumber); s != "" {
+				paymentTitle = "Faktura " + s
+			}
+		case DocTypeProforma:
+			paymentTitle = "Pro forma"
+			if s := strings.TrimSpace(q.InvoiceNumber); s != "" {
+				paymentTitle = "Pro forma " + s
+			}
+		default:
+			paymentTitle = "Oferta"
+			if s := strings.TrimSpace(q.Number); s != "" {
+				paymentTitle = "Oferta " + s
+			}
 		}
 		qrContent := formatPolishPaymentQR(nrb, q.Total(), q.Company.Name, paymentTitle)
 		if png, err := generateQRPNG(qrContent); err == nil {
@@ -248,24 +428,51 @@ func GeneratePDF(q Quote, w io.Writer) error {
 		pdf.MultiCell(0, 5, notes, "", "L", false)
 	}
 
-	// Stopka — termin ważności i klauzula.
+	// Stopka — klauzula zależna od typu dokumentu.
 	pdf.Ln(10)
 	pdf.SetFont(family, "", 9)
 	colorMuted()
-	validityPeriod := "14 dni od daty wystawienia"
-	if s := strings.TrimSpace(q.ValidUntil); s != "" {
-		validityPeriod = "do " + s
+	switch q.DocType {
+	case DocTypeFakturaVAT:
+		paymentDueLabel := strings.TrimSpace(q.PaymentDue)
+		if paymentDueLabel == "" {
+			paymentDueLabel = "zgodnie z ustaleniami"
+		}
+		pdf.MultiCell(0, 5,
+			"Faktura VAT wystawiona zgodnie z ustawą o podatku od towarów i usług. "+
+				"Termin płatności: "+paymentDueLabel+". Dziękujemy za zainteresowanie naszą ofertą.",
+			"", "L", false)
+	case DocTypeProforma:
+		pdf.MultiCell(0, 5,
+			"Faktura pro forma nie jest dokumentem księgowym. Stanowi jedynie zapowiedź faktury właściwej. "+
+				"Po dokonaniu wpłaty zostanie wystawiona faktura VAT. Dziękujemy za zainteresowanie naszą ofertą.",
+			"", "L", false)
+	default:
+		validityPeriod := "14 dni od daty wystawienia"
+		if s := strings.TrimSpace(q.ValidUntil); s != "" {
+			validityPeriod = "do " + s
+		}
+		pdf.MultiCell(0, 5,
+			"Oferta ważna "+validityPeriod+". Ceny są cenami netto, do których należy doliczyć podatek VAT zgodnie z obowiązującymi przepisami. "+
+				"Dziękujemy za zainteresowanie naszą ofertą.",
+			"", "L", false)
 	}
-	pdf.MultiCell(0, 5,
-		"Oferta ważna "+validityPeriod+". Ceny są cenami netto, do których należy doliczyć podatek VAT zgodnie z obowiązującymi przepisami. "+
-			"Dziękujemy za zainteresowanie naszą ofertą.",
-		"", "L", false)
+
+	pdf.Ln(4)
+	pdf.SetFont(family, "", 7)
+	pdf.SetTextColor(180, 180, 180)
+	pdf.CellFormat(0, 4, "SumIt · "+watermarkAuthor, "", 0, "C", false, 0, "")
 
 	return pdf.Output(w)
 }
 
 func formatPLN(v float64) string {
 	return fmt.Sprintf("%.2f zł", v)
+}
+
+// roundCents zaokrągla do 2 miejsc po przecinku (grosze).
+func roundCents(v float64) float64 {
+	return math.Round(v*100) / 100
 }
 
 func formatNumber(v float64) string {

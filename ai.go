@@ -22,8 +22,9 @@ const (
 	parseRatePerMin     = 10
 	parseMaxKontekst    = 30
 	parseMaxKontekstLen = 120
-	groqModel   = "llama-3.3-70b-versatile"
-	groqAPIURL  = "https://api.groq.com/openai/v1/chat/completions"
+	groqModelText       = "llama-3.3-70b-versatile"
+	groqModelVision     = "meta-llama/llama-4-scout-17b-16e-instruct"
+	groqAPIURL          = "https://api.groq.com/openai/v1/chat/completions"
 )
 
 // groqAPIEndpoint pozwala podmienić endpoint Groq w testach.
@@ -153,15 +154,19 @@ func rateLimitParse(next http.HandlerFunc) http.HandlerFunc {
 
 func stripMarkdownJSON(s string) string {
 	s = strings.TrimSpace(s)
-	if !strings.HasPrefix(s, "```") {
-		return s
+	if strings.HasPrefix(s, "```") {
+		s = strings.TrimPrefix(s, "```json")
+		s = strings.TrimPrefix(s, "```")
+		if i := strings.LastIndex(s, "```"); i >= 0 {
+			s = s[:i]
+		}
+		s = strings.TrimSpace(s)
 	}
-	s = strings.TrimPrefix(s, "```json")
-	s = strings.TrimPrefix(s, "```")
-	if i := strings.LastIndex(s, "```"); i >= 0 {
-		s = s[:i]
+	// Model czasem zwraca tablicę JSON z końcowym fence bez otwarcia (np. "[]\n```").
+	if idx := strings.Index(s, "```"); idx >= 0 {
+		s = strings.TrimSpace(s[:idx])
 	}
-	return strings.TrimSpace(s)
+	return s
 }
 
 func collapseSpaces(s string) string {
@@ -287,16 +292,22 @@ func buildGroqUserContent(in parseRequest) (any, error) {
 
 	mimeType := strings.TrimSpace(strings.ToLower(in.MimeType))
 	dataURI := "data:" + mimeType + ";base64," + strings.TrimSpace(in.Obraz)
-	parts := []groqContentPart{
-		{
-			Type:     "image_url",
-			ImageURL: &groqImageURL{URL: dataURI},
-		},
-	}
+	parts := make([]groqContentPart, 0, 2)
 	if userMsg != "" {
 		parts = append(parts, groqContentPart{Type: "text", Text: userMsg})
 	}
+	parts = append(parts, groqContentPart{
+		Type:     "image_url",
+		ImageURL: &groqImageURL{URL: dataURI},
+	})
 	return parts, nil
+}
+
+func groqModelForParse(in parseRequest) string {
+	if strings.TrimSpace(in.Obraz) != "" {
+		return groqModelVision
+	}
+	return groqModelText
 }
 
 func callGroqParse(ctx context.Context, apiKey string, in parseRequest) ([]parseItem, error) {
@@ -306,7 +317,7 @@ func callGroqParse(ctx context.Context, apiKey string, in parseRequest) ([]parse
 	}
 
 	reqBody := groqChatRequest{
-		Model: groqModel,
+		Model: groqModelForParse(in),
 		Messages: []groqMessage{
 			{Role: "system", Content: parseSystemPrompt},
 			{Role: "user", Content: userContent},

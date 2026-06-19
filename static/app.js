@@ -9,10 +9,39 @@
       && typeof navigator.canShare === 'function'
       && typeof navigator.share === 'function';
 
+    const STORAGE_KEY_SOURCE = 'sumit_source';
+    const WATERMARK_AUTHOR = 'Franciszek Dranka';
+    const WATERMARK_BYLINE = 'SumIt · ' + WATERMARK_AUTHOR;
+
+    (function initTrackingSource() {
+      try {
+        const src = new URLSearchParams(location.search).get('src');
+        if (src) localStorage.setItem(STORAGE_KEY_SOURCE, src);
+      } catch (_) {}
+    })();
+
+    function getTrackingSource() {
+      try {
+        return localStorage.getItem(STORAGE_KEY_SOURCE) || '';
+      } catch (_) {
+        return '';
+      }
+    }
+
+    function trackEvent(eventName) {
+      fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: eventName, source: getTrackingSource() }),
+      }).catch(function () {});
+    }
+
     const STORAGE_KEY_THEME = 'sumit_theme';
     const STORAGE_KEY_APP_PREFS = 'sumit_app_prefs';
     const DEFAULT_VALIDITY_DAYS = 14;
     const VALIDITY_DAY_OPTIONS = [7, 14, 30];
+    const DEFAULT_DOC_TYPE_OPTIONS = ['', 'faktura_vat'];
+    const DEFAULT_VAT_OPTIONS = ['23', '8', '5', '0'];
     const btnTheme = document.getElementById('btn-theme');
     const btnThemeMobile = document.getElementById('btn-theme-mobile');
     const themeButtons = [btnTheme, btnThemeMobile].filter(Boolean);
@@ -46,6 +75,48 @@
       } catch (e) {}
     }
 
+    function wczytajDomyslnyTypDokumentu() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_APP_PREFS);
+        if (!raw) return '';
+        const dane = JSON.parse(raw);
+        const typ = typeof dane.defaultDocType === 'string' ? dane.defaultDocType : '';
+        return DEFAULT_DOC_TYPE_OPTIONS.includes(typ) ? typ : '';
+      } catch (e) {}
+      return '';
+    }
+
+    function zapiszDomyslnyTypDokumentu(typ) {
+      if (!DEFAULT_DOC_TYPE_OPTIONS.includes(typ)) return;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_APP_PREFS);
+        const dane = raw ? JSON.parse(raw) : {};
+        dane.defaultDocType = typ;
+        localStorage.setItem(STORAGE_KEY_APP_PREFS, JSON.stringify(dane));
+      } catch (e) {}
+    }
+
+    function wczytajDomyslnaStawkeVat() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_APP_PREFS);
+        if (!raw) return '23';
+        const dane = JSON.parse(raw);
+        const vat = String(dane.defaultVatRate || '23');
+        return DEFAULT_VAT_OPTIONS.includes(vat) ? vat : '23';
+      } catch (e) {}
+      return '23';
+    }
+
+    function zapiszDomyslnaStawkeVat(vat) {
+      if (!DEFAULT_VAT_OPTIONS.includes(vat)) return;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_APP_PREFS);
+        const dane = raw ? JSON.parse(raw) : {};
+        dane.defaultVatRate = vat;
+        localStorage.setItem(STORAGE_KEY_APP_PREFS, JSON.stringify(dane));
+      } catch (e) {}
+    }
+
     function ustawPreferencjeMotywu(pref) {
       if (pref === 'system') {
         try { localStorage.removeItem(STORAGE_KEY_THEME); } catch (e) {}
@@ -73,6 +144,28 @@
       const dni = wczytajDomyslnaWaznoscDni();
       wrap.querySelectorAll('.chip[data-validity-days]').forEach((chip) => {
         const active = Number(chip.getAttribute('data-validity-days')) === dni;
+        chip.classList.toggle('is-active', active);
+        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    function odswiezChipyDocTypeApp() {
+      const wrap = document.getElementById('app-settings-doc-type');
+      if (!wrap) return;
+      const typ = wczytajDomyslnyTypDokumentu();
+      wrap.querySelectorAll('.chip[data-default-doc-type]').forEach((chip) => {
+        const active = (chip.getAttribute('data-default-doc-type') || '') === typ;
+        chip.classList.toggle('is-active', active);
+        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    function odswiezChipyVatApp() {
+      const wrap = document.getElementById('app-settings-vat');
+      if (!wrap) return;
+      const vat = wczytajDomyslnaStawkeVat();
+      wrap.querySelectorAll('.chip[data-default-vat]').forEach((chip) => {
+        const active = chip.getAttribute('data-default-vat') === vat;
         chip.classList.toggle('is-active', active);
         chip.setAttribute('aria-pressed', active ? 'true' : 'false');
       });
@@ -129,7 +222,8 @@
       });
     }
 
-    function dodajWiersz() {
+    function dodajWiersz(opts) {
+      const naKoniec = !!(opts && opts.naKoniec);
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="col-lp"></td>
@@ -165,6 +259,14 @@
             </div>
           </div>
         </td>
+        <td class="col-vat vat-col-hidden">
+          <select class="in-vat" aria-label="Stawka VAT">
+            <option value="23">23%</option>
+            <option value="8">8%</option>
+            <option value="5">5%</option>
+            <option value="0">0%</option>
+          </select>
+        </td>
         <td class="col-akcja">
           <div class="row-actions">
             <button type="button" class="btn-duplicate" title="Duplikuj wiersz" aria-label="Duplikuj wiersz">
@@ -199,9 +301,19 @@
       if (nazwaInput) {
         nazwaInput.addEventListener('input', () => aplikujSzablonDoWiersza(tr));
       }
-      tbody.appendChild(tr);
+      if (naKoniec) {
+        tbody.appendChild(tr);
+      } else {
+        tbody.insertBefore(tr, tbody.firstChild);
+      }
       odswiezNumery();
       if (accordionFormReady) odswiezPodgladPozycjiAkordeon();
+      const inVat = tr.querySelector('.in-vat');
+      if (inVat) inVat.value = wczytajDomyslnaStawkeVat();
+      const inNazwa = tr.querySelector('.in-nazwa');
+      if (!naKoniec && inNazwa && document.activeElement === btnDodaj) {
+        inNazwa.focus();
+      }
     }
 
     function duplikujWiersz(originalTr) {
@@ -210,9 +322,10 @@
       const ilosc = originalTr.querySelector('.in-ilosc').value;
       const cena  = originalTr.querySelector('.in-cena').value;
       const koszt = originalTr.querySelector('.in-koszt').value;
+      const vat   = originalTr.querySelector('.in-vat') ? originalTr.querySelector('.in-vat').value : '23';
 
       dodajWiersz();
-      const noweTr = tbody.lastElementChild;
+      const noweTr = tbody.firstElementChild;
       if (!noweTr) return;
       if (noweTr !== originalTr) {
         originalTr.insertAdjacentElement('afterend', noweTr);
@@ -222,6 +335,7 @@
       noweTr.querySelector('.in-ilosc').value = ilosc;
       noweTr.querySelector('.in-cena').value  = cena;
       noweTr.querySelector('.in-koszt').value = koszt;
+      if (noweTr.querySelector('.in-vat')) noweTr.querySelector('.in-vat').value = vat;
 
       odswiezNumery();
       aktualizujSzacowanyZysk();
@@ -392,7 +506,8 @@
     function budujPayloadZFormularza() {
       const cfg = wczytajConfig();
       const nazwaFirmy = String(cfg.nazwa_firmy || '').trim();
-      const klient = document.getElementById('klient').value.trim();
+      const klientEl = document.getElementById('klient');
+      const klient = klientEl ? klientEl.value.trim() : '';
       const pozycjeWiersze = [...tbody.querySelectorAll('tr')];
       // Uwaga: pole .in-koszt jest celowo pomijane w payloadzie /quote.
       // Backend Go (struct Pozycja w oferta.go) nie zna pola "koszt" — dorzucenie go
@@ -400,11 +515,23 @@
       // w warstwie UI i służy wyłącznie do liczenia szacowanego zysku w przeglądarce
       // oraz jest zapisywany razem z wpisem historii (osobno od payloadu) na potrzeby
       // statystyk zysku.
-      const pozycje = pozycjeWiersze.map(tr => ({
-        nazwa: tr.querySelector('.in-nazwa').value.trim(),
-        ilosc: parseFloat(tr.querySelector('.in-ilosc').value),
-        cena_jednostkowa: parseFloat(tr.querySelector('.in-cena').value),
-      }));
+      const aktualnyDocType = (document.getElementById('doc-type-switcher') &&
+        document.querySelector('#doc-type-switcher .chip.is-active'))
+        ? (document.querySelector('#doc-type-switcher .chip.is-active').dataset.docType || '')
+        : '';
+
+      const pozycje = pozycjeWiersze.map(tr => {
+        const p = {
+          nazwa: tr.querySelector('.in-nazwa').value.trim(),
+          ilosc: parseFloat(tr.querySelector('.in-ilosc').value),
+          cena_jednostkowa: parseFloat(tr.querySelector('.in-cena').value),
+        };
+        if (aktualnyDocType === 'faktura_vat') {
+          const vatEl = tr.querySelector('.in-vat');
+          p.stawka_vat = vatEl ? parseFloat(vatEl.value) || 0 : 23;
+        }
+        return p;
+      });
       const koszty = pozycjeWiersze.map(tr => {
         const raw = String(tr.querySelector('.in-koszt').value || '').replace(',', '.').trim();
         if (!raw) return null;
@@ -413,28 +540,42 @@
       });
       const pozycjeOk = pozycje.filter(p => p.nazwa && Number.isFinite(p.ilosc) && p.ilosc > 0 && Number.isFinite(p.cena_jednostkowa) && p.cena_jednostkowa >= 0);
 
+      const numerFaktury = document.getElementById('numer_faktury') ? document.getElementById('numer_faktury').value.trim() : '';
+      const dataSprzedazy = document.getElementById('data_sprzedazy') ? document.getElementById('data_sprzedazy').value : '';
+      const terminPlatnosci = document.getElementById('termin_platnosci') ? document.getElementById('termin_platnosci').value.trim() : '';
+      const isInvoice = aktualnyDocType === 'faktura_proforma' || aktualnyDocType === 'faktura_vat';
+      const invoiceReady = !!numerFaktury && !!dataSprzedazy;
+
       const gotowy = !!nazwaFirmy && !!klient && pozycjeOk.length > 0;
+
+      const payloadBase = {
+        nazwa_firmy: nazwaFirmy,
+        nip: String(cfg.nip || '').trim(),
+        adres: String(cfg.adres || '').trim(),
+        miasto: String(cfg.miasto || '').trim(),
+        telefon: String(cfg.telefon || '').trim(),
+        email: String(cfg.email || '').trim(),
+        logo_base64: String(cfg.logo_base64 || ''),
+        numer_konta: String(cfg.numer_konta || '').trim(),
+        klient: klient,
+        numer_oferty: document.getElementById('numer_oferty').value.trim(),
+        data_waznosci: document.getElementById('data_waznosci').value,
+        uwagi: document.getElementById('uwagi').value.trim(),
+        pozycje: pozycjeOk,
+      };
+      if (aktualnyDocType && (!isInvoice || invoiceReady)) {
+        payloadBase.typ_dokumentu = aktualnyDocType;
+        payloadBase.numer_faktury = numerFaktury;
+        payloadBase.data_sprzedazy = dataSprzedazy;
+        payloadBase.termin_platnosci = terminPlatnosci;
+      }
 
       return {
         gotowy,
         nazwaFirmy,
         klient,
         koszty,
-        payload: {
-          nazwa_firmy: nazwaFirmy,
-          nip: String(cfg.nip || '').trim(),
-          adres: String(cfg.adres || '').trim(),
-          miasto: String(cfg.miasto || '').trim(),
-          telefon: String(cfg.telefon || '').trim(),
-          email: String(cfg.email || '').trim(),
-          logo_base64: String(cfg.logo_base64 || ''),
-          numer_konta: String(cfg.numer_konta || '').trim(),
-          klient: klient,
-          numer_oferty: document.getElementById('numer_oferty').value.trim(),
-          data_waznosci: document.getElementById('data_waznosci').value,
-          uwagi: document.getElementById('uwagi').value.trim(),
-          pozycje: pozycje,
-        },
+        payload: payloadBase,
       };
     }
 
@@ -457,6 +598,7 @@
     let livePodgladAbort = null;
 
     const PDF_VIEW_PARAMS = '#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=FitH&zoom=page-fit';
+    const PDF_FULLSCREEN_PARAMS = '#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=Fit';
 
     function ustawHasPdf(stan) {
       if (livePreviewFrame) livePreviewFrame.classList.toggle('has-pdf', stan);
@@ -522,10 +664,62 @@
       }
       liveEmpty.hidden = false;
       ustawHasPdf(false);
+      synchronizujSrcLightbox();
       if (pdfLightbox && pdfLightbox.classList.contains('is-open')) {
         zamknijPdfLightbox();
       }
     }
+
+    function docelowySrcLightbox() {
+      return activeUrl ? activeUrl + PDF_VIEW_PARAMS : '';
+    }
+
+    function synchronizujSrcLightbox() {
+      if (!pdfLightboxFrame) return;
+      const docelowy = docelowySrcLightbox();
+      if (!docelowy) {
+        pdfLightboxFrame.removeAttribute('src');
+        return;
+      }
+      const biezacy = pdfLightboxFrame.getAttribute('src') || '';
+      if (biezacy !== docelowy) {
+        pdfLightboxFrame.src = docelowy;
+      }
+    }
+
+    function aktywujBuforPdf(oczekiwanyUrl) {
+      if (!bufferFrame || !pendingUrl || pendingUrl !== oczekiwanyUrl) return;
+
+      bufferFrame.classList.add('active');
+      activeFrame.classList.remove('active');
+      if (liveEmpty) liveEmpty.hidden = true;
+      ustawHasPdf(true);
+
+      const oldUrl = activeUrl;
+      activeUrl = pendingUrl;
+      pendingUrl = '';
+
+      synchronizujSrcLightbox();
+
+      const tmp = activeFrame;
+      activeFrame = bufferFrame;
+      bufferFrame = tmp;
+
+      if (oldUrl) {
+        setTimeout(() => URL.revokeObjectURL(oldUrl), 800);
+      }
+    }
+
+    function onFrameLoad(frame) {
+      if (frame !== bufferFrame || !pendingUrl) return;
+      const url = pendingUrl;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => aktywujBuforPdf(url));
+      });
+    }
+
+    if (pdfFrame1) pdfFrame1.addEventListener('load', () => onFrameLoad(pdfFrame1));
+    if (pdfFrame2) pdfFrame2.addEventListener('load', () => onFrameLoad(pdfFrame2));
 
     function zaladujPdfDoBufora(blob) {
       if (!activeFrame || !bufferFrame) return;
@@ -535,64 +729,62 @@
       }
       pendingUrl = nowyUrl;
       bufferFrame.src = nowyUrl + PDF_VIEW_PARAMS;
+      setTimeout(() => aktywujBuforPdf(nowyUrl), 1200);
     }
 
-    function onFrameLoad(frame) {
-      if (frame !== bufferFrame) return;
-      if (!pendingUrl) return;
+    let pdfLightboxZrodlo = '';
 
+    function otworzPdfLightbox(zrodloUrl) {
+      const url = zrodloUrl || activeUrl;
+      if (!url || !pdfLightbox || !pdfLightboxFrame) return;
+      pdfLightboxZrodlo = zrodloUrl ? 'modal' : 'live';
+      const params = pdfLightboxZrodlo === 'modal'
+        && window.matchMedia('(max-width: 1023px)').matches
+        ? PDF_VIEW_PARAMS
+        : (pdfLightboxZrodlo === 'modal' ? PDF_FULLSCREEN_PARAMS : PDF_VIEW_PARAMS);
+      const docelowy = url + params;
+      const biezacy = pdfLightboxFrame.getAttribute('src') || '';
+      if (biezacy !== docelowy) {
+        pdfLightboxFrame.src = docelowy;
+      }
+      pdfLightbox.classList.toggle('is-from-modal', pdfLightboxZrodlo === 'modal');
+      pdfLightbox.classList.remove('is-settled');
+      pdfLightbox.hidden = false;
+      pdfLightbox.setAttribute('aria-hidden', 'false');
+      const modalPdf = document.getElementById('pdf-modal');
+      if (!modalPdf || modalPdf.hidden) {
+        document.body.style.overflow = 'hidden';
+      }
       requestAnimationFrame(() => {
+        pdfLightbox.classList.add('is-open');
         requestAnimationFrame(() => {
-          if (frame !== bufferFrame) return;
-          if (!pendingUrl) return;
-
-          bufferFrame.classList.add('active');
-          activeFrame.classList.remove('active');
-          if (liveEmpty) liveEmpty.hidden = true;
-          ustawHasPdf(true);
-
-          const oldUrl = activeUrl;
-          activeUrl = pendingUrl;
-          pendingUrl = '';
-
-          if (pdfLightbox && pdfLightbox.classList.contains('is-open') && pdfLightboxFrame) {
-            pdfLightboxFrame.src = activeUrl + PDF_VIEW_PARAMS;
-          }
-
-          const tmp = activeFrame;
-          activeFrame = bufferFrame;
-          bufferFrame = tmp;
-
-          if (oldUrl) {
-            setTimeout(() => URL.revokeObjectURL(oldUrl), 800);
-          }
+          window.setTimeout(() => {
+            if (pdfLightbox.classList.contains('is-open')) {
+              pdfLightbox.classList.add('is-settled');
+            }
+          }, 220);
         });
       });
     }
 
-    if (pdfFrame1) pdfFrame1.addEventListener('load', () => onFrameLoad(pdfFrame1));
-    if (pdfFrame2) pdfFrame2.addEventListener('load', () => onFrameLoad(pdfFrame2));
-
-    function otworzPdfLightbox() {
-      if (!activeUrl || !pdfLightbox || !pdfLightboxFrame) return;
-      pdfLightboxFrame.src = activeUrl + PDF_VIEW_PARAMS;
-      pdfLightbox.hidden = false;
-      pdfLightbox.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-      requestAnimationFrame(() => pdfLightbox.classList.add('is-open'));
-    }
-
     function zamknijPdfLightbox() {
       if (!pdfLightbox) return;
-      pdfLightbox.classList.remove('is-open');
+      const zrodlo = pdfLightboxZrodlo;
+      pdfLightbox.classList.remove('is-open', 'is-settled');
       pdfLightbox.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-      setTimeout(() => {
+      pdfLightboxZrodlo = '';
+      pdfLightbox.classList.remove('is-from-modal');
+      window.setTimeout(() => {
         if (pdfLightbox && !pdfLightbox.classList.contains('is-open')) {
           pdfLightbox.hidden = true;
-          if (pdfLightboxFrame) pdfLightboxFrame.removeAttribute('src');
         }
       }, 220);
+      const modalPdf = document.getElementById('pdf-modal');
+      if (zrodlo === 'modal' && modalPdf && !modalPdf.hidden) {
+        document.body.style.overflow = 'hidden';
+        return;
+      }
+      document.body.style.overflow = '';
     }
 
     if (livePreviewFrame) {
@@ -678,8 +870,8 @@
 
         const cfg = wczytajConfig();
         if (!String(cfg.nazwa_firmy || '').trim()) {
-          pokazKomunikat('Uzupełnij nazwę firmy w Ustawieniach firmy (ikona koła zębatego).', 'error');
-          otworzSettings();
+          pokazKomunikat('Uzupełnij nazwę firmy w zakładce Moja firma.', 'error');
+          przejdzDoMojaFirma();
           return;
         }
 
@@ -702,7 +894,7 @@
           }
 
           const blob = await res.blob();
-          const nazwaPliku = `oferta-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
+          const nazwaPliku = `wycena-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
           const file = new File([blob], nazwaPliku, { type: 'application/pdf' });
 
           if (!navigator.canShare({ files: [file] })) {
@@ -719,13 +911,15 @@
           if (livePodgladMql.matches) {
             zaladujPdfDoBufora(blob);
           }
-          dodajDoHistorii(payload, koszty);
+          const _pendingTok1 = window._pendingLinkToken || null;
+          window._pendingLinkToken = null;
+          dodajDoHistorii(payload, koszty, _pendingTok1);
           inkrementujNumeracje();
           renderStatystyki();
           const numerEl = document.getElementById('numer_oferty');
           if (numerEl) numerEl.value = nastepnyNumerOferty();
           aktualnyPayloadEmail = payload;
-          pokazKomunikat('Oferta wysłana do klienta. Wycena zapisana w historii.', 'success');
+          pokazKomunikat('Wycena wysłana do klienta i zapisana w historii.', 'success');
         } catch (err) {
           if (err && err.name === 'AbortError') return;
           pokazKomunikat('Nie udało się wysłać pliku: ' + err.message, 'error');
@@ -742,8 +936,8 @@
 
       const cfg = wczytajConfig();
       if (!String(cfg.nazwa_firmy || '').trim()) {
-        pokazKomunikat('Uzupełnij nazwę firmy w Ustawieniach firmy (ikona koła zębatego).', 'error');
-        otworzSettings();
+        pokazKomunikat('Uzupełnij nazwę firmy w zakładce Moja firma.', 'error');
+        przejdzDoMojaFirma();
         return;
       }
 
@@ -766,7 +960,9 @@
         }
 
         const blob = await res.blob();
-        const nazwaPliku = `oferta-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
+        const nazwaPliku = `wycena-${payload.klient.replace(/[^a-z0-9-_]+/gi, '_') || 'dokument'}.pdf`;
+
+        trackEvent('pdf_generated');
 
         if (desktopTryb) {
           zaladujPdfDoBufora(blob);
@@ -780,7 +976,9 @@
           a.remove();
           setTimeout(() => URL.revokeObjectURL(dlUrl), 10000);
 
-          dodajDoHistorii(payload, koszty);
+          const _pendingTok2 = window._pendingLinkToken || null;
+          window._pendingLinkToken = null;
+          dodajDoHistorii(payload, koszty, _pendingTok2);
           inkrementujNumeracje();
           renderStatystyki();
           const numerEl = document.getElementById('numer_oferty');
@@ -808,6 +1006,7 @@
     const btnDrukujPdf = document.getElementById('btn-drukuj-pdf');
     const btnPrzygotujEmail = document.getElementById('btn-przygotuj-email');
     const btnZamknijModal = document.getElementById('btn-zamknij-modal');
+    const pdfModalMobileMql = window.matchMedia('(max-width: 1023px)');
 
     let aktualnyPodgladUrl = '';
     let aktualnaNazwaPliku = '';
@@ -816,25 +1015,13 @@
     let aktualnyBlobPdf = null;
     let aktualneKoszty = null;
 
-    function pokazPodgladPdf(url, nazwaPliku, payload, blob, koszty) {
-      if (aktualnyPodgladUrl) {
-        URL.revokeObjectURL(aktualnyPodgladUrl);
+    function ukryjPdfModal() {
+      if (pdfLightbox && pdfLightbox.classList.contains('is-open') && pdfLightboxZrodlo === 'modal') {
+        zamknijPdfLightbox();
       }
-      aktualnyPodgladUrl = url;
-      aktualnaNazwaPliku = nazwaPliku;
-      aktualnyPayload = payload || null;
-      aktualnyPayloadEmail = payload || null;
-      aktualnyBlobPdf = blob || null;
-      aktualneKoszty = Array.isArray(koszty) ? koszty.slice() : null;
-      pdfPreview.src = url;
-      pdfModal.hidden = false;
-      pdfModal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function zamknijPodgladPdf() {
       pdfModal.hidden = true;
       pdfModal.setAttribute('aria-hidden', 'true');
+      pdfModal.classList.remove('is-open');
       pdfPreview.removeAttribute('src');
       document.body.style.overflow = '';
       if (aktualnyPodgladUrl) {
@@ -848,10 +1035,84 @@
       aktualneKoszty = null;
     }
 
+    function pokazPodgladPdf(url, nazwaPliku, payload, blob, koszty) {
+      if (aktualnyPodgladUrl) {
+        URL.revokeObjectURL(aktualnyPodgladUrl);
+      }
+      aktualnyPodgladUrl = url;
+      aktualnaNazwaPliku = nazwaPliku;
+      aktualnyPayload = payload || null;
+      aktualnyPayloadEmail = payload || null;
+      aktualnyBlobPdf = blob || null;
+      aktualneKoszty = Array.isArray(koszty) ? koszty.slice() : null;
+      pdfPreview.src = url + PDF_VIEW_PARAMS;
+      pdfModal.hidden = false;
+      pdfModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      if (pdfModalMobileMql.matches) {
+        pdfModal.classList.remove('is-open');
+        if (animacjeWlaczone()) {
+          requestAnimationFrame(() => pdfModal.classList.add('is-open'));
+        } else {
+          pdfModal.classList.add('is-open');
+        }
+      }
+    }
+
+    function zamknijPodgladPdf() {
+      if (pdfModal.hidden) return;
+      if (
+        pdfModalMobileMql.matches &&
+        pdfModal.classList.contains('is-open') &&
+        animacjeWlaczone()
+      ) {
+        pdfModal.classList.remove('is-open');
+        const card = pdfModal.querySelector('.pdf-preview-sheet');
+        if (!card) {
+          ukryjPdfModal();
+          return;
+        }
+        let zamkniete = false;
+        const finalize = () => {
+          if (zamkniete) return;
+          zamkniete = true;
+          ukryjPdfModal();
+        };
+        const done = (e) => {
+          if (e.target !== card || e.propertyName !== 'transform') return;
+          card.removeEventListener('transitionend', done);
+          finalize();
+        };
+        card.addEventListener('transitionend', done);
+        window.setTimeout(finalize, 320);
+        return;
+      }
+      ukryjPdfModal();
+    }
+
     btnZamknijModal.addEventListener('click', zamknijPodgladPdf);
     pdfModalBackdrop.addEventListener('click', zamknijPodgladPdf);
+    const pdfPreviewTap = document.getElementById('pdf-preview-tap');
+    if (pdfPreviewTap) {
+      const otworzPelnyPodgladZModala = () => {
+        if (!aktualnyPodgladUrl) return;
+        otworzPdfLightbox(aktualnyPodgladUrl);
+      };
+      pdfPreviewTap.addEventListener('click', otworzPelnyPodgladZModala);
+      pdfPreviewTap.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          otworzPelnyPodgladZModala();
+        }
+      });
+    }
+    pdfModalMobileMql.addEventListener('change', () => {
+      if (!pdfModal || pdfModal.hidden || pdfModalMobileMql.matches) return;
+      pdfModal.classList.remove('is-open');
+    });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !pdfModal.hidden) {
+        if (pdfLightbox && pdfLightbox.classList.contains('is-open')) return;
         zamknijPodgladPdf();
       }
     });
@@ -879,7 +1140,7 @@
       btnUdostepnijPdf.hidden = false;
       btnUdostepnijPdf.addEventListener('click', async () => {
         if (!aktualnyBlobPdf) return;
-        const file = new File([aktualnyBlobPdf], aktualnaNazwaPliku || 'Oferta.pdf', { type: 'application/pdf' });
+        const file = new File([aktualnyBlobPdf], aktualnaNazwaPliku || 'Wycena.pdf', { type: 'application/pdf' });
           if (!navigator.canShare({ files: [file] })) {
             pokazKomunikat('Ta przeglądarka nie wspiera wysyłania plików PDF.', 'error');
             return;
@@ -897,7 +1158,7 @@
               aktualnyPayload = null;
               aktualneKoszty = null;
             }
-            pokazKomunikat('Oferta wysłana do klienta.', 'success');
+            pokazKomunikat('Wycena wysłana do klienta.', 'success');
           } catch (err) {
             if (err && err.name === 'AbortError') return;
             pokazKomunikat('Nie udało się wysłać pliku: ' + err.message, 'error');
@@ -942,24 +1203,168 @@
     const POLA_CONFIG = ['nazwa_firmy', 'nip', 'adres', 'miasto', 'telefon', 'email', 'numer_konta'];
     const MAX_LOGO_BYTES = 200 * 1024;
 
-    const settingsModal = document.getElementById('settings-modal');
-    const settingsBackdrop = document.getElementById('settings-modal-backdrop');
     const appSettingsModal = document.getElementById('app-settings-modal');
     const appSettingsBackdrop = document.getElementById('app-settings-modal-backdrop');
+    const appSettingsMobileMql = window.matchMedia('(max-width: 1023px)');
     const btnAppSettingsZamknij = document.getElementById('btn-app-settings-zamknij');
     const btnSettings = document.getElementById('btn-settings');
     const btnSettingsMobile = document.getElementById('btn-settings-mobile');
-    const btnCfgZamknij = document.getElementById('btn-cfg-zamknij');
     const btnCfgWyczysc = document.getElementById('btn-cfg-wyczysc');
+    const btnCfgZapisz = document.getElementById('btn-cfg-zapisz');
     const settingsMessage = document.getElementById('settings-message');
+    const settingsForm = document.getElementById('settings-form');
 
     const cfgLogoInput = document.getElementById('cfg-logo-input');
     const btnCfgDodajLogo = document.getElementById('btn-cfg-dodaj-logo');
     const btnCfgUsunLogo = document.getElementById('btn-cfg-usun-logo');
-    const cfgLogoPreviewWrap = document.getElementById('cfg-logo-preview-wrap');
     const cfgLogoPreviewImg = document.getElementById('cfg-logo-preview');
+    const firmaLogoPlaceholder = document.getElementById('firma-logo-placeholder');
+    const btnCfgPobierzNip = document.getElementById('btn-cfg-pobierz-nip');
+    const firmaSaveStatus = document.getElementById('firma-save-status');
+    let cfgNipFetchController = null;
+    let firmaSaveStatusTimer = null;
 
     let cfgLogoBase64 = '';
+
+    function ustawLiniePodgladuFirmy(el, tekst) {
+      if (!el) return;
+      const val = typeof tekst === 'string' ? tekst.trim() : '';
+      if (val) {
+        el.textContent = val;
+        el.hidden = false;
+      } else {
+        el.textContent = '';
+        el.hidden = true;
+      }
+    }
+
+    function odswiezPodgladFirmy() {
+      const cfg = zbierzConfigZFormularza();
+      const previewLogo = document.getElementById('firma-preview-logo');
+      const previewNazwa = document.getElementById('firma-preview-nazwa');
+      const previewNip = document.getElementById('firma-preview-nip');
+      const previewAdres = document.getElementById('firma-preview-adres');
+      const previewMiasto = document.getElementById('firma-preview-miasto');
+      const previewTelefon = document.getElementById('firma-preview-telefon');
+      const previewEmail = document.getElementById('firma-preview-email');
+      const statusQr = document.getElementById('firma-status-qr');
+      const statusLogo = document.getElementById('firma-status-logo');
+
+      if (previewLogo) {
+        if (cfg.logo_base64) {
+          previewLogo.src = cfg.logo_base64;
+          previewLogo.hidden = false;
+        } else {
+          previewLogo.removeAttribute('src');
+          previewLogo.hidden = true;
+        }
+      }
+
+      if (previewNazwa) {
+        const nazwa = cfg.nazwa_firmy.trim();
+        previewNazwa.textContent = nazwa || 'Nazwa firmy';
+        previewNazwa.classList.toggle('is-empty', !nazwa);
+      }
+
+      ustawLiniePodgladuFirmy(previewNip, cfg.nip.trim() ? 'NIP: ' + cfg.nip.trim() : '');
+      ustawLiniePodgladuFirmy(previewAdres, cfg.adres);
+      ustawLiniePodgladuFirmy(previewMiasto, cfg.miasto);
+      ustawLiniePodgladuFirmy(previewTelefon, cfg.telefon.trim() ? 'tel: ' + cfg.telefon.trim() : '');
+      ustawLiniePodgladuFirmy(previewEmail, cfg.email.trim() ? cfg.email.trim() : '');
+
+      const cyfryKonta = (cfg.numer_konta || '').replace(/\D+/g, '');
+      if (statusQr) {
+        if (cyfryKonta.length === 26) {
+          statusQr.textContent = 'QR na PDF';
+          statusQr.dataset.state = 'ok';
+        } else if (cyfryKonta.length > 0) {
+          statusQr.textContent = 'NRB: ' + cyfryKonta.length + '/26';
+          statusQr.dataset.state = 'warn';
+        } else {
+          statusQr.textContent = 'Bez QR';
+          statusQr.dataset.state = 'warn';
+        }
+      }
+
+      if (statusLogo) {
+        if (cfg.logo_base64) {
+          statusLogo.textContent = 'Logo OK';
+          statusLogo.dataset.state = 'ok';
+        } else {
+          statusLogo.textContent = 'Bez logo';
+          statusLogo.dataset.state = 'warn';
+        }
+      }
+    }
+
+    function pokazStatusZapisuFirmy() {
+      if (!firmaSaveStatus) return;
+      firmaSaveStatus.textContent = 'Zapisano';
+      if (firmaSaveStatusTimer) clearTimeout(firmaSaveStatusTimer);
+      firmaSaveStatusTimer = setTimeout(() => {
+        if (firmaSaveStatus) firmaSaveStatus.textContent = '';
+      }, 2000);
+    }
+
+    function ustawStanLadowaniaCfgNIP(loading) {
+      if (!btnCfgPobierzNip) return;
+      btnCfgPobierzNip.disabled = loading;
+      btnCfgPobierzNip.setAttribute('aria-busy', loading ? 'true' : 'false');
+      const label = btnCfgPobierzNip.querySelector('.btn-link-nip-label');
+      if (label) label.textContent = loading ? 'Pobieram…' : 'Pobierz z MF';
+    }
+
+    async function pobierzFirmePoNIP() {
+      const nipEl = document.getElementById('cfg-nip');
+      if (!nipEl) return;
+
+      const nip = oczyscNIPWejscie(nipEl.value);
+      if (nip.length !== 10) {
+        pokazKomunikatCfg('NIP musi mieć dokładnie 10 cyfr.', 'error');
+        nipEl.focus();
+        return;
+      }
+
+      ustawStanLadowaniaCfgNIP(true);
+      if (cfgNipFetchController) cfgNipFetchController.abort();
+      cfgNipFetchController = new AbortController();
+
+      try {
+        const resp = await fetch('/api/nip?nip=' + encodeURIComponent(nip), {
+          headers: { Accept: 'application/json' },
+          signal: cfgNipFetchController.signal,
+        });
+        let dane = null;
+        try { dane = await resp.json(); } catch (e) { dane = null; }
+
+        if (!resp.ok) {
+          const msg = (dane && dane.error) ? dane.error : 'Nie udało się pobrać danych z Białej Listy MF.';
+          pokazKomunikatCfg(msg, 'error');
+          return;
+        }
+
+        const nazwaEl = document.getElementById('cfg-nazwa_firmy');
+        const adresEl = document.getElementById('cfg-adres');
+        if (nazwaEl && dane && dane.nazwa) nazwaEl.value = String(dane.nazwa);
+        if (adresEl && dane && dane.adres) adresEl.value = String(dane.adres);
+        if (dane && dane.nip) {
+          const s = String(dane.nip).replace(/\D/g, '');
+          if (s.length === 10) {
+            nipEl.value = s.slice(0, 3) + '-' + s.slice(3, 6) + '-' + s.slice(6, 8) + '-' + s.slice(8, 10);
+          }
+        }
+
+        ukryjKomunikatCfg();
+        zapiszCfgZFormularza();
+        odswiezPodgladFirmy();
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        pokazKomunikatCfg('Błąd sieci: nie udało się połączyć z serwerem.', 'error');
+      } finally {
+        cfgNipFetchController = null;
+        ustawStanLadowaniaCfgNIP(false);
+      }
+    }
 
     function pokazKomunikatCfg(tekst, typ) {
       if (!settingsMessage) return;
@@ -1012,15 +1417,24 @@
     function ustawPodgladLogo(dataUrl) {
       if (dataUrl) {
         cfgLogoBase64 = dataUrl;
-        cfgLogoPreviewImg.src = dataUrl;
-        cfgLogoPreviewWrap.hidden = false;
-        btnCfgDodajLogo.textContent = 'Zmień plik (PNG / JPG, ≤ 200 KB)';
+        if (cfgLogoPreviewImg) {
+          cfgLogoPreviewImg.src = dataUrl;
+          cfgLogoPreviewImg.hidden = false;
+        }
+        if (firmaLogoPlaceholder) firmaLogoPlaceholder.hidden = true;
+        if (btnCfgUsunLogo) btnCfgUsunLogo.hidden = false;
+        if (btnCfgDodajLogo) btnCfgDodajLogo.setAttribute('aria-label', 'Zmień logo firmy (PNG lub JPG, maks. 200 KB)');
       } else {
         cfgLogoBase64 = '';
-        cfgLogoPreviewImg.removeAttribute('src');
-        cfgLogoPreviewWrap.hidden = true;
-        btnCfgDodajLogo.textContent = 'Wybierz plik (PNG / JPG, ≤ 200 KB)';
+        if (cfgLogoPreviewImg) {
+          cfgLogoPreviewImg.removeAttribute('src');
+          cfgLogoPreviewImg.hidden = true;
+        }
+        if (firmaLogoPlaceholder) firmaLogoPlaceholder.hidden = false;
+        if (btnCfgUsunLogo) btnCfgUsunLogo.hidden = true;
+        if (btnCfgDodajLogo) btnCfgDodajLogo.setAttribute('aria-label', 'Wybierz logo firmy (PNG lub JPG, maks. 200 KB)');
       }
+      odswiezPodgladFirmy();
     }
 
     function wypelnijFormularzCfg() {
@@ -1031,6 +1445,7 @@
       });
       ustawPodgladLogo(typeof cfg.logo_base64 === 'string' ? cfg.logo_base64 : '');
       ukryjKomunikatCfg();
+      odswiezPodgladFirmy();
     }
 
     function zbierzConfigZFormularza() {
@@ -1059,11 +1474,14 @@
 
     function zapiszCfgZFormularza() {
       zapiszConfig(zbierzConfigZFormularza());
+      pokazStatusZapisuFirmy();
+      odswiezPodgladFirmy();
     }
 
-    btnCfgDodajLogo.addEventListener('click', () => cfgLogoInput.click());
+    if (btnCfgDodajLogo) btnCfgDodajLogo.addEventListener('click', () => cfgLogoInput.click());
+    if (btnCfgPobierzNip) btnCfgPobierzNip.addEventListener('click', pobierzFirmePoNIP);
 
-    cfgLogoInput.addEventListener('change', () => {
+    if (cfgLogoInput) cfgLogoInput.addEventListener('change', () => {
       const file = cfgLogoInput.files && cfgLogoInput.files[0];
       if (!file) return;
       if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
@@ -1082,6 +1500,7 @@
         }
         ustawPodgladLogo(dataUrl);
         ukryjKomunikatCfg();
+        zapiszCfgZFormularza();
       };
       reader.onerror = () => {
         pokazKomunikatCfg('Nie udało się wczytać pliku logo.', 'error');
@@ -1090,12 +1509,13 @@
       reader.readAsDataURL(file);
     });
 
-    btnCfgUsunLogo.addEventListener('click', () => {
+    if (btnCfgUsunLogo) btnCfgUsunLogo.addEventListener('click', () => {
       ustawPodgladLogo('');
-      cfgLogoInput.value = '';
+      if (cfgLogoInput) cfgLogoInput.value = '';
+      zapiszCfgZFormularza();
     });
 
-    btnCfgWyczysc.addEventListener('click', () => {
+    if (btnCfgWyczysc) btnCfgWyczysc.addEventListener('click', () => {
       POLA_CONFIG.forEach(k => {
         const el = document.getElementById('cfg-' + k);
         if (el) el.value = '';
@@ -1106,60 +1526,40 @@
       pokazKomunikatCfg('Wyczyszczono ustawienia firmy.', 'success');
     });
 
-    let settingsOpenedFromTab = false;
-    let lastViewTabId = 'view-kreator';
-
-    function otworzSettings(zTabu) {
-      settingsOpenedFromTab = !!zTabu;
-      if (settingsOpenedFromTab) {
-        const aktywny = document.querySelector('.view-tab.is-active[data-view-target]');
-        if (aktywny) {
-          lastViewTabId = aktywny.getAttribute('data-view-target') || 'view-kreator';
-        }
-        const tabUstawienia = document.getElementById('tab-ustawienia');
-        document.querySelectorAll('.view-tab').forEach((tab) => {
-          const active = tab === tabUstawienia;
-          tab.classList.toggle('is-active', active);
-          tab.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
-      }
-      wypelnijFormularzCfg();
-      settingsModal.hidden = false;
-      settingsModal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-      setTimeout(() => {
-        const first = document.getElementById('cfg-nazwa_firmy');
-        if (first) first.focus();
-      }, 0);
+    if (btnCfgZapisz) {
+      btnCfgZapisz.addEventListener('click', () => {
+        if (!walidujNumerKonta()) return;
+        zapiszCfgZFormularza();
+      });
     }
 
-    function zamknijSettings() {
-      if (!walidujNumerKonta()) return;
+    if (settingsForm) {
+      settingsForm.addEventListener('change', () => {
+        if (!walidujNumerKonta()) return;
+        zapiszCfgZFormularza();
+      });
+      settingsForm.addEventListener('input', () => {
+        odswiezPodgladFirmy();
+      });
+    }
+
+    let aktywujWidok = null;
+
+    function widokFirmaAktywny() {
+      const firma = document.getElementById('view-firma');
+      return !!(firma && !firma.classList.contains('hidden') && !firma.hasAttribute('hidden'));
+    }
+
+    function zapiszFirmeJesliTrzeba() {
+      if (!widokFirmaAktywny()) return true;
+      if (!walidujNumerKonta()) return false;
       zapiszCfgZFormularza();
-      settingsModal.hidden = true;
-      settingsModal.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-      if (settingsOpenedFromTab) {
-        settingsOpenedFromTab = false;
-        const tabUstawienia = document.getElementById('tab-ustawienia');
-        if (tabUstawienia) {
-          tabUstawienia.classList.remove('is-active');
-          tabUstawienia.setAttribute('aria-selected', 'false');
-        }
-        const restoreId = lastViewTabId || 'view-kreator';
-        document.querySelectorAll('.view-tab[data-view-target]').forEach((tab) => {
-          const active = tab.getAttribute('data-view-target') === restoreId;
-          tab.classList.toggle('is-active', active);
-          tab.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
-        document.querySelectorAll('.view').forEach((widok) => {
-          const active = widok.id === restoreId;
-          widok.classList.toggle('hidden', !active);
-          if (active) widok.removeAttribute('hidden');
-          else widok.setAttribute('hidden', '');
-        });
-        if (restoreId === 'view-statystyki') renderStatystyki();
-      }
+      return true;
+    }
+
+    function przejdzDoMojaFirma() {
+      const tab = document.getElementById('tab-ustawienia');
+      if (tab) tab.click();
     }
 
     function odswiezChipyStatsOkresApp() {
@@ -1177,36 +1577,78 @@
       odswiezChipyMotywuApp();
       odswiezChipyWaznosciApp();
       odswiezChipyStatsOkresApp();
+      odswiezChipyDocTypeApp();
+      odswiezChipyVatApp();
+    }
+
+    function ukryjAppSettingsModal() {
+      if (!appSettingsModal) return;
+      appSettingsModal.hidden = true;
+      appSettingsModal.setAttribute('aria-hidden', 'true');
+      appSettingsModal.classList.remove('is-open');
+      document.body.style.overflow = '';
     }
 
     function otworzAppSettings() {
       if (!appSettingsModal) return;
-      if (!settingsModal.hidden) zamknijSettings();
       odswiezWszystkieChipyAppSettings();
       appSettingsModal.hidden = false;
       appSettingsModal.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
+      if (appSettingsMobileMql.matches) {
+        appSettingsModal.classList.remove('is-open');
+        if (animacjeWlaczone()) {
+          requestAnimationFrame(() => appSettingsModal.classList.add('is-open'));
+        } else {
+          appSettingsModal.classList.add('is-open');
+        }
+      }
     }
 
     function zamknijAppSettings() {
       if (!appSettingsModal || appSettingsModal.hidden) return;
-      appSettingsModal.hidden = true;
-      appSettingsModal.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
+      if (
+        appSettingsMobileMql.matches &&
+        appSettingsModal.classList.contains('is-open') &&
+        animacjeWlaczone()
+      ) {
+        appSettingsModal.classList.remove('is-open');
+        const card = appSettingsModal.querySelector('.app-settings-card');
+        if (!card) {
+          ukryjAppSettingsModal();
+          return;
+        }
+        let zamkniete = false;
+        const finalize = () => {
+          if (zamkniete) return;
+          zamkniete = true;
+          ukryjAppSettingsModal();
+        };
+        const done = (e) => {
+          if (e.target !== card || e.propertyName !== 'transform') return;
+          card.removeEventListener('transitionend', done);
+          finalize();
+        };
+        card.addEventListener('transitionend', done);
+        window.setTimeout(finalize, 320);
+        return;
+      }
+      ukryjAppSettingsModal();
     }
 
     if (btnSettings) btnSettings.addEventListener('click', () => otworzAppSettings());
     if (btnSettingsMobile) {
       btnSettingsMobile.addEventListener('click', () => otworzAppSettings());
     }
-    btnCfgZamknij.addEventListener('click', zamknijSettings);
-    settingsBackdrop.addEventListener('click', zamknijSettings);
     if (btnAppSettingsZamknij) btnAppSettingsZamknij.addEventListener('click', zamknijAppSettings);
     if (appSettingsBackdrop) appSettingsBackdrop.addEventListener('click', zamknijAppSettings);
+    appSettingsMobileMql.addEventListener('change', () => {
+      if (!appSettingsModal || appSettingsMobileMql.matches) return;
+      appSettingsModal.classList.remove('is-open');
+    });
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       if (appSettingsModal && !appSettingsModal.hidden) zamknijAppSettings();
-      else if (!settingsModal.hidden) zamknijSettings();
     });
 
     const appSettingsTheme = document.getElementById('app-settings-theme');
@@ -1230,13 +1672,36 @@
       });
     }
 
+    const appSettingsDocType = document.getElementById('app-settings-doc-type');
+    if (appSettingsDocType) {
+      appSettingsDocType.addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip[data-default-doc-type]');
+        if (!chip) return;
+        const typ = chip.getAttribute('data-default-doc-type') || '';
+        zapiszDomyslnyTypDokumentu(typ);
+        odswiezChipyDocTypeApp();
+      });
+    }
+
+    const appSettingsVat = document.getElementById('app-settings-vat');
+    if (appSettingsVat) {
+      appSettingsVat.addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip[data-default-vat]');
+        if (!chip) return;
+        zapiszDomyslnaStawkeVat(chip.getAttribute('data-default-vat'));
+        odswiezChipyVatApp();
+      });
+    }
+
     migrujStaryConfig();
 
     const STORAGE_KEY_DRAFT = 'sumit_draft';
     const STORAGE_KEY_NUMERACJA = 'sumit_numeracja';
     const POLA_DRAFT = [
       'klient', 'numer_oferty', 'data_waznosci', 'uwagi',
+      'numer_faktury', 'data_sprzedazy', 'termin_platnosci',
     ];
+    const STORAGE_KEY_NUMERACJA_FAKTURY = 'sumit_numeracja_faktury';
 
     function wczytajNumeracje() {
       try {
@@ -1282,6 +1747,7 @@
         ilosc: tr.querySelector('.in-ilosc').value,
         cena: tr.querySelector('.in-cena').value,
         koszt: tr.querySelector('.in-koszt').value,
+        vat: tr.querySelector('.in-vat') ? tr.querySelector('.in-vat').value : '23',
       }));
     }
 
@@ -1291,6 +1757,7 @@
         const el = document.getElementById(id);
         if (el) dane[id] = el.value;
       });
+      dane._docType = getActiveDocType();
       try {
         localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(dane));
       } catch (e) {}
@@ -1318,14 +1785,19 @@
       if (Array.isArray(dane.pozycje) && dane.pozycje.length > 0) {
         tbody.innerHTML = '';
         dane.pozycje.forEach(p => {
-          dodajWiersz();
+          dodajWiersz({ naKoniec: true });
           const tr = tbody.lastElementChild;
           if (!tr) return;
           if (typeof p.nazwa === 'string') tr.querySelector('.in-nazwa').value = p.nazwa;
           if (typeof p.ilosc === 'string') tr.querySelector('.in-ilosc').value = p.ilosc;
           if (typeof p.cena === 'string')  tr.querySelector('.in-cena').value  = p.cena;
           if (typeof p.koszt === 'string') tr.querySelector('.in-koszt').value = p.koszt;
+          if (typeof p.vat === 'string' && tr.querySelector('.in-vat')) tr.querySelector('.in-vat').value = p.vat;
         });
+      }
+
+      if (typeof dane._docType === 'string' && typeof setActiveDocType === 'function') {
+        setActiveDocType(dane._docType);
       }
 
       odswiezStanPresetow();
@@ -1348,6 +1820,7 @@
       dodajWiersz();
 
       ustawDomyslnaDate();
+      if (typeof setActiveDocType === 'function') setActiveDocType(wczytajDomyslnyTypDokumentu());
 
       const numerEl = document.getElementById('numer_oferty');
       if (numerEl) numerEl.value = nastepnyNumerOferty();
@@ -1642,34 +2115,95 @@
     });
 
     const accordionMql = window.matchMedia('(max-width: 1023px)');
+    const motionReduceMql = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    function animacjeWlaczone() {
+      return !motionReduceMql.matches;
+    }
+
+    function syncAccordionBodyHeight(section) {
+      const body = section.querySelector('.accordion-body');
+      if (!body) return;
+      if (!accordionMql.matches) {
+        body.style.maxHeight = '';
+        return;
+      }
+      body.style.maxHeight = section.classList.contains('is-open') ? 'none' : '0px';
+    }
 
     function ustawAkordeonOtwarty(section, otwarty) {
       const body = section.querySelector('.accordion-body');
       const header = section.querySelector('.accordion-header');
       if (!body) return;
 
-      body.style.maxHeight = '';
-
       if (!accordionMql.matches) {
+        body.style.maxHeight = '';
         section.classList.add('is-open');
         if (header) header.setAttribute('aria-expanded', 'true');
         return;
       }
 
+      const animuj = animacjeWlaczone();
+
       if (otwarty) {
+        if (section.classList.contains('is-open') && body.style.maxHeight === 'none') return;
+
         section.classList.add('is-open');
         if (header) header.setAttribute('aria-expanded', 'true');
         const preview = section.querySelector('.accordion-preview');
         if (preview) preview.hidden = true;
-      } else {
-        section.classList.remove('is-open');
-        if (header) header.setAttribute('aria-expanded', 'false');
+
+        if (!animuj) {
+          body.style.maxHeight = 'none';
+          return;
+        }
+
+        body.style.maxHeight = '0px';
+        requestAnimationFrame(() => {
+          body.style.maxHeight = body.scrollHeight + 'px';
+          const done = (e) => {
+            if (e.propertyName !== 'max-height') return;
+            body.removeEventListener('transitionend', done);
+            if (section.classList.contains('is-open')) body.style.maxHeight = 'none';
+          };
+          body.addEventListener('transitionend', done);
+        });
+        return;
+      }
+
+      if (!section.classList.contains('is-open')) return;
+
+      const odswiezPodglad = () => {
         if (section.dataset.accordionId === 'klient') {
           odswiezPodgladKlientaAkordeon();
         } else if (section.dataset.accordionId === 'pozycje') {
           odswiezPodgladPozycjiAkordeon();
         }
+      };
+
+      const zamknijPoAnimacji = () => {
+        section.classList.remove('is-open');
+        if (header) header.setAttribute('aria-expanded', 'false');
+        body.style.maxHeight = '0px';
+        odswiezPodglad();
+      };
+
+      if (!animuj) {
+        body.style.maxHeight = '0px';
+        zamknijPoAnimacji();
+        return;
       }
+
+      const h = body.scrollHeight;
+      body.style.maxHeight = h + 'px';
+      void body.offsetHeight;
+      body.style.maxHeight = '0px';
+      const done = (e) => {
+        if (e.propertyName !== 'max-height') return;
+        body.removeEventListener('transitionend', done);
+        zamknijPoAnimacji();
+      };
+      body.addEventListener('transitionend', done);
     }
 
     function przelaczAkordeon(section) {
@@ -1752,10 +2286,12 @@
         const body = section.querySelector('.accordion-body');
         const header = section.querySelector('.accordion-header');
         if (!body) return;
-        body.style.maxHeight = '';
         if (!accordionMql.matches) {
+          body.style.maxHeight = '';
           section.classList.add('is-open');
           if (header) header.setAttribute('aria-expanded', 'true');
+        } else {
+          syncAccordionBodyHeight(section);
         }
       });
       odswiezPodgladKlientaAkordeon();
@@ -1775,9 +2311,11 @@
         if (header) header.setAttribute('aria-expanded', domyslnieOtwarty ? 'true' : 'false');
 
         if (body) {
-          body.style.maxHeight = '';
           if (!accordionMql.matches) {
             section.classList.add('is-open');
+            body.style.maxHeight = '';
+          } else {
+            syncAccordionBodyHeight(section);
           }
         }
 
@@ -1869,6 +2407,8 @@
           modal.classList.remove('is-open', 'hidden');
           modal.removeAttribute('hidden');
           modal.setAttribute('aria-hidden', 'false');
+          const rozwiniety = !modal.classList.contains('is-collapsed');
+          fab?.setAttribute('aria-expanded', rozwiniety ? 'true' : 'false');
           return;
         }
         if (!modal.classList.contains('is-open')) {
@@ -1876,9 +2416,20 @@
           modal.setAttribute('hidden', '');
           modal.setAttribute('aria-hidden', 'true');
         }
+        modal.classList.remove('is-collapsed');
+        fab?.removeAttribute('aria-expanded');
       }
 
-      fab?.addEventListener('click', otworz);
+      fab?.addEventListener('click', () => {
+        if (mql.matches) {
+          otworz();
+          return;
+        }
+        modal.classList.toggle('is-collapsed');
+        const rozwiniety = !modal.classList.contains('is-collapsed');
+        fab?.setAttribute('aria-expanded', rozwiniety ? 'true' : 'false');
+        if (rozwiniety) notatka?.focus();
+      });
       backdrop?.addEventListener('click', zamknij);
       closeBtn?.addEventListener('click', zamknij);
 
@@ -1898,7 +2449,23 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      // Viewer mode: ?w= → renderuj read-only podgląd dla klienta, pomiń init edytora
+      const _wParam = new URLSearchParams(location.search).get('w');
+      if (_wParam) {
+        trackEvent('client_view');
+        initKlientViewer(_wParam);
+        return;
+      }
+
+      trackEvent('page_view');
+
       wczytajDraft();
+
+      try {
+        if (!localStorage.getItem(STORAGE_KEY_DRAFT) && typeof setActiveDocType === 'function') {
+          setActiveDocType(wczytajDomyslnyTypDokumentu());
+        }
+      } catch (e) {}
 
       const numerEl = document.getElementById('numer_oferty');
       if (numerEl && !numerEl.value.trim()) {
@@ -1928,12 +2495,19 @@
       aktualizujSzacowanyZysk();
       aktualizujLivePodglad();
       synchronizujWysokoscPodgladu();
+
+      const btnKopiujLink = document.getElementById('btn-kopiuj-link');
+      if (btnKopiujLink) btnKopiujLink.addEventListener('click', skopiujLinkWyceny);
+
+      const btnPobierzXml = document.getElementById('btn-pobierz-xml');
+      if (btnPobierzXml) btnPobierzXml.addEventListener('click', pobierzXmlKSeF);
+
+      initDocTypeSwitcher();
     });
 
     function initViewTabs() {
       const tabs = document.querySelectorAll('.view-tab[data-view-target]');
-      const actionTabs = document.querySelectorAll('.view-tab[data-tab-action]');
-      if (!tabs.length && !actionTabs.length) return;
+      if (!tabs.length) return;
 
       const widoki = new Map();
       tabs.forEach(tab => {
@@ -1943,30 +2517,61 @@
       });
 
       function aktywuj(targetId) {
-        settingsOpenedFromTab = false;
-        lastViewTabId = targetId;
-        document.querySelectorAll('.view-tab[data-tab-action]').forEach((tab) => {
-          tab.classList.remove('is-active');
-          tab.setAttribute('aria-selected', 'false');
-        });
+        if (widokFirmaAktywny() && targetId !== 'view-firma') {
+          if (!zapiszFirmeJesliTrzeba()) return;
+        }
+        const poprzedniWidok = document.body.dataset.activeView || 'view-kreator';
+        document.body.dataset.activeView = targetId;
         tabs.forEach(tab => {
           const aktywny = tab.getAttribute('data-view-target') === targetId;
           tab.classList.toggle('is-active', aktywny);
           tab.setAttribute('aria-selected', aktywny ? 'true' : 'false');
         });
+
+        let widokWejscia = null;
         widoki.forEach((widok, id) => {
           const aktywny = id === targetId;
-          widok.classList.toggle('hidden', !aktywny);
           if (aktywny) {
+            widokWejscia = widok;
+            widok.classList.remove('hidden');
             widok.removeAttribute('hidden');
           } else {
+            widok.classList.add('hidden');
             widok.setAttribute('hidden', '');
+            widok.classList.remove('view-enter');
           }
         });
+
+        const viewTabsMobileMql = window.matchMedia('(max-width: 1023px)');
+        if (widokWejscia && animacjeWlaczone() && !viewTabsMobileMql.matches) {
+          widokWejscia.classList.remove('view-enter');
+          void widokWejscia.offsetWidth;
+          widokWejscia.classList.add('view-enter');
+          widokWejscia.addEventListener('animationend', function onViewEnterEnd() {
+            widokWejscia.classList.remove('view-enter');
+            widokWejscia.removeEventListener('animationend', onViewEnterEnd);
+          });
+        } else if (widokWejscia) {
+          widokWejscia.classList.remove('view-enter');
+        }
+
+        if (widokWejscia) {
+          window.scrollTo({
+            top: 0,
+            behavior: viewTabsMobileMql.matches ? 'auto' : (animacjeWlaczone() ? 'smooth' : 'auto'),
+          });
+        }
+
         if (targetId === 'view-statystyki') {
           renderStatystyki();
         }
+        if (targetId === 'view-firma' && poprzedniWidok !== 'view-firma') {
+          wypelnijFormularzCfg();
+        }
       }
+
+      aktywujWidok = aktywuj;
+      document.body.dataset.activeView = 'view-kreator';
 
       tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -1974,18 +2579,11 @@
           if (targetId) aktywuj(targetId);
         });
       });
-
-      actionTabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-          const action = tab.getAttribute('data-tab-action');
-          if (action === 'settings') otworzSettings(true);
-        });
-      });
     }
 
     const STORAGE_KEY_KATALOG = 'sumit_katalog';
     const STORAGE_KEY_KATALOG_VER = 'sumit_katalog_v';
-    const KATALOG_VERSION = 2;
+    const KATALOG_VERSION = 3;
 
     const DOMYSLNY_KATALOG = [
       { nazwa: 'Wymiana baterii umywalkowej',       cena_jednostkowa: 150, kategoria: 'Hydraulika' },
@@ -1995,6 +2593,23 @@
       { nazwa: 'Wymiana zaworu kątowego',           cena_jednostkowa:  80, kategoria: 'Hydraulika' },
       { nazwa: 'Montaż WC kompakt',                 cena_jednostkowa: 350, kategoria: 'Hydraulika' },
       { nazwa: 'Wymiana grzejnika',                 cena_jednostkowa: 450, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż baterii prysznicowej',       cena_jednostkowa: 180, kategoria: 'Hydraulika' },
+      { nazwa: 'Wymiana rury',                      cena_jednostkowa: 150, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż pompy cyrkulacyjnej',        cena_jednostkowa: 400, kategoria: 'Hydraulika' },
+      { nazwa: 'Uszczelnienie pionu',               cena_jednostkowa: 320, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż filtra wody',                cena_jednostkowa: 180, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż podgrzewacza wody',         cena_jednostkowa: 380, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż wanny',                      cena_jednostkowa: 480, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż brodzika prysznicowego',     cena_jednostkowa: 320, kategoria: 'Hydraulika' },
+      { nazwa: 'Podłączenie zmywarki',              cena_jednostkowa: 120, kategoria: 'Hydraulika' },
+      { nazwa: 'Podłączenie pralki',                cena_jednostkowa: 100, kategoria: 'Hydraulika' },
+      { nazwa: 'Wymiana syfonu',                    cena_jednostkowa:  90, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż bidetu',                     cena_jednostkowa: 280, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż odpływu liniowego',          cena_jednostkowa: 240, kategoria: 'Hydraulika' },
+      { nazwa: 'Instalacja prysznica bezbrodzikowego', cena_jednostkowa: 580, kategoria: 'Hydraulika' },
+      { nazwa: 'Wymiana zaworu trójdrożnego',       cena_jednostkowa:  70, kategoria: 'Hydraulika' },
+      { nazwa: 'Czyszczenie kanalizacji',           cena_jednostkowa: 220, kategoria: 'Hydraulika' },
+      { nazwa: 'Montaż stelaża podtynkowego WC',    cena_jednostkowa: 420, kategoria: 'Hydraulika' },
 
       { nazwa: 'Montaż gniazda elektrycznego',      cena_jednostkowa:  80, kategoria: 'Elektryka' },
       { nazwa: 'Wymiana włącznika',                 cena_jednostkowa:  60, kategoria: 'Elektryka' },
@@ -2002,6 +2617,24 @@
       { nazwa: 'Montaż żyrandola',                  cena_jednostkowa: 150, kategoria: 'Elektryka' },
       { nazwa: 'Pomiary elektryczne (protokół)',    cena_jednostkowa: 200, kategoria: 'Elektryka' },
       { nazwa: 'Wymiana rozdzielni',                cena_jednostkowa: 800, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż rozdzielni',                 cena_jednostkowa: 1200, kategoria: 'Elektryka' },
+      { nazwa: 'Wymiana bezpieczników',             cena_jednostkowa:  80, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż oświetlenia LED',            cena_jednostkowa: 100, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż wentylatora łazienkowego',   cena_jednostkowa: 180, kategoria: 'Elektryka' },
+      { nazwa: 'Pomiar rezystancji izolacji',       cena_jednostkowa: 250, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż alarmu',                     cena_jednostkowa: 650, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż domofonu',                   cena_jednostkowa: 350, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż klimatyzacji (podłączenie)', cena_jednostkowa: 480, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż wideodomofonu',              cena_jednostkowa: 450, kategoria: 'Elektryka' },
+      { nazwa: 'Prowadzenie przewodu (mb)',         cena_jednostkowa:  35, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż termostatu',                 cena_jednostkowa: 120, kategoria: 'Elektryka' },
+      { nazwa: 'Instalacja czujnika ruchu',         cena_jednostkowa:  70, kategoria: 'Elektryka' },
+      { nazwa: 'Wymiana bezpiecznika różnicowoprądowego', cena_jednostkowa: 150, kategoria: 'Elektryka' },
+      { nazwa: 'Podłączenie płyty indukcyjnej',     cena_jednostkowa: 200, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż listwy LED (mb)',             cena_jednostkowa:  80, kategoria: 'Elektryka' },
+      { nazwa: 'Przegląd instalacji elektrycznej',  cena_jednostkowa: 300, kategoria: 'Elektryka' },
+      { nazwa: 'Montaż gniazda z uziemieniem',      cena_jednostkowa:  90, kategoria: 'Elektryka' },
+      { nazwa: 'Podłączenie bojlera elektrycznego', cena_jednostkowa: 220, kategoria: 'Elektryka' },
 
       { nazwa: 'Malowanie ściany (m²)',             cena_jednostkowa:  35, kategoria: 'Wykończenia' },
       { nazwa: 'Gładź gipsowa (m²)',                cena_jednostkowa:  50, kategoria: 'Wykończenia' },
@@ -2010,13 +2643,61 @@
       { nazwa: 'Listwy przypodłogowe (mb)',         cena_jednostkowa:  25, kategoria: 'Wykończenia' },
       { nazwa: 'Układanie paneli (m²)',             cena_jednostkowa:  40, kategoria: 'Wykończenia' },
       { nazwa: 'Układanie płytek (m²)',             cena_jednostkowa: 120, kategoria: 'Wykończenia' },
+      { nazwa: 'Fugowanie (m²)',                    cena_jednostkowa:  35, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż parapetu',                   cena_jednostkowa:  80, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż sufitu podwieszanego (m²)',  cena_jednostkowa:  95, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż listwy sufitowej (mb)',     cena_jednostkowa:  20, kategoria: 'Wykończenia' },
+      { nazwa: 'Szpachlowanie nierówności (m²)',    cena_jednostkowa:  30, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż progów drzwiowych',          cena_jednostkowa:  60, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż rolet wewnętrznych',         cena_jednostkowa:  90, kategoria: 'Wykończenia' },
+      { nazwa: 'Układanie paneli ściennych (m²)',   cena_jednostkowa:  55, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż ościeżnic',                  cena_jednostkowa: 120, kategoria: 'Wykończenia' },
+      { nazwa: 'Cyklinowanie podłogi (m²)',         cena_jednostkowa:  45, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż zabudowy GK (m²)',           cena_jednostkowa:  85, kategoria: 'Wykończenia' },
+      { nazwa: 'Lakierowanie podłogi (m²)',         cena_jednostkowa:  50, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż lamperii (m²)',              cena_jednostkowa:  65, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż karnisza',                   cena_jednostkowa:  70, kategoria: 'Wykończenia' },
+      { nazwa: 'Montaż listew maskujących (mb)',    cena_jednostkowa:  18, kategoria: 'Wykończenia' },
+      { nazwa: 'Układanie mozaiki (m²)',            cena_jednostkowa: 150, kategoria: 'Wykończenia' },
 
       { nazwa: 'Wyburzenie ścianki działowej (m²)', cena_jednostkowa: 180, kategoria: 'Budowlanka' },
       { nazwa: 'Stawianie ścianki działowej (m²)',  cena_jednostkowa: 220, kategoria: 'Budowlanka' },
+      { nazwa: 'Murowanie ściany (m²)',             cena_jednostkowa: 180, kategoria: 'Budowlanka' },
+      { nazwa: 'Wylewka betonowa (m²)',             cena_jednostkowa:  55, kategoria: 'Budowlanka' },
+      { nazwa: 'Montaż rusztowania (dzień)',        cena_jednostkowa: 350, kategoria: 'Budowlanka' },
+      { nazwa: 'Tynkowanie (m²)',                   cena_jednostkowa:  45, kategoria: 'Budowlanka' },
+      { nazwa: 'Izolacja fundamentów (mb)',         cena_jednostkowa: 120, kategoria: 'Budowlanka' },
+      { nazwa: 'Wylewka anhydrytowa (m²)',          cena_jednostkowa:  65, kategoria: 'Budowlanka' },
+      { nazwa: 'Wylewka samopoziomująca (m²)',      cena_jednostkowa:  40, kategoria: 'Budowlanka' },
+      { nazwa: 'Ocieplenie styropianem (m²)',       cena_jednostkowa:  75, kategoria: 'Budowlanka' },
+      { nazwa: 'Izolacja termiczna budynku (m²)',   cena_jednostkowa:  90, kategoria: 'Budowlanka' },
+      { nazwa: 'Wykuwanie otworu w ścianie',        cena_jednostkowa: 380, kategoria: 'Budowlanka' },
+      { nazwa: 'Montaż okna budowlanego',           cena_jednostkowa: 280, kategoria: 'Budowlanka' },
+      { nazwa: 'Betonowanie schodów (stopień)',     cena_jednostkowa: 180, kategoria: 'Budowlanka' },
+      { nazwa: 'Montaż belki stropowej',            cena_jednostkowa: 450, kategoria: 'Budowlanka' },
+      { nazwa: 'Wzmacnianie stropu',                cena_jednostkowa: 850, kategoria: 'Budowlanka' },
+      { nazwa: 'Płyta fundamentowa (m²)',           cena_jednostkowa: 220, kategoria: 'Budowlanka' },
+      { nazwa: 'Murowanie komina',                  cena_jednostkowa: 2800, kategoria: 'Budowlanka' },
+      { nazwa: 'Montaż dźwigaru stalowego',         cena_jednostkowa: 650, kategoria: 'Budowlanka' },
 
       { nazwa: 'Robocizna (godzina)',               cena_jednostkowa:  80, kategoria: 'Inne' },
       { nazwa: 'Dojazd (km)',                       cena_jednostkowa:   3, kategoria: 'Inne' },
       { nazwa: 'Wywóz gruzu (m³)',                  cena_jednostkowa: 350, kategoria: 'Inne' },
+      { nazwa: 'Transport materiałów',              cena_jednostkowa: 150, kategoria: 'Inne' },
+      { nazwa: 'Dojazd do klienta (ryczałt)',       cena_jednostkowa:  50, kategoria: 'Inne' },
+      { nazwa: 'Wycena na miejscu',                 cena_jednostkowa: 100, kategoria: 'Inne' },
+      { nazwa: 'Konsultacja techniczna (godz.)',    cena_jednostkowa: 120, kategoria: 'Inne' },
+      { nazwa: 'Przygotowanie kosztorysu',          cena_jednostkowa: 250, kategoria: 'Inne' },
+      { nazwa: 'Dokumentacja powykonawcza',         cena_jednostkowa: 200, kategoria: 'Inne' },
+      { nazwa: 'Utylizacja odpadów budowlanych (m³)', cena_jednostkowa: 320, kategoria: 'Inne' },
+      { nazwa: 'Prace w weekend / święta (dopłata)', cena_jednostkowa: 150, kategoria: 'Inne' },
+      { nazwa: 'Opłata za pilne zlecenie',          cena_jednostkowa: 100, kategoria: 'Inne' },
+      { nazwa: 'Demontaż starych elementów (godz.)', cena_jednostkowa:  90, kategoria: 'Inne' },
+      { nazwa: 'Nadzór budowlany (godz.)',          cena_jednostkowa: 100, kategoria: 'Inne' },
+      { nazwa: 'Wynajem narzędzi (dzień)',          cena_jednostkowa:  80, kategoria: 'Inne' },
+      { nazwa: 'Magazynowanie materiałów (dzień)',  cena_jednostkowa:  60, kategoria: 'Inne' },
+      { nazwa: 'Odbiór techniczny',                 cena_jednostkowa: 300, kategoria: 'Inne' },
+      { nazwa: 'Pakiet materiałów pomocniczych',     cena_jednostkowa:  80, kategoria: 'Inne' },
     ];
 
     function zapiszKatalog(items) {
@@ -2168,29 +2849,10 @@
       });
     }
 
-    function czyWierszPusty(tr) {
-      if (!tr) return false;
-      const n = tr.querySelector('.in-nazwa');
-      const i = tr.querySelector('.in-ilosc');
-      const c = tr.querySelector('.in-cena');
-      const k = tr.querySelector('.in-koszt');
-      return (!n || !n.value.trim())
-        && (!i || !i.value.trim())
-        && (!c || !c.value.trim())
-        && (!k || !k.value.trim());
-    }
-
-    function znajdzDocelowyWiersz() {
-      if (aktywnyWiersz && tbody.contains(aktywnyWiersz)) return aktywnyWiersz;
-      const ostatni = tbody.lastElementChild;
-      if (ostatni && czyWierszPusty(ostatni)) return ostatni;
-      dodajWiersz();
-      return tbody.lastElementChild;
-    }
-
     function addFromCatalog(item) {
       if (!item || typeof item !== 'object') return;
-      const tr = znajdzDocelowyWiersz();
+      dodajWiersz();
+      const tr = tbody.firstElementChild;
       if (!tr) return;
 
       const inNazwa = tr.querySelector('.in-nazwa');
@@ -2435,17 +3097,18 @@
       }
 
       let dodane = 0;
-      items.forEach(item => {
-        if (!item || typeof item !== 'object') return;
+      for (let idx = items.length - 1; idx >= 0; idx--) {
+        const item = items[idx];
+        if (!item || typeof item !== 'object') continue;
         const nazwa = typeof item.nazwa === 'string' ? item.nazwa.trim() : '';
         const ilosc = Number(item.ilosc);
         const dopasowanie = dopasujCenePozycji(nazwa, item.cena);
         const cena = dopasowanie.cena;
-        if (!nazwa || !Number.isFinite(ilosc) || ilosc <= 0 || !Number.isFinite(cena) || cena < 0) return;
+        if (!nazwa || !Number.isFinite(ilosc) || ilosc <= 0 || !Number.isFinite(cena) || cena < 0) continue;
 
         dodajWiersz();
-        const tr = tbody.lastElementChild;
-        if (!tr) return;
+        const tr = tbody.firstElementChild;
+        if (!tr) continue;
 
         const inNazwa = tr.querySelector('.in-nazwa');
         const inIlosc = tr.querySelector('.in-ilosc');
@@ -2464,7 +3127,7 @@
           inCena.dispatchEvent(new Event('input', { bubbles: true }));
         }
         dodane++;
-      });
+      }
 
       if (dodane === 0) {
         ustawAiParseStatus('Nie znaleziono poprawnych pozycji do dodania.', 'error');
@@ -2997,7 +3660,7 @@
       return { zysk: Math.round(zysk * 100) / 100, kompletny };
     }
 
-    function dodajDoHistorii(payload, koszty) {
+    function dodajDoHistorii(payload, koszty, token) {
       if (!payload || typeof payload !== 'object') return;
       const koszt = Array.isArray(koszty) ? koszty.slice() : null;
       const { zysk, kompletny } = obliczZyskWpisu(payload.pozycje, koszt || []);
@@ -3010,6 +3673,8 @@
         // koszty i zysk są zapisywane WYŁĄCZNIE w localStorage — nie w payloadzie /quote.
         koszty: koszt,
         zysk: kompletny ? zysk : null,
+        token: token || null,
+        akceptacja: null,
         payload: payload,
       };
       const lista = wczytajHistorie();
@@ -3337,31 +4002,6 @@
       });
     }
 
-    function policzTrendWzrostu(lista) {
-      const teraz = new Date();
-      const aktMies = teraz.getMonth();
-      const aktRok = teraz.getFullYear();
-      let prevMies = aktMies - 1;
-      let prevRok = aktRok;
-      if (prevMies < 0) { prevMies = 11; prevRok = aktRok - 1; }
-      let sumaAkt = 0;
-      let sumaPrev = 0;
-      lista.forEach(wpis => {
-        const data = new Date(wpis.dataZapisu);
-        if (Number.isNaN(data.getTime())) return;
-        const m = data.getMonth();
-        const r = data.getFullYear();
-        const suma = Number(wpis.suma) || 0;
-        if (m === aktMies && r === aktRok) sumaAkt += suma;
-        else if (m === prevMies && r === prevRok) sumaPrev += suma;
-      });
-      if (sumaPrev <= 0) {
-        return { dostepny: false, sumaAkt: sumaAkt, sumaPrev: sumaPrev };
-      }
-      const procent = ((sumaAkt - sumaPrev) / sumaPrev) * 100;
-      return { dostepny: true, procent: procent, sumaAkt: sumaAkt, sumaPrev: sumaPrev };
-    }
-
     function policzTopDzienTygodnia(lista) {
       const liczniki = [0, 0, 0, 0, 0, 0, 0];
       lista.forEach(wpis => {
@@ -3387,6 +4027,50 @@
     }
 
     let chartTooltip = null;
+    let heatmapTooltip = null;
+
+    function ukryjTooltipHeatmapy() {
+      if (heatmapTooltip) heatmapTooltip.classList.remove('is-visible');
+    }
+
+    function pokazTooltipHeatmapy(cell) {
+      const card = cell.closest('.heatmap-card');
+      if (!card) return;
+      if (!heatmapTooltip || heatmapTooltip.parentElement !== card) {
+        if (heatmapTooltip && heatmapTooltip.parentElement) {
+          heatmapTooltip.parentElement.removeChild(heatmapTooltip);
+        }
+        heatmapTooltip = document.createElement('div');
+        heatmapTooltip.className = 'chart-tooltip heatmap-tooltip';
+        heatmapTooltip.setAttribute('role', 'tooltip');
+        card.appendChild(heatmapTooltip);
+      }
+
+      const label = cell.dataset.label || '';
+      const liczba = parseInt(cell.dataset.count || '0', 10) || 0;
+
+      heatmapTooltip.innerHTML = '';
+      const t = document.createElement('div');
+      t.className = 'chart-tooltip-title';
+      t.textContent = label;
+      const c = document.createElement('div');
+      c.className = 'chart-tooltip-amount';
+      c.textContent = liczba + ' ' + sufiksOferty(liczba);
+      heatmapTooltip.appendChild(t);
+      heatmapTooltip.appendChild(c);
+
+      const cellRect = cell.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      heatmapTooltip.style.left = (cellRect.left - cardRect.left + cellRect.width / 2) + 'px';
+      heatmapTooltip.style.top = (cellRect.top - cardRect.top - 8) + 'px';
+      heatmapTooltip.style.transform = 'translate(-50%, -100%)';
+      heatmapTooltip.classList.add('is-visible');
+    }
+
+    function ukryjTooltipsStatystyk() {
+      ukryjTooltipWykresu();
+      ukryjTooltipHeatmapy();
+    }
 
     function pokazTooltipWykresu(bar) {
       const chartContainer = bar.closest('.chart-container');
@@ -3458,7 +4142,7 @@
       const chart = document.getElementById('stat-chart');
       const labels = document.getElementById('stat-chart-labels');
       if (!chart || !labels) return;
-      ukryjTooltipWykresu();
+      ukryjTooltipsStatystyk();
       chart.innerHTML = '';
       labels.innerHTML = '';
       const max = buckets.reduce((m, b) => Math.max(m, b.suma), 0);
@@ -3706,9 +4390,16 @@
           if (dzien.getTime() > dzisMs) cell.classList.add('is-future');
 
           const dataFmt = formatujDateKrotka(dzien.getTime());
-          const sufiks = liczba === 1 ? 'wycena' : (liczba >= 2 && liczba <= 4 ? 'wyceny' : 'wycen');
           const dzienNazwa = HEATMAPA_NAZWY_DNI[dzien.getDay()];
-          cell.title = dzienNazwa + ', ' + dataFmt + ' — ' + liczba + ' ' + sufiks;
+          cell.classList.add('is-interactive');
+          cell.dataset.count = String(liczba);
+          cell.dataset.label = dzienNazwa + ', ' + dataFmt;
+          cell.setAttribute('aria-label', dataFmt + ': ' + liczba + ' ' + sufiksOferty(liczba));
+          cell.tabIndex = 0;
+          cell.addEventListener('mouseenter', () => pokazTooltipHeatmapy(cell));
+          cell.addEventListener('mouseleave', ukryjTooltipHeatmapy);
+          cell.addEventListener('focus', () => pokazTooltipHeatmapy(cell));
+          cell.addEventListener('blur', ukryjTooltipHeatmapy);
           grid.appendChild(cell);
         }
       }
@@ -3739,7 +4430,7 @@
 
     function renderStatystyki(okresArg) {
       if (!statsSection) return;
-      ukryjTooltipWykresu();
+      ukryjTooltipsStatystyk();
       const calaHistoria = wczytajHistorie();
 
       statsSection.innerHTML = '';
@@ -3838,7 +4529,6 @@
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
 
-      const trend = policzTrendWzrostu(lista);
       const topDzien = policzTopDzienTygodnia(lista);
 
       const grid = document.createElement('div');
@@ -3887,28 +4577,6 @@
       zyskCard.appendChild(zyskMeta);
       zyskCard.title = 'Suma (cena dla klienta − Twój koszt) × ilość dla wycen, w których uzupełniłeś koszt własny. Liczone tylko lokalnie, na podstawie historii wycen.';
       grid.appendChild(zyskCard);
-
-      const trendCard = document.createElement('div');
-      trendCard.className = 'stats-card';
-      const trendLabel = document.createElement('div');
-      trendLabel.className = 'stats-card-label';
-      trendLabel.textContent = 'Trend wzrostu';
-      trendCard.appendChild(trendLabel);
-      const trendValue = document.createElement('div');
-      trendValue.className = 'stats-card-value';
-      if (trend.dostepny) {
-        const znak = trend.procent >= 0 ? '+' : '';
-        trendValue.textContent = znak + trend.procent.toFixed(0) + '%';
-        trendValue.classList.add(trend.procent >= 0 ? 'stats-trend-positive' : 'stats-trend-negative');
-      } else {
-        trendValue.textContent = '—';
-      }
-      trendCard.appendChild(trendValue);
-      const trendMeta = document.createElement('div');
-      trendMeta.className = 'stats-card-meta';
-      trendMeta.textContent = trend.dostepny ? 'vs poprzedni miesiąc' : 'Brak danych do porównania';
-      trendCard.appendChild(trendMeta);
-      grid.appendChild(trendCard);
 
       const topDzienValue = topDzien.indeks >= 0 ? NAZWY_DNI[topDzien.indeks] : '—';
       const topDzienMeta = topDzien.indeks >= 0
@@ -3999,6 +4667,17 @@
         const suma = document.createElement('span');
         suma.className = 'historia-item-suma';
         suma.textContent = formatujSume(wpis.suma);
+
+        // Badge typu dokumentu (F3)
+        const docType = wpis.payload && wpis.payload.typ_dokumentu;
+        if (docType) {
+          const docBadge = document.createElement('span');
+          docBadge.className = 'badge-doc-type';
+          if (docType === 'faktura_vat') { docBadge.textContent = 'Faktura VAT'; docBadge.classList.add('is-faktura'); }
+          else if (docType === 'faktura_proforma') { docBadge.textContent = 'Pro Forma'; docBadge.classList.add('is-proforma'); }
+          row1.appendChild(docBadge);
+        }
+
         row1.appendChild(numer);
         row1.appendChild(suma);
 
@@ -4026,6 +4705,50 @@
           else if (zyskNum < -0.005) zyskInfo.classList.add('stats-trend-negative');
           row3.appendChild(zyskInfo);
           info.appendChild(row3);
+        }
+
+        // Akceptacja wyceny (F2)
+        if (wpis.token) {
+          const rowAkceptacja = document.createElement('div');
+          rowAkceptacja.className = 'historia-item-row historia-item-meta';
+          const badgeAkceptacji = document.createElement('span');
+          badgeAkceptacji.className = 'badge-akceptacja';
+          badgeAkceptacji.dataset.token = wpis.token;
+          if (wpis.akceptacja && wpis.akceptacja.accepted) {
+            const ts = new Date(wpis.akceptacja.acceptedAt);
+            const datStr = ts.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const kto = wpis.akceptacja.imie ? ' · ' + wpis.akceptacja.imie : '';
+            badgeAkceptacji.textContent = 'Zaakceptowana ' + datStr + kto;
+            badgeAkceptacji.classList.add('is-accepted');
+          } else {
+            badgeAkceptacji.textContent = 'Oczekuje na akceptację';
+            badgeAkceptacji.classList.add('is-pending');
+            // Sprawdź status na serwerze asynchronicznie
+            (async () => {
+              try {
+                const res = await fetch('/api/accept?token=' + encodeURIComponent(wpis.token));
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.accepted) {
+                  // Zaktualizuj cache w historii
+                  const lista = wczytajHistorie();
+                  const idx = lista.findIndex(w => w.id === wpis.id);
+                  if (idx !== -1) {
+                    lista[idx].akceptacja = data;
+                    zapiszHistorie(lista);
+                  }
+                  const ts = new Date(data.acceptedAt);
+                  const datStr = ts.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                  const kto = data.imie ? ' · ' + data.imie : '';
+                  badgeAkceptacji.textContent = 'Zaakceptowana ' + datStr + kto;
+                  badgeAkceptacji.classList.remove('is-pending');
+                  badgeAkceptacji.classList.add('is-accepted');
+                }
+              } catch (_) {}
+            })();
+          }
+          rowAkceptacja.appendChild(badgeAkceptacji);
+          info.appendChild(rowAkceptacja);
         }
 
         const actions = document.createElement('div');
@@ -4056,6 +4779,19 @@
 
         actions.appendChild(btnLoad);
         actions.appendChild(btnPdf);
+
+        // Przycisk "Wystaw fakturę" (F3) — tylko dla ofert, nie dla faktur
+        const docTypeWpis = wpis.payload && wpis.payload.typ_dokumentu;
+        const isAlreadyInvoice = (docTypeWpis === 'faktura_vat' || docTypeWpis === 'faktura_proforma');
+        if (!isAlreadyInvoice) {
+          const btnFaktura = document.createElement('button');
+          btnFaktura.type = 'button';
+          btnFaktura.className = 'btn-historia-action';
+          btnFaktura.textContent = 'Wystaw fakturę';
+          btnFaktura.addEventListener('click', () => wystawFaktureZHistorii(wpis));
+          actions.appendChild(btnFaktura);
+        }
+
         actions.appendChild(btnDel);
 
         li.appendChild(info);
@@ -4084,13 +4820,14 @@
       tbody.innerHTML = '';
       if (Array.isArray(p.pozycje) && p.pozycje.length > 0) {
         p.pozycje.forEach((poz, idx) => {
-          dodajWiersz();
+          dodajWiersz({ naKoniec: true });
           const tr = tbody.lastElementChild;
           if (!tr) return;
           const inN = tr.querySelector('.in-nazwa');
           const inI = tr.querySelector('.in-ilosc');
           const inC = tr.querySelector('.in-cena');
           const inK = tr.querySelector('.in-koszt');
+          const inV = tr.querySelector('.in-vat');
           if (inN && typeof poz.nazwa === 'string') inN.value = poz.nazwa;
           const ilosc = Number(poz && poz.ilosc);
           if (inI && Number.isFinite(ilosc)) inI.value = String(ilosc);
@@ -4098,10 +4835,23 @@
           if (inC && Number.isFinite(cena)) inC.value = String(cena);
           const koszt = Number(koszty[idx]);
           if (inK && Number.isFinite(koszt)) inK.value = String(koszt);
+          if (inV && poz.stawka_vat != null) inV.value = String(poz.stawka_vat);
         });
       } else {
         dodajWiersz();
       }
+
+      // Przywróć typ dokumentu z historii
+      if (typeof setActiveDocType === 'function') {
+        setActiveDocType(p.typ_dokumentu || '');
+      }
+      // Przywróć pola faktury
+      const numerFakturyEl = document.getElementById('numer_faktury');
+      const dataSprzedazyEl = document.getElementById('data_sprzedazy');
+      const terminPlatnosciEl = document.getElementById('termin_platnosci');
+      if (numerFakturyEl) numerFakturyEl.value = String(p.numer_faktury || '');
+      if (dataSprzedazyEl) dataSprzedazyEl.value = String(p.data_sprzedazy || '');
+      if (terminPlatnosciEl) terminPlatnosciEl.value = String(p.termin_platnosci || '');
 
       odswiezStanPresetow();
       aktualizujSzacowanyZysk();
@@ -4130,7 +4880,7 @@
         const klient = String(wpis.payload.klient || '').replace(/[^a-z0-9-_]+/gi, '_') || 'dokument';
         const a = document.createElement('a');
         a.href = url;
-        a.download = `oferta-${klient}.pdf`;
+        a.download = `wycena-${klient}.pdf`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -4162,6 +4912,13 @@
     }
 
     btnHistoria.addEventListener('click', otworzHistorie);
+    const btnHistoriaMobile = document.getElementById('btn-historia-mobile');
+    if (btnHistoriaMobile) {
+      btnHistoriaMobile.addEventListener('click', () => {
+        zamknijAppSettings();
+        window.setTimeout(otworzHistorie, 300);
+      });
+    }
     btnZamknijHistoria.addEventListener('click', zamknijHistorie);
     historiaBackdrop.addEventListener('click', zamknijHistorie);
     btnHistoriaWyczysc.addEventListener('click', () => {
@@ -4260,30 +5017,9 @@
 
     initAppSettingsStatsChips();
 
-    const btnAppOpenCompany = document.getElementById('btn-app-open-company');
-    const btnAppOpenHistory = document.getElementById('btn-app-open-history');
-    const btnAppOpenCatalog = document.getElementById('btn-app-open-catalog');
     const btnAppWyczyscSzkic = document.getElementById('btn-app-wyczysc-szkic');
     const btnAppWyczyscHistorie = document.getElementById('btn-app-wyczysc-historie');
 
-    if (btnAppOpenCompany) {
-      btnAppOpenCompany.addEventListener('click', () => {
-        zamknijAppSettings();
-        otworzSettings(false);
-      });
-    }
-    if (btnAppOpenHistory) {
-      btnAppOpenHistory.addEventListener('click', () => {
-        zamknijAppSettings();
-        otworzHistorie();
-      });
-    }
-    if (btnAppOpenCatalog) {
-      btnAppOpenCatalog.addEventListener('click', () => {
-        zamknijAppSettings();
-        otworzKatalog();
-      });
-    }
     if (btnAppWyczyscSzkic) {
       btnAppWyczyscSzkic.addEventListener('click', () => {
         const ok = window.confirm('Wyczyścić bieżącą wycenę? Pola formularza wrócą do wartości domyślnych.');
@@ -4299,4 +5035,597 @@
         renderujHistorie();
         renderStatystyki();
       });
+    }
+
+    // ── Shareable URL: kodowanie / dekodowanie wyceny ────────────────────────
+
+    const URL_SHARE_MAX_LEN = 4000;
+
+    async function kodujWycenaDoURL(payload) {
+      const daneBezLoga = Object.assign({}, payload, { logo_base64: '' });
+      const json = JSON.stringify(daneBezLoga);
+      try {
+        if (typeof CompressionStream !== 'undefined') {
+          const bytes = new TextEncoder().encode(json);
+          const cs = new CompressionStream('deflate-raw');
+          const writer = cs.writable.getWriter();
+          writer.write(bytes);
+          writer.close();
+          const chunks = [];
+          const reader = cs.readable.getReader();
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+          }
+          let totalLen = 0;
+          for (const c of chunks) totalLen += c.length;
+          const compressed = new Uint8Array(totalLen);
+          let off = 0;
+          for (const c of chunks) { compressed.set(c, off); off += c.length; }
+          let bin = '';
+          for (let i = 0; i < compressed.length; i++) bin += String.fromCharCode(compressed[i]);
+          const b64 = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+          return 'v1c' + b64;
+        }
+      } catch (_) {}
+      // Fallback: raw base64 (brak kompresji)
+      try {
+        const bytes = new TextEncoder().encode(json);
+        let bin = '';
+        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+        const b64 = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        return 'v1b' + b64;
+      } catch (_) { return null; }
+    }
+
+    async function dekodujWycenaZURL(str) {
+      if (!str || str.length < 4) throw new Error('Brak danych w linku');
+      const prefix = str.slice(0, 3);
+      const b64 = str.slice(3).replace(/-/g, '+').replace(/_/g, '/');
+      const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+      const bin = atob(padded);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+
+      if (prefix === 'v1c') {
+        const ds = new DecompressionStream('deflate-raw');
+        const writer = ds.writable.getWriter();
+        writer.write(bytes);
+        writer.close();
+        const chunks = [];
+        const reader = ds.readable.getReader();
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+        let totalLen = 0;
+        for (const c of chunks) totalLen += c.length;
+        const out = new Uint8Array(totalLen);
+        let off = 0;
+        for (const c of chunks) { out.set(c, off); off += c.length; }
+        return JSON.parse(new TextDecoder().decode(out));
+      } else if (prefix === 'v1b') {
+        return JSON.parse(new TextDecoder().decode(bytes));
+      }
+      throw new Error('Nieznany format linku');
+    }
+
+    async function initKlientViewer(wParam) {
+      const page = document.querySelector('.page');
+      if (page) page.classList.add('is-viewer-mode');
+      const viewerEl = document.getElementById('view-klient');
+      if (viewerEl) { viewerEl.removeAttribute('hidden'); viewerEl.classList.remove('hidden'); }
+      const container = document.getElementById('klient-viewer-container');
+      if (!container) return;
+
+      // Wyciągnij token akceptacji z URL
+      const tParam = new URLSearchParams(location.search).get('t');
+      window._klientViewerToken = tParam || null;
+
+      try {
+        const dane = await dekodujWycenaZURL(wParam);
+        renderKlientViewer(dane);
+      } catch (err) {
+        container.innerHTML = '';
+        const errDiv = document.createElement('div');
+        errDiv.className = 'klient-viewer-error card';
+        const h = document.createElement('h2');
+        h.className = 'klient-viewer-error-title';
+        h.textContent = 'Nieprawidłowy lub niekompletny link';
+        const p = document.createElement('p');
+        p.className = 'klient-viewer-error-desc';
+        p.textContent = 'Poproś sprzedawcę o ponowne przesłanie linku do wyceny.';
+        errDiv.appendChild(h);
+        errDiv.appendChild(p);
+        container.appendChild(errDiv);
+      }
+    }
+
+    function _viewerFormatPLN(v) {
+      return Number(v || 0).toFixed(2).replace('.', ',') + ' zł';
+    }
+
+    function renderKlientViewer(dane) {
+      const container = document.getElementById('klient-viewer-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      function el(tag, cls, text) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text != null) e.textContent = text;
+        return e;
+      }
+
+      // Viewer header (poza kartą) – marka
+      const viewerHeader = el('div', 'klient-viewer-brand');
+      viewerHeader.appendChild(el('span', 'klient-viewer-brand-name', 'Wycena od'));
+      viewerHeader.appendChild(el('strong', 'klient-viewer-brand-firma', dane.nazwa_firmy || ''));
+      container.appendChild(viewerHeader);
+
+      const card = el('div', 'card klient-viewer-card');
+
+      // Nagłówek dokumentu
+      const titleRow = el('div', 'klient-viewer-title-row');
+      const docTypeLabel = (dane.typ_dokumentu === 'faktura_vat')
+        ? 'FAKTURA VAT'
+        : (dane.typ_dokumentu === 'faktura_proforma')
+          ? 'FAKTURA PRO FORMA'
+          : 'WYCENA';
+      titleRow.appendChild(el('h1', 'klient-viewer-doc-title', docTypeLabel));
+      if (dane.numer_oferty) titleRow.appendChild(el('span', 'klient-viewer-doc-num', 'Nr ' + dane.numer_oferty));
+      card.appendChild(titleRow);
+
+      // Strony: Sprzedawca / Klient
+      const partiesRow = el('div', 'klient-viewer-parties');
+
+      const sellerCol = el('div', 'klient-viewer-party');
+      sellerCol.appendChild(el('span', 'klient-viewer-party-label', 'Sprzedawca'));
+      sellerCol.appendChild(el('strong', 'klient-viewer-party-name', dane.nazwa_firmy || ''));
+      const sellerDetails = [];
+      if (dane.nip) sellerDetails.push('NIP: ' + dane.nip);
+      if (dane.adres) sellerDetails.push(dane.adres);
+      if (dane.miasto) sellerDetails.push(dane.miasto);
+      if (sellerDetails.length) sellerCol.appendChild(el('p', 'klient-viewer-party-details', sellerDetails.join(' · ')));
+      if (dane.telefon) sellerCol.appendChild(el('p', 'klient-viewer-party-details', 'tel. ' + dane.telefon));
+      if (dane.email) sellerCol.appendChild(el('p', 'klient-viewer-party-details', 'e-mail: ' + dane.email));
+
+      const buyerCol = el('div', 'klient-viewer-party');
+      buyerCol.appendChild(el('span', 'klient-viewer-party-label', 'Klient'));
+      const klientLines = String(dane.klient || '').split('\n');
+      klientLines.forEach((line, i) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        if (i === 0) buyerCol.appendChild(el('strong', 'klient-viewer-party-name', trimmed));
+        else buyerCol.appendChild(el('p', 'klient-viewer-party-details', trimmed));
+      });
+
+      partiesRow.appendChild(sellerCol);
+      partiesRow.appendChild(buyerCol);
+      card.appendChild(partiesRow);
+
+      // Tabela pozycji
+      const tableWrap = el('div', 'klient-viewer-table-wrap');
+      const table = el('table', 'klient-viewer-table');
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      [
+        { text: 'Lp.', cls: 'col-lp' },
+        { text: 'Nazwa', cls: '' },
+        { text: 'Ilość', cls: 'col-num' },
+        { text: 'Cena jedn.', cls: 'col-num' },
+        { text: 'Wartość', cls: 'col-num' },
+      ].forEach(({ text, cls }) => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        if (cls) th.className = cls;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const viewerTbody = document.createElement('tbody');
+      let total = 0;
+      (dane.pozycje || []).forEach((p, i) => {
+        const ilosc = Number(p.ilosc) || 0;
+        const cena = Number(p.cena_jednostkowa) || 0;
+        const wartosc = ilosc * cena;
+        total += wartosc;
+        const tr = document.createElement('tr');
+        [
+          { text: String(i + 1), cls: 'col-lp' },
+          { text: String(p.nazwa || ''), cls: '' },
+          { text: String(ilosc % 1 === 0 ? ilosc : ilosc.toFixed(2).replace('.', ',')), cls: 'col-num' },
+          { text: _viewerFormatPLN(cena), cls: 'col-num' },
+          { text: _viewerFormatPLN(wartosc), cls: 'col-num' },
+        ].forEach(({ text, cls }) => {
+          const td = document.createElement('td');
+          td.textContent = text;
+          if (cls) td.className = cls;
+          tr.appendChild(td);
+        });
+        viewerTbody.appendChild(tr);
+      });
+      table.appendChild(viewerTbody);
+      tableWrap.appendChild(table);
+      card.appendChild(tableWrap);
+
+      // Suma
+      const totalRow = el('div', 'klient-viewer-total');
+      totalRow.appendChild(el('span', 'klient-viewer-total-label', 'Razem:'));
+      totalRow.appendChild(el('span', 'klient-viewer-total-value', _viewerFormatPLN(total)));
+      card.appendChild(totalRow);
+
+      // Uwagi
+      if (dane.uwagi && dane.uwagi.trim()) {
+        const notesWrap = el('div', 'klient-viewer-notes');
+        notesWrap.appendChild(el('p', 'klient-viewer-notes-label', 'Uwagi'));
+        notesWrap.appendChild(el('p', 'klient-viewer-notes-text', dane.uwagi));
+        card.appendChild(notesWrap);
+      }
+
+      // Ważność
+      if (dane.data_waznosci) {
+        card.appendChild(el('p', 'klient-viewer-validity', 'Wycena ważna do: ' + dane.data_waznosci));
+      }
+
+      // CTA
+      const ctaWrap = el('div', 'klient-viewer-cta');
+      const btnPdf = el('button', 'btn-primary', 'Pobierz PDF');
+      btnPdf.type = 'button';
+      btnPdf.id = 'klient-btn-pobierz-pdf';
+      let pdfLoading = false;
+      btnPdf.addEventListener('click', async () => {
+        if (pdfLoading) return;
+        pdfLoading = true;
+        btnPdf.disabled = true;
+        btnPdf.textContent = 'Generowanie…';
+        try {
+          const res = await fetch('/quote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dane),
+          });
+          if (!res.ok) throw new Error((await res.text()) || 'Błąd ' + res.status);
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const klientName = String(dane.klient || '').split('\n')[0].replace(/[^a-z0-9-_]+/gi, '_') || 'wycena';
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'wycena-' + klientName + '.pdf';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        } catch (err) {
+          alert('Nie udało się pobrać PDF: ' + err.message);
+        } finally {
+          pdfLoading = false;
+          btnPdf.disabled = false;
+          btnPdf.textContent = 'Pobierz PDF';
+        }
+      });
+      ctaWrap.appendChild(btnPdf);
+      ctaWrap.appendChild(el('p', 'klient-viewer-hint', 'Link nie zawiera logo firmy. Pobierz PDF, aby zobaczyć pełną wycenę.'));
+      card.appendChild(ctaWrap);
+
+      // Sekcja akceptacji (F2)
+      const akceptacjaWrap = el('div', 'klient-viewer-akceptacja');
+      akceptacjaWrap.id = 'klient-viewer-akceptacja';
+      card.appendChild(akceptacjaWrap);
+
+      container.appendChild(card);
+      container.appendChild(el('p', 'klient-viewer-footer', 'Wygenerowano przez ' + WATERMARK_BYLINE));
+
+      window._klientViewerDane = dane;
+
+      // Załaduj sekcję akceptacji jeśli token jest w URL
+      const token = window._klientViewerToken;
+      if (token) {
+        renderAkceptacjaSection(akceptacjaWrap, token);
+      }
+    }
+
+    async function renderAkceptacjaSection(wrap, token) {
+      wrap.innerHTML = '';
+      const sep = document.createElement('div');
+      sep.className = 'klient-viewer-sep';
+      wrap.appendChild(sep);
+
+      // Sprawdź aktualny status
+      let status = null;
+      try {
+        const res = await fetch('/api/accept?token=' + encodeURIComponent(token));
+        if (res.ok) status = await res.json();
+      } catch (_) {}
+
+      function el(tag, cls, text) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text != null) e.textContent = text;
+        return e;
+      }
+
+      if (status && status.accepted) {
+        const box = el('div', 'akceptacja-box is-accepted');
+        const icon = document.createElement('span');
+        icon.className = 'akceptacja-icon';
+        icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>';
+        box.appendChild(icon);
+        const txt = el('div', 'akceptacja-txt');
+        const ts = new Date(status.acceptedAt);
+        const datStr = ts.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const kto = status.imie ? ' przez ' + status.imie : '';
+        txt.appendChild(el('strong', '', 'Wycena zaakceptowana'));
+        txt.appendChild(el('p', 'akceptacja-meta', datStr + kto));
+        box.appendChild(txt);
+        wrap.appendChild(box);
+        return;
+      }
+
+      const box = el('div', 'akceptacja-box');
+      box.appendChild(el('p', 'akceptacja-label', 'Akceptuję tę wycenę'));
+      const imieInput = document.createElement('input');
+      imieInput.type = 'text';
+      imieInput.className = 'akceptacja-imie';
+      imieInput.placeholder = 'Twoje imię i nazwisko (opcjonalnie)';
+      imieInput.maxLength = 60;
+      box.appendChild(imieInput);
+      const btnAkceptuj = el('button', 'btn-primary btn-akceptuj', 'Akceptuję wycenę');
+      btnAkceptuj.type = 'button';
+      let akceptujLoading = false;
+      btnAkceptuj.addEventListener('click', async () => {
+        if (akceptujLoading) return;
+        akceptujLoading = true;
+        btnAkceptuj.disabled = true;
+        btnAkceptuj.textContent = 'Wysyłanie…';
+        try {
+          const res = await fetch('/api/accept', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token, imie: imieInput.value.trim() }),
+          });
+          if (!res.ok) throw new Error((await res.text()) || 'Błąd ' + res.status);
+          const data = await res.json();
+          trackEvent('client_accepted');
+          renderAkceptacjaSection(wrap, token);
+        } catch (err) {
+          btnAkceptuj.disabled = false;
+          btnAkceptuj.textContent = 'Akceptuję wycenę';
+          akceptujLoading = false;
+          alert('Nie udało się zapisać akceptacji: ' + err.message);
+        }
+      });
+      box.appendChild(btnAkceptuj);
+      wrap.appendChild(box);
+    }
+
+    // ── Faktura: Wystaw fakturę z historii ───────────────────────────────────
+
+    function wystawFaktureZHistorii(wpis) {
+      if (!wpis || !wpis.payload) return;
+      // Wczytaj wycenę do formularza
+      wczytajWpisDoFormularza(wpis);
+      // Przełącz na typ "Faktura VAT" i ustaw nowy numer faktury
+      if (typeof setActiveDocType === 'function') setActiveDocType('faktura_vat');
+      const nrFakturyEl = document.getElementById('numer_faktury');
+      if (nrFakturyEl && !nrFakturyEl.value.trim()) {
+        nrFakturyEl.value = nastepnyNumerFaktury();
+      }
+      // Ustaw dzisiejszą datę jako datę sprzedaży
+      const dataSprzedazyEl = document.getElementById('data_sprzedazy');
+      if (dataSprzedazyEl && !dataSprzedazyEl.value) {
+        dataSprzedazyEl.value = new Date().toISOString().slice(0, 10);
+      }
+      saveDraft();
+    }
+
+    // ── Faktura: numeracja ────────────────────────────────────────────────────
+
+    function wczytajNumeracjeFaktury() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_NUMERACJA_FAKTURY);
+        if (!raw) return { ostatniNumer: 0 };
+        const dane = JSON.parse(raw);
+        const n = Number(dane && dane.ostatniNumer);
+        return { ostatniNumer: Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0 };
+      } catch (e) { return { ostatniNumer: 0 }; }
+    }
+
+    function zapiszNumeracjeFaktury(stan) {
+      try { localStorage.setItem(STORAGE_KEY_NUMERACJA_FAKTURY, JSON.stringify(stan)); } catch (e) {}
+    }
+
+    function nastepnyNumerFaktury() {
+      const { ostatniNumer } = wczytajNumeracjeFaktury();
+      const rok = new Date().getFullYear();
+      return `FV/${rok}/${String(ostatniNumer + 1).padStart(3, '0')}`;
+    }
+
+    function inkrementujNumeracjeFaktury() {
+      const stan = wczytajNumeracjeFaktury();
+      stan.ostatniNumer = (Number(stan.ostatniNumer) || 0) + 1;
+      zapiszNumeracjeFaktury(stan);
+    }
+
+    // ── Faktura: przełącznik typu dokumentu ──────────────────────────────────
+
+    function initDocTypeSwitcher() {
+      const switcher = document.getElementById('doc-type-switcher');
+      if (!switcher) return;
+      switcher.querySelectorAll('.chip[data-doc-type]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          switcher.querySelectorAll('.chip').forEach(b => { b.classList.remove('is-active'); b.setAttribute('aria-pressed', 'false'); });
+          btn.classList.add('is-active');
+          btn.setAttribute('aria-pressed', 'true');
+          onDocTypeChange(btn.dataset.docType || '');
+        });
+      });
+    }
+
+    function getActiveDocType() {
+      const btn = document.querySelector('#doc-type-switcher .chip.is-active');
+      return btn ? (btn.dataset.docType || '') : '';
+    }
+
+    function setActiveDocType(type) {
+      const switcher = document.getElementById('doc-type-switcher');
+      if (!switcher) return;
+      switcher.querySelectorAll('.chip[data-doc-type]').forEach(btn => {
+        const match = (btn.dataset.docType || '') === (type || '');
+        btn.classList.toggle('is-active', match);
+        btn.setAttribute('aria-pressed', match ? 'true' : 'false');
+      });
+      onDocTypeChange(type || '');
+    }
+
+    function onDocTypeChange(type) {
+      const invoiceFields = document.getElementById('invoice-fields');
+      const vatCols = document.querySelectorAll('.vat-col-hidden');
+      const labelNumer = document.getElementById('label-numer-oferty');
+      const isInvoice = (type === 'faktura_proforma' || type === 'faktura_vat');
+      const isVAT = (type === 'faktura_vat');
+
+      if (invoiceFields) invoiceFields.classList.toggle('hidden', !isInvoice);
+      vatCols.forEach(el => el.classList.toggle('vat-col-hidden', !isVAT));
+
+      if (labelNumer) {
+        if (type === 'faktura_vat' || type === 'faktura_proforma') labelNumer.textContent = 'Numer wyceny (opcjonalny)';
+        else labelNumer.textContent = 'Numer wyceny';
+      }
+
+      // Aktualizuj tekst przycisku generuj
+      const btnGenerujEl = document.getElementById('btn-generuj');
+      if (btnGenerujEl) {
+        if (isInvoice) {
+          const isMobile = !(window.matchMedia && window.matchMedia('(min-width: 1024px)').matches);
+          btnGenerujEl.textContent = isMobile ? 'Podgląd i pobierz' : 'Generuj dokument';
+        } else {
+          if (typeof aktualizujTekstPrzyciskuGeneruj === 'function') aktualizujTekstPrzyciskuGeneruj();
+        }
+      }
+
+      // Przycisk XML KSeF i nota — widoczne tylko dla faktura_vat
+      const btnXml = document.getElementById('btn-pobierz-xml');
+      const ksefHint = document.getElementById('ksef-hint');
+      if (btnXml) btnXml.classList.toggle('hidden', !isVAT);
+      if (ksefHint) ksefHint.classList.toggle('hidden', !isVAT);
+
+      saveDraft();
+    }
+
+    // ── Pobierz XML FA(3) do KSeF ────────────────────────────────────────────
+    async function pobierzXmlKSeF() {
+      const { gotowy, payload } = budujPayloadZFormularza();
+      if (!gotowy) {
+        pokazKomunikat('Uzupełnij fakturę (nazwa firmy, klient i przynajmniej jedna pozycja), aby wygenerować XML.', 'error');
+        return;
+      }
+      if (!payload.nip) {
+        pokazKomunikat('NIP sprzedawcy jest wymagany do generowania XML KSeF — uzupełnij go w zakładce Moja firma.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-pobierz-xml');
+      const oryg = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.textContent = 'Generowanie…'; }
+
+      try {
+        const res = await fetch('/api/xml', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const tekst = await res.text();
+          throw new Error(tekst || `Błąd ${res.status}`);
+        }
+        const blob = await res.blob();
+
+        const numerSlug = String(payload.numer_faktury || payload.numer_oferty || 'faktura')
+          .replace(/[^a-zA-Z0-9\-_]/g, '_');
+        const klientSlug = String(payload.klient || '').split('\n')[0]
+          .replace(/[^a-zA-Z0-9\-_]/g, '_');
+        const nazwaPliku = `faktura-${numerSlug}-${klientSlug}.xml`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nazwaPliku;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+        trackEvent('xml_downloaded');
+        pokazKomunikat('XML pobrany. Wgraj go na ksef.podatki.gov.pl, aby wysłać fakturę.', 'success');
+      } catch (err) {
+        pokazKomunikat('Nie udało się wygenerować XML: ' + err.message, 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = oryg; }
+      }
+    }
+
+    async function skopiujLinkWyceny() {
+      const { gotowy, payload } = budujPayloadZFormularza();
+      if (!gotowy) {
+        pokazKomunikat('Uzupełnij wycenę (nazwa firmy, klient i przynajmniej jedna pozycja), aby wygenerować link.', 'error');
+        return;
+      }
+      const btn = document.getElementById('btn-kopiuj-link');
+      const oryg = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = 'Generowanie…'; }
+      try {
+        const str = await kodujWycenaDoURL(payload);
+        if (!str) throw new Error('Błąd kodowania');
+
+        // Generuj token akceptacji i przypisz do ostatniego wpisu historii
+        const token = (crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
+        if (token) {
+          const lista = wczytajHistorie();
+          // Znajdź wpis pasujący do aktualnej wyceny (ten sam numer i klient)
+          const numerAkt = String(payload.numer_oferty || '').trim();
+          const klientAkt = String(payload.klient || '').trim();
+          const idx = lista.findIndex(w =>
+            String(w.numerOferty || '').trim() === numerAkt &&
+            String(w.klient || '').trim() === klientAkt
+          );
+          if (idx !== -1 && !lista[idx].token) {
+            lista[idx].token = token;
+            zapiszHistorie(lista);
+          } else if (idx === -1) {
+            // Wycena jeszcze nie w historii — token zostanie dołączony przy najbliższym zapisie
+            window._pendingLinkToken = token;
+          }
+        }
+
+        const tokenParam = token ? '&t=' + token : '';
+        const url = location.origin + '/?w=' + str + tokenParam;
+        if (url.length > URL_SHARE_MAX_LEN) {
+          pokazKomunikat('Wycena jest za duża na link (zbyt wiele pozycji lub długich nazw). Wyślij klientowi PDF.', 'error');
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(url);
+          trackEvent('link_copied');
+          if (btn) { btn.textContent = 'Skopiowano!'; btn.classList.add('is-copied'); }
+          pokazKomunikat('Link skopiowany do schowka! Wyślij go klientowi — otworzy wycenę w przeglądarce.', 'success');
+          setTimeout(() => {
+            if (btn) { btn.textContent = oryg; btn.classList.remove('is-copied'); btn.disabled = false; }
+          }, 2000);
+          return;
+        } catch (_) {
+          window.prompt('Skopiuj link do wyceny (Ctrl+C):', url);
+          trackEvent('link_copied');
+        }
+      } catch (err) {
+        pokazKomunikat('Nie udało się wygenerować linku: ' + err.message, 'error');
+      } finally {
+        if (btn && !btn.classList.contains('is-copied')) {
+          btn.disabled = false;
+          btn.textContent = oryg;
+        }
+      }
     }
