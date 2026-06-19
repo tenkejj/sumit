@@ -1221,15 +1221,15 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 14px;
-      height: 14px;
-      font-size: 8px;
-      font-weight: 600;
+      width: 18px;
+      height: 18px;
+      font-size: 11px;
+      font-weight: 700;
       line-height: 1;
-      color: #6b7280;
-      border: 1px solid color-mix(in srgb, #6b7280 35%, transparent);
-      border-radius: 2px;
-      opacity: 0.8;
+      color: var(--text-muted);
+      border: 1px solid color-mix(in srgb, var(--text-muted) 55%, transparent);
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--text-muted) 10%, transparent);
       flex-shrink: 0;
     }
 
@@ -3051,6 +3051,10 @@
 
       .mobile-chrome .tagline {
         display: block;
+      }
+
+      .mobile-chrome-signature {
+        display: none;
       }
 
       .page-nav-row.header-toolbar,

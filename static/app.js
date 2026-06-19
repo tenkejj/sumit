@@ -2472,6 +2472,26 @@
       window.zamknijAiInputSheet = zamknij;
     }
 
+    function initMobileScrollClamp() {
+      const mql = window.matchMedia('(max-width: 1023px)');
+
+      function clamp() {
+        if (!mql.matches) return;
+        const view = document.body.dataset.activeView;
+        let root = null;
+        if (view === 'view-kreator') root = document.getElementById('oferta-form');
+        else if (view === 'view-firma') root = document.getElementById('view-firma');
+        else if (view === 'view-statystyki') root = document.getElementById('view-statystyki');
+        if (!root || root.classList.contains('hidden') || root.hasAttribute('hidden')) return;
+        const maxScroll = Math.max(0, root.offsetTop + root.offsetHeight - window.innerHeight);
+        if (window.scrollY > maxScroll + 1) window.scrollTo(0, maxScroll);
+      }
+
+      window.addEventListener('scroll', clamp, { passive: true });
+      window.addEventListener('resize', clamp, { passive: true });
+      mql.addEventListener('change', clamp);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // Viewer mode: ?w= → renderuj read-only podgląd dla klienta, pomiń init edytora
       const _wParam = new URLSearchParams(location.search).get('w');
@@ -2500,6 +2520,7 @@
       initAiQuickInput();
       initMobileStickyHeader();
       initMobileAiSheet();
+      initMobileScrollClamp();
 
       form.addEventListener('input', saveDraftDebounced);
       btnDodaj.addEventListener('click', saveDraftDebounced);
