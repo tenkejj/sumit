@@ -479,10 +479,59 @@
       }
 
       /* Szczegóły: typ dokumentu — inline, bez dodatkowego paska */
-      #accordion-body-szczegoly > .field-doc-type {
+      #accordion-body-szczegoly .field-doc-type {
         display: block;
         margin-top: 4px;
         margin-bottom: 20px;
+      }
+
+      .wizard-advanced-options > summary {
+        display: none;
+      }
+
+      .wizard-advanced-options {
+        border: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      #accordion-body-szczegoly {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        align-items: start;
+      }
+
+      #accordion-body-szczegoly .wizard-essential-fields {
+        display: contents;
+      }
+
+      #accordion-body-szczegoly .field-doc-type {
+        grid-column: 1 / -1;
+      }
+
+      #accordion-body-szczegoly .field-data-waznosci {
+        grid-column: 2;
+        grid-row: 2;
+      }
+
+      .wizard-advanced-options {
+        display: contents;
+      }
+
+      .wizard-advanced-body {
+        display: contents;
+      }
+
+      .wizard-advanced-body > .row:first-child {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .wizard-advanced-body > .invoice-fields,
+      .wizard-advanced-body > .ksef-hint,
+      .wizard-advanced-body > .field-uwagi-advanced {
+        grid-column: 1 / -1;
       }
 
       #accordion-body-szczegoly .doc-type-switcher {
@@ -3089,6 +3138,10 @@
         flex-direction: column;
       }
 
+      #accordion-body-pozycje .manual-items .manual-items-body .items-actions {
+        order: -1;
+      }
+
       #oferta-form .accordion-section[data-accordion-id="pozycje"] .ai-sheet-modal {
         margin: 0 0 12px;
       }
@@ -4072,3 +4125,9 @@
       background: var(--bg-chip);
       color: var(--text-muted);
     }
+  }
+
+  /* ── Mobile-only elements — hidden on desktop ─────────────────────────── */
+  #view-home { display: none !important; }
+  #view-historia { display: none !important; }
+  .mobile-only-tab { display: none !important; }

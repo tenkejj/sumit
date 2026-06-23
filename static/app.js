@@ -5,6 +5,10 @@
     const message = document.getElementById('message');
     var accordionFormReady = false;
 
+    const MOBILE_MQL = window.matchMedia('(max-width: 1023px)');
+    let _wizardKrok = 1;
+    let _wizardGotowy = false;
+
     const shareSupported = typeof navigator !== 'undefined'
       && typeof navigator.canShare === 'function'
       && typeof navigator.share === 'function';
@@ -60,6 +64,92 @@
     const btnTheme = document.getElementById('btn-theme');
     const btnThemeMobile = document.getElementById('btn-theme-mobile');
     const themeButtons = [btnTheme, btnThemeMobile].filter(Boolean);
+
+    // ── Fundament mobile UX: toast / haptic / confetti / checkmark ────────────
+
+    const ruchOk = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function wibruj(pattern) {
+      try { if ('vibrate' in navigator) navigator.vibrate(pattern); } catch (_) {}
+    }
+
+    function pokazToast(msg, typ) {
+      const stack = document.getElementById('toast-stack');
+      if (!stack) return;
+      const el = document.createElement('div');
+      el.className = 'toast toast-' + (typ || 'info');
+      el.setAttribute('role', 'status');
+      el.textContent = msg;
+      stack.appendChild(el);
+      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('is-visible')));
+      const t = setTimeout(() => ukryjToast(el), 3200);
+      el._toastTimer = t;
+      el.addEventListener('click', () => { clearTimeout(el._toastTimer); ukryjToast(el); }, { once: true });
+    }
+
+    function ukryjToast(el) {
+      if (!el || el._toastRemoving) return;
+      el._toastRemoving = true;
+      el.classList.remove('is-visible');
+      setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 380);
+    }
+
+    function odpalConfetti() {
+      if (!ruchOk) return;
+      const canvas = document.getElementById('confetti-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      canvas.width = W;
+      canvas.height = H;
+      canvas.style.display = 'block';
+      const COLORS = ['#C0143C', '#ffffff', '#ff4d6d', '#ffd6dd', '#C0143C'];
+      const COUNT = Math.min(120, Math.max(60, Math.floor(W * 0.25)));
+      const parts = [];
+      for (let i = 0; i < COUNT; i++) {
+        parts.push({
+          x: Math.random() * W,
+          y: -10 - Math.random() * H * 0.4,
+          vx: (Math.random() - 0.5) * 5,
+          vy: 1.5 + Math.random() * 4,
+          r: 4 + Math.random() * 7,
+          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          rot: Math.random() * Math.PI * 2,
+          rotV: (Math.random() - 0.5) * 0.18,
+        });
+      }
+      const endTime = Date.now() + 2400;
+      let rafId;
+      function frame() {
+        ctx.clearRect(0, 0, W, H);
+        if (Date.now() > endTime) { canvas.style.display = 'none'; return; }
+        parts.forEach(p => {
+          p.x += p.vx; p.y += p.vy; p.vy += 0.14; p.rot += p.rotV;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 1.7);
+          ctx.restore();
+        });
+        rafId = requestAnimationFrame(frame);
+      }
+      if (rafId) cancelAnimationFrame(rafId);
+      frame();
+    }
+
+    function swietujCheckmark(parentEl) {
+      if (!parentEl) return;
+      const badge = document.createElement('span');
+      badge.className = 'checkmark-pop';
+      badge.textContent = '✓';
+      badge.setAttribute('aria-hidden', 'true');
+      parentEl.appendChild(badge);
+      setTimeout(() => { if (badge.parentNode) badge.parentNode.removeChild(badge); }, 1400);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     function wczytajPreferencjeMotywu() {
       try {
@@ -143,13 +233,15 @@
     }
 
     function odswiezChipyMotywuApp() {
-      const wrap = document.getElementById('app-settings-theme');
-      if (!wrap) return;
       const pref = wczytajPreferencjeMotywu();
-      wrap.querySelectorAll('.chip[data-theme-pref]').forEach((chip) => {
-        const active = chip.getAttribute('data-theme-pref') === pref;
-        chip.classList.toggle('is-active', active);
-        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+      ['app-settings-theme'].forEach((id) => {
+        const wrap = document.getElementById(id);
+        if (!wrap) return;
+        wrap.querySelectorAll('.chip[data-theme-pref]').forEach((chip) => {
+          const active = chip.getAttribute('data-theme-pref') === pref;
+          chip.classList.toggle('is-active', active);
+          chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
       });
     }
 
@@ -237,12 +329,49 @@
       });
     }
 
+    function wierszJestPusty(tr) {
+      if (!tr) return true;
+      const nazwa = tr.querySelector('.in-nazwa');
+      const cena = tr.querySelector('.in-cena');
+      const nazwaPusta = !nazwa || !String(nazwa.value || '').trim();
+      let cenaVal = 0;
+      if (cena && String(cena.value || '').trim()) {
+        const parsed = parseFloat(String(cena.value).replace(',', '.'));
+        if (Number.isFinite(parsed)) cenaVal = parsed;
+      }
+      return nazwaPusta && cenaVal === 0;
+    }
+
+    function odswiezWidocznoscWierszy() {
+      const mobile = window.matchMedia('(max-width: 1023px)').matches;
+      if (!mobile) {
+        tbody.querySelectorAll('tr.is-row-empty-hidden').forEach(tr => {
+          tr.classList.remove('is-row-empty-hidden');
+        });
+        return;
+      }
+      tbody.querySelectorAll('tr').forEach(tr => {
+        if (tr.classList.contains('is-row-revealed')) {
+          tr.classList.remove('is-row-empty-hidden');
+          return;
+        }
+        tr.classList.toggle('is-row-empty-hidden', wierszJestPusty(tr));
+      });
+      odswiezWizardPozycjeUI();
+    }
+
+    function ujawnijWiersz(tr) {
+      if (!tr) return;
+      tr.classList.add('is-row-revealed');
+      tr.classList.remove('is-row-empty-hidden');
+    }
+
     function dodajWiersz(opts) {
       const naKoniec = !!(opts && opts.naKoniec);
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="col-lp"></td>
-        <td class="col-nazwa"><input type="text" class="in-nazwa" placeholder="np. Usługa konsultingowa" list="szablony-pozycji-datalist" autocomplete="off" required></td>
+        <td class="col-nazwa"><input type="text" class="in-nazwa" list="szablony-pozycji-datalist" autocomplete="off" required></td>
         <td class="col-ilosc">
           <div class="ilosc-wrap">
             <input type="number" class="in-ilosc" step="any" min="0" placeholder="1" required>
@@ -301,6 +430,7 @@
         }
         tr.remove();
         odswiezNumery();
+        odswiezWidocznoscWierszy();
         aktualizujSzacowanyZysk();
         odswiezPodgladPozycjiAkordeon();
       });
@@ -312,19 +442,55 @@
           if (Number.isFinite(pct)) applyAdjustment(tr, pct);
         });
       });
+      tr.addEventListener('click', (e) => {
+        if (!MOBILE_MQL.matches) return;
+        if (e.target.closest('input, button, select, textarea, a, label')) return;
+        const bylRozwiniety = tr.classList.contains('is-row-expanded');
+        tr.classList.toggle('is-row-expanded');
+        if (!bylRozwiniety && tr.classList.contains('is-row-expanded')) {
+          ujawnijWiersz(tr);
+          const inp = tr.querySelector('.in-nazwa');
+          if (inp) setTimeout(() => inp.focus(), 0);
+        }
+      });
       const nazwaInput = tr.querySelector('.in-nazwa');
       if (nazwaInput) {
-        nazwaInput.addEventListener('input', () => aplikujSzablonDoWiersza(tr));
+        nazwaInput.addEventListener('input', () => {
+          ujawnijWiersz(tr);
+          aplikujSzablonDoWiersza(tr);
+          odswiezWidocznoscWierszy();
+        });
+        nazwaInput.addEventListener('focus', () => {
+          if (!MOBILE_MQL.matches) return;
+          ujawnijWiersz(tr);
+          tr.classList.add('is-row-expanded');
+        });
+      }
+      const cenaInput = tr.querySelector('.in-cena');
+      if (cenaInput) {
+        cenaInput.addEventListener('input', () => {
+          ujawnijWiersz(tr);
+          odswiezWidocznoscWierszy();
+        });
+        cenaInput.addEventListener('focus', () => {
+          if (!MOBILE_MQL.matches) return;
+          ujawnijWiersz(tr);
+          tr.classList.add('is-row-expanded');
+        });
       }
       if (naKoniec) {
         tbody.appendChild(tr);
       } else {
         tbody.insertBefore(tr, tbody.firstChild);
       }
+      if (opts && opts.ujawnij) ujawnijWiersz(tr);
       odswiezNumery();
+      odswiezWidocznoscWierszy();
       if (accordionFormReady) odswiezPodgladPozycjiAkordeon();
       const inVat = tr.querySelector('.in-vat');
       if (inVat) inVat.value = wczytajDomyslnaStawkeVat();
+      const inIlosc = tr.querySelector('.in-ilosc');
+      if (inIlosc && !String(inIlosc.value || '').trim()) inIlosc.value = '1';
       const inNazwa = tr.querySelector('.in-nazwa');
       if (!naKoniec && inNazwa && document.activeElement === btnDodaj) {
         inNazwa.focus();
@@ -354,6 +520,8 @@
 
       odswiezNumery();
       aktualizujSzacowanyZysk();
+      ujawnijWiersz(noweTr);
+      odswiezWidocznoscWierszy();
       saveDraft();
     }
 
@@ -430,14 +598,18 @@
       )) {
         aktualizujSzacowanyZysk();
       }
+      if (e.target.closest && e.target.closest('tr')) {
+        odswiezWidocznoscWierszy();
+      }
       if (e.target.classList && e.target.classList.contains('in-nazwa')) {
         odswiezPodgladPozycjiAkordeon();
       }
     });
 
-    btnDodaj.addEventListener('click', dodajWiersz);
+    btnDodaj.addEventListener('click', () => dodajWiersz({ ujawnij: true }));
 
     dodajWiersz();
+    odswiezWidocznoscWierszy();
     aktualizujSzacowanyZysk();
 
     (function ustawDomyslnaDateWaznosciPrzyStarcie() {
@@ -947,6 +1119,145 @@
       });
     }
 
+    // ── Animacja generowania PDF (mobile overlay) ─────────────────────────────
+
+    const GEN_TEKSTY = [
+      'Przygotowuję wycenę...',
+      'Dodaję pozycje...',
+      'Generuję PDF...',
+      'Prawie gotowe...',
+      'Gotowe! ✓',
+    ];
+
+    let _genAnimTimer = null;
+    let _genProgressTimer = null;
+    let _genAktualnyBlob = null;
+    let _genAktualnaNazwa = '';
+    let _genAktualnyPayload = null;
+    let _genAktualneKoszty = null;
+
+    function uruchomAnimacjeGenerowania() {
+      if (!MOBILE_MQL.matches) return;
+      const overlay = document.getElementById('gen-overlay');
+      const sukces = document.getElementById('gen-sukces');
+      const statusEl = document.getElementById('gen-status-text');
+      const progressBar = document.getElementById('gen-progress-bar');
+      if (!overlay) return;
+
+      if (sukces) sukces.setAttribute('hidden', '');
+      overlay.removeAttribute('hidden');
+      document.body.style.overflow = 'hidden';
+
+      let idx = 0;
+      if (statusEl) statusEl.textContent = GEN_TEKSTY[0];
+      clearInterval(_genAnimTimer);
+      _genAnimTimer = setInterval(() => {
+        idx = Math.min(idx + 1, GEN_TEKSTY.length - 2);
+        if (statusEl) statusEl.textContent = GEN_TEKSTY[idx];
+      }, 600);
+
+      if (progressBar) {
+        progressBar.style.transition = 'none';
+        progressBar.style.width = '0%';
+        requestAnimationFrame(() => {
+          progressBar.style.transition = 'width 2.8s cubic-bezier(0.4, 0, 0.2, 1)';
+          progressBar.style.width = '85%';
+        });
+      }
+    }
+
+    function zakonczAnimacjeGenerowania(suma, blob, nazwaPliku, payload, koszty) {
+      if (!MOBILE_MQL.matches) return;
+      clearInterval(_genAnimTimer);
+      _genAktualnyBlob = blob;
+      _genAktualnaNazwa = nazwaPliku;
+      _genAktualnyPayload = payload;
+      _genAktualneKoszty = koszty;
+
+      const overlay = document.getElementById('gen-overlay');
+      const sukces = document.getElementById('gen-sukces');
+      const statusEl = document.getElementById('gen-status-text');
+      const progressBar = document.getElementById('gen-progress-bar');
+      const kwotaEl = document.getElementById('gen-sukces-kwota');
+      if (!overlay) return;
+
+      if (statusEl) statusEl.textContent = 'Gotowe! ✓';
+      if (progressBar) {
+        progressBar.style.transition = 'width 0.3s ease';
+        progressBar.style.width = '100%';
+      }
+
+      setTimeout(() => {
+        if (kwotaEl) kwotaEl.textContent = 'Wycena na ' + formatujKwote(suma) + ' gotowa!';
+        if (sukces) sukces.removeAttribute('hidden');
+        odpalConfetti();
+        wibruj([100, 50, 100]);
+      }, 400);
+    }
+
+    function zamknijGenOverlay() {
+      const overlay = document.getElementById('gen-overlay');
+      if (overlay) overlay.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+      clearInterval(_genAnimTimer);
+      _genAktualnyBlob = null;
+      _genAktualnaNazwa = '';
+      _genAktualnyPayload = null;
+      _genAktualneKoszty = null;
+    }
+
+    // Wire overlay buttons (once, on DOMContentLoaded)
+    function initGenOverlay() {
+      const btnPobierz = document.getElementById('btn-gen-pobierz');
+      if (btnPobierz) {
+        btnPobierz.addEventListener('click', () => {
+          if (!_genAktualnyBlob) return;
+          const url = URL.createObjectURL(_genAktualnyBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = _genAktualnaNazwa || 'wycena.pdf';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          zamknijGenOverlay();
+        });
+      }
+
+      const btnWyslij = document.getElementById('btn-gen-wyslij');
+      if (btnWyslij) {
+        btnWyslij.addEventListener('click', async () => {
+          if (!_genAktualnyBlob) return;
+          if (shareSupported) {
+            try {
+              const file = new File([_genAktualnyBlob], _genAktualnaNazwa || 'wycena.pdf', { type: 'application/pdf' });
+              if (navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: 'Wycena SumIt' });
+                zamknijGenOverlay();
+                return;
+              }
+            } catch (err) {
+              if (err && err.name === 'AbortError') return;
+            }
+          }
+          // Fallback: copy link
+          if (_genAktualnyPayload) {
+            skopiujLinkWyceny();
+          } else {
+            pokazToast('Pobierz PDF i wyślij ręcznie.', 'info');
+          }
+          zamknijGenOverlay();
+        });
+      }
+
+      const btnZamknij = document.getElementById('btn-gen-zamknij');
+      if (btnZamknij) {
+        btnZamknij.addEventListener('click', zamknijGenOverlay);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       ukryjKomunikat();
@@ -963,6 +1274,8 @@
 
       btnGeneruj.disabled = true;
       btnGeneruj.textContent = desktopTryb ? 'Pobieranie...' : 'Generowanie...';
+
+      if (!desktopTryb) uruchomAnimacjeGenerowania();
 
       try {
         const res = await fetch('/quote', {
@@ -996,6 +1309,7 @@
           const _pendingTok2 = window._pendingLinkToken || null;
           window._pendingLinkToken = null;
           dodajDoHistorii(payload, koszty, _pendingTok2);
+          sprawdzMilestone();
           inkrementujNumeracje();
           renderStatystyki();
           const numerEl = document.getElementById('numer_oferty');
@@ -1004,11 +1318,21 @@
 
           pokazKomunikat('PDF pobrany. Wycena zapisana w historii.', 'success');
         } else {
-          const url = URL.createObjectURL(blob);
-          pokazPodgladPdf(url, nazwaPliku, payload, blob, koszty);
-          pokazKomunikat('PDF wygenerowany. Otwórz podgląd, aby pobrać plik.', 'success');
+          const _pendingTok3 = window._pendingLinkToken || null;
+          window._pendingLinkToken = null;
+          dodajDoHistorii(payload, koszty, _pendingTok3);
+          inkrementujNumeracje();
+          renderStatystyki();
+          sprawdzMilestone();
+          const numerEl = document.getElementById('numer_oferty');
+          if (numerEl) numerEl.value = nastepnyNumerOferty();
+          aktualnyPayloadEmail = payload;
+
+          const suma = payload.pozycje ? payload.pozycje.reduce((s, p) => s + (Number(p.cena) || 0) * (Number(p.ilosc) || 1), 0) : 0;
+          zakonczAnimacjeGenerowania(suma, blob, nazwaPliku, payload, koszty);
         }
       } catch (err) {
+        zamknijGenOverlay();
         pokazKomunikat('Nie udało się wygenerować PDF: ' + err.message, 'error');
       } finally {
         btnGeneruj.disabled = false;
@@ -1799,6 +2123,11 @@
         if (el && typeof dane[id] === 'string') el.value = dane[id];
       });
 
+      const klientDraftEl = document.getElementById('klient');
+      if (klientDraftEl && klientDraftEl.value.trim()) {
+        klientDraftEl.value = klientTekstDoPola(klientDraftEl.value);
+      }
+
       if (Array.isArray(dane.pozycje) && dane.pozycje.length > 0) {
         tbody.innerHTML = '';
         dane.pozycje.forEach(p => {
@@ -1819,6 +2148,7 @@
 
       odswiezStanPresetow();
       aktualizujSzacowanyZysk();
+      odswiezWidocznoscWierszy();
     }
 
     function ustawDomyslnaDate() {
@@ -1835,6 +2165,7 @@
 
       tbody.innerHTML = '';
       dodajWiersz();
+      odswiezWidocznoscWierszy();
 
       ustawDomyslnaDate();
       if (typeof setActiveDocType === 'function') setActiveDocType(wczytajDomyslnyTypDokumentu());
@@ -1845,6 +2176,7 @@
       odswiezStanPresetow();
       ukryjKomunikat();
       aktualizujSzacowanyZysk();
+      odswiezWidocznoscWierszy();
       aktualizujLivePodglad();
     }
 
@@ -1890,15 +2222,15 @@
       ustawStanLadowaniaNIP(false);
     }
 
-    async function wyslijZapytanieNIP() {
+    async function pobierzDaneKlientaPoNIP(nipRaw, opts) {
+      const opcje = opts || {};
       const klientEl = document.getElementById('klient');
-      if (!nipInput || !klientEl) return;
-
-      const nip = oczyscNIPWejscie(nipInput.value);
+      const nip = oczyscNIPWejscie(nipRaw);
+      if (!klientEl) return false;
       if (nip.length !== 10) {
-        window.alert('Nieprawidłowy NIP — musi zawierać dokładnie 10 cyfr.');
-        nipInput.focus();
-        return;
+        pokazToast('Nieprawidłowy NIP — musi zawierać dokładnie 10 cyfr.', 'error');
+        if (nipInput) nipInput.focus();
+        return false;
       }
 
       ustawStanLadowaniaNIP(true);
@@ -1914,33 +2246,39 @@
 
         if (!resp.ok) {
           const msg = (dane && dane.error) ? dane.error : 'Nie udało się pobrać danych z Białej Listy MF.';
-          window.alert(msg);
-          return;
+          pokazToast(msg, 'error');
+          return false;
         }
 
-        const linie = [];
-        if (dane && dane.nazwa) linie.push(String(dane.nazwa));
-        if (dane && dane.adres) linie.push(String(dane.adres));
-        if (dane && dane.nip)   linie.push('NIP: ' + String(dane.nip));
-
-        if (linie.length === 0) {
-          window.alert('Biała Lista MF nie zwróciła danych firmy.');
-          return;
+        const rekord = normalizeKlientRekord(dane || {});
+        if (!rekord.nazwa && !rekord.adres) {
+          pokazToast('Biała Lista MF nie zwróciła nazwy ani adresu firmy.', 'error');
+          return false;
         }
 
-        klientEl.value = linie.join('\n');
-        zamknijModalNIP();
+        klientEl.value = formatKlientBlok(rekord);
+        klientEl.dispatchEvent(new Event('input', { bubbles: true }));
+        upsertKlienta(rekord);
         saveDraft();
+        if (opcje.zamknijModal !== false) zamknijModalNIP();
         if (typeof zwinKlientaJesliWypelniony === 'function') zwinKlientaJesliWypelniony();
+        pokazToast('Dane klienta pobrane z GUS ✓', 'success');
+        return true;
       } catch (err) {
-        if (err && err.name === 'AbortError') return;
-        window.alert('Błąd sieci: nie udało się połączyć z serwerem.');
+        if (err && err.name === 'AbortError') return false;
+        pokazToast('Błąd sieci: nie udało się połączyć z serwerem.', 'error');
+        return false;
       } finally {
         nipFetchController = null;
-        if (!modalNIP.classList.contains('hidden')) {
+        if (!modalNIP || !modalNIP.classList.contains('hidden')) {
           ustawStanLadowaniaNIP(false);
         }
       }
+    }
+
+    async function wyslijZapytanieNIP() {
+      if (!nipInput) return;
+      await pobierzDaneKlientaPoNIP(nipInput.value, { zamknijModal: true });
     }
 
     function pobierzKlientaPoNIP() {
@@ -2138,11 +2476,19 @@
       return !motionReduceMql.matches;
     }
 
+    function wizardMobileAktywny() {
+      if (!accordionMql.matches) return false;
+      if (document.body.dataset.activeView !== 'view-kreator') return false;
+      const wh = document.getElementById('wizard-header');
+      return !!(wh && !wh.hasAttribute('hidden'));
+    }
+
     function syncAccordionBodyHeight(section) {
       const body = section.querySelector('.accordion-body');
       if (!body) return;
-      if (!accordionMql.matches) {
+      if (!accordionMql.matches || wizardMobileAktywny()) {
         body.style.maxHeight = '';
+        if (wizardMobileAktywny()) section.classList.add('is-open');
         return;
       }
       body.style.maxHeight = section.classList.contains('is-open') ? 'none' : '0px';
@@ -2154,6 +2500,13 @@
       if (!body) return;
 
       if (!accordionMql.matches) {
+        body.style.maxHeight = '';
+        section.classList.add('is-open');
+        if (header) header.setAttribute('aria-expanded', 'true');
+        return;
+      }
+
+      if (wizardMobileAktywny()) {
         body.style.maxHeight = '';
         section.classList.add('is-open');
         if (header) header.setAttribute('aria-expanded', 'true');
@@ -2287,7 +2640,7 @@
     }
 
     function zwinKlientaJesliWypelniony() {
-      if (!accordionMql.matches) return;
+      if (!accordionMql.matches || wizardMobileAktywny()) return;
       const section = document.querySelector('[data-accordion-id="klient"]');
       const klientEl = document.getElementById('klient');
       if (!section || !klientEl) return;
@@ -2402,16 +2755,19 @@
         modal.classList.add('hidden');
         modal.setAttribute('hidden', '');
         modal.setAttribute('aria-hidden', 'true');
-        if (!document.querySelector('.modal:not(.hidden):not([hidden])')) {
-          document.body.style.overflow = '';
-        }
+        document.body.classList.remove('ai-modal-open');
+        document.body.style.overflow = '';
+        document.body.style.position = '';
       }
 
       function otworz() {
         if (!mql.matches) return;
+        if (typeof wyczyscZdjecieAi === 'function') wyczyscZdjecieAi();
+        if (typeof ustawAiParseStatus === 'function') ustawAiParseStatus('');
         modal.classList.remove('hidden');
         modal.removeAttribute('hidden');
         modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('ai-modal-open');
         requestAnimationFrame(() => {
           modal.classList.add('is-open');
           notatka?.focus();
@@ -2463,6 +2819,7 @@
       syncAiSheetLayout();
 
       window.zamknijAiInputSheet = zamknij;
+      window.otworzAiInputSheet = otworz;
     }
 
     function initMobileScrollClamp() {
@@ -2495,6 +2852,8 @@
       }
 
       trackEvent('page_view');
+
+      initMobileHome();
 
       wczytajDraft();
 
@@ -2530,6 +2889,11 @@
 
       renderStatystyki();
       initViewTabs();
+      initMobileWizard();
+      initSwipeNawigacja();
+      initPullToRefresh();
+      init30sAutosave();
+      initGenOverlay();
       aktualizujSzacowanyZysk();
       aktualizujLivePodglad();
       synchronizujWysokoscPodgladu();
@@ -2542,6 +2906,74 @@
 
       initDocTypeSwitcher();
     });
+
+    function zwolnijMobilneNakladki() {
+      if (typeof zatrzymajDyktowanie === 'function') {
+        try { zatrzymajDyktowanie(); } catch (_) {}
+      }
+      if (typeof window.zamknijAiInputSheet === 'function') {
+        window.zamknijAiInputSheet();
+      }
+      document.querySelectorAll(
+        '.ai-sheet-modal, #pdf-modal, #app-settings-modal, #historia-modal, #modal-ai-preview, #modal-nip, #catalog-modal'
+      ).forEach((el) => {
+        el.classList.remove('is-open');
+        el.classList.add('hidden');
+        el.setAttribute('hidden', '');
+        el.setAttribute('aria-hidden', 'true');
+      });
+      const genOverlay = document.getElementById('gen-overlay');
+      if (genOverlay) genOverlay.setAttribute('hidden', '');
+      document.body.classList.remove('ai-modal-open');
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.touchAction = '';
+    }
+
+    function pokazWidokKreatora() {
+      const viewHome = document.getElementById('view-home');
+      const viewKreator = document.getElementById('view-kreator');
+      document.querySelectorAll('.view').forEach((v) => {
+        if (v.id === 'view-kreator') return;
+        v.classList.add('hidden');
+        v.setAttribute('hidden', '');
+      });
+      if (viewHome) {
+        viewHome.classList.add('hidden');
+        viewHome.setAttribute('hidden', '');
+      }
+      if (viewKreator) {
+        viewKreator.classList.remove('hidden');
+        viewKreator.removeAttribute('hidden');
+        viewKreator.removeAttribute('inert');
+        viewKreator.setAttribute('aria-hidden', 'false');
+      }
+      document.body.dataset.activeView = 'view-kreator';
+      document.querySelectorAll('.view-tab').forEach((t) => {
+        const aktywny = t.getAttribute('data-view-target') === 'view-kreator';
+        t.classList.toggle('is-active', aktywny);
+        t.setAttribute('aria-selected', aktywny ? 'true' : 'false');
+      });
+      window.scrollTo(0, 0);
+    }
+
+    function wejdzWKreatorMobile(docType) {
+      if (!MOBILE_MQL.matches) {
+        if (typeof aktywujWidok === 'function') aktywujWidok('view-kreator');
+        return;
+      }
+      zwolnijMobilneNakladki();
+      if (typeof docType === 'string' && typeof setActiveDocType === 'function') {
+        setActiveDocType(docType);
+      }
+      const viewKreator = document.getElementById('view-kreator');
+      if (viewKreator) {
+        viewKreator.classList.remove('wizard-manual-mode', 'wizard-has-pozycje', 'wizard-krok-1', 'wizard-krok-2', 'wizard-krok-3');
+      }
+      _wizardKrok = 1;
+      pokazWidokKreatora();
+      inicjujWizard();
+    }
 
     function initViewTabs() {
       const tabs = document.querySelectorAll('.view-tab[data-view-target]');
@@ -2558,7 +2990,27 @@
         if (widokFirmaAktywny() && targetId !== 'view-firma') {
           if (!zapiszFirmeJesliTrzeba()) return;
         }
-        const poprzedniWidok = document.body.dataset.activeView || 'view-kreator';
+        if (MOBILE_MQL.matches) {
+          zwolnijMobilneNakladki();
+        }
+        const poprzedniWidok = document.body.dataset.activeView || 'view-home';
+        if (MOBILE_MQL.matches && poprzedniWidok === 'view-kreator' && targetId !== 'view-kreator') {
+          const wizardHeader = document.getElementById('wizard-header');
+          if (wizardHeader) wizardHeader.setAttribute('hidden', '');
+          delete document.body.dataset.wizardKrok;
+          const vk = document.getElementById('view-kreator');
+          if (vk) {
+            vk.classList.remove('wizard-krok-1', 'wizard-krok-2', 'wizard-krok-3', 'wizard-manual-mode', 'wizard-has-pozycje');
+          }
+          document.querySelectorAll('#oferta-form .accordion-section[data-accordion-id]').forEach((s) => {
+            s.classList.remove('wizard-hidden');
+          });
+        }
+        if (MOBILE_MQL.matches && targetId === 'view-kreator') {
+          pokazWidokKreatora();
+          inicjujWizard();
+          return;
+        }
         document.body.dataset.activeView = targetId;
         tabs.forEach(tab => {
           const aktywny = tab.getAttribute('data-view-target') === targetId;
@@ -2579,6 +3031,12 @@
             widok.classList.remove('view-enter');
           }
         });
+
+        const viewHome = document.getElementById('view-home');
+        if (viewHome && targetId !== 'view-home') {
+          viewHome.classList.add('hidden');
+          viewHome.setAttribute('hidden', '');
+        }
 
         const viewTabsMobileMql = window.matchMedia('(max-width: 1023px)');
         if (widokWejscia && animacjeWlaczone() && !viewTabsMobileMql.matches) {
@@ -2603,20 +3061,431 @@
         if (targetId === 'view-statystyki') {
           renderStatystyki();
         }
+        if (targetId === 'view-historia') {
+          renderujHistorie();
+        }
         if (targetId === 'view-firma' && poprzedniWidok !== 'view-firma') {
           wypelnijFormularzCfg();
         }
+
       }
 
       aktywujWidok = aktywuj;
-      document.body.dataset.activeView = 'view-kreator';
+      if (!MOBILE_MQL.matches) {
+        document.body.dataset.activeView = 'view-kreator';
+      }
+
+      const viewTabsEl = document.querySelector('.view-tabs');
+      if (viewTabsEl) {
+        viewTabsEl.addEventListener('click', (e) => {
+          if (!MOBILE_MQL.matches) return;
+          const tab = e.target.closest('.view-tab[data-view-target]');
+          if (!tab) return;
+          const targetId = tab.getAttribute('data-view-target');
+          if (!targetId) return;
+          e.preventDefault();
+          e.stopPropagation();
+          if (targetId === 'view-kreator') {
+            pokazViewHome();
+            return;
+          }
+          aktywuj(targetId);
+        }, true);
+      }
 
       tabs.forEach(tab => {
         tab.addEventListener('click', () => {
+          if (MOBILE_MQL.matches) return;
           const targetId = tab.getAttribute('data-view-target');
           if (targetId) aktywuj(targetId);
         });
       });
+    }
+
+    // ── Ekran główny (Home) ──────────────────────────────────────────────────
+
+    const STORAGE_KEY_MILESTONES = 'sumit_milestones';
+
+    function pokazViewHome() {
+      zwolnijMobilneNakladki();
+      const viewHome = document.getElementById('view-home');
+      if (!viewHome) return;
+      document.querySelectorAll('.view').forEach(v => {
+        v.classList.add('hidden');
+        v.setAttribute('hidden', '');
+      });
+      viewHome.classList.remove('hidden');
+      viewHome.removeAttribute('hidden');
+      document.body.dataset.activeView = 'view-home';
+      delete document.body.dataset.wizardKrok;
+      const wizardHeader = document.getElementById('wizard-header');
+      if (wizardHeader) wizardHeader.setAttribute('hidden', '');
+      const viewKreator = document.getElementById('view-kreator');
+      if (viewKreator) {
+        viewKreator.classList.add('hidden');
+        viewKreator.setAttribute('hidden', '');
+        viewKreator.setAttribute('aria-hidden', 'true');
+        viewKreator.setAttribute('inert', '');
+        viewKreator.classList.remove('wizard-manual-mode', 'wizard-has-pozycje', 'wizard-krok-1', 'wizard-krok-2', 'wizard-krok-3');
+      }
+      document.querySelectorAll('#oferta-form .accordion-section[data-accordion-id]').forEach((s) => {
+        s.classList.remove('wizard-hidden');
+        s.removeAttribute('hidden');
+      });
+      document.querySelectorAll('.view-tab').forEach(t => {
+        t.classList.remove('is-active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      const tabKreator = document.getElementById('tab-kreator');
+      if (tabKreator) {
+        tabKreator.classList.add('is-active');
+        tabKreator.setAttribute('aria-selected', 'true');
+      }
+      window.scrollTo(0, 0);
+      renderHomeScreen();
+    }
+
+    function renderHomeScreen() {
+      const totalEl = document.getElementById('home-total');
+      if (!totalEl) return;
+
+      const historia = wczytajHistorie();
+      const lacznie = historia.reduce((s, w) => s + (Number(w.suma) || 0), 0);
+      if (lacznie > 0) {
+        totalEl.textContent = 'ŁĄCZNIE WYCENIŁEŚ ROBÓT ZA ' + lacznie.toFixed(2).replace('.', ',') + ' ZŁ';
+        totalEl.removeAttribute('hidden');
+      } else {
+        totalEl.setAttribute('hidden', '');
+      }
+    }
+
+    // ── Sesja F2: swipe, pull-to-refresh, 30s autosave ───────────────────────
+
+    function initSwipeNawigacja() {
+      if (!MOBILE_MQL.matches) return;
+      const viewKreator = document.getElementById('view-kreator');
+      if (!viewKreator) return;
+
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchStartTime = 0;
+
+      viewKreator.addEventListener('touchstart', (e) => {
+        const t = e.touches[0];
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        touchStartTime = Date.now();
+      }, { passive: true });
+
+      viewKreator.addEventListener('touchend', (e) => {
+        if (!_wizardGotowy) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - touchStartX;
+        const dy = t.clientY - touchStartY;
+        const dt = Date.now() - touchStartTime;
+
+        if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.8 || dt > 400) return;
+
+        // Ignore swipe when focus is inside an input
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
+
+        if (dx < -60 && _wizardKrok < 3) {
+          if (!walidujKrokWizarda(_wizardKrok)) return;
+          irziNaKrok(_wizardKrok + 1);
+        } else if (dx > 60 && _wizardKrok > 1) {
+          irziNaKrok(_wizardKrok - 1);
+        } else if (dx > 60 && _wizardKrok === 1) {
+          pokazViewHome();
+        }
+      }, { passive: true });
+    }
+
+    function initPullToRefresh() {
+      if (!MOBILE_MQL.matches) return;
+      const historiaPageBody = document.getElementById('historia-page-body');
+      if (!historiaPageBody) return;
+
+      let touchStartY = 0;
+      let refreshing = false;
+
+      historiaPageBody.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      historiaPageBody.addEventListener('touchend', (e) => {
+        if (refreshing) return;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (dy > 70 && historiaPageBody.scrollTop <= 0) {
+          refreshing = true;
+          if (typeof renderujHistorie === 'function') renderujHistorie();
+          pokazToast('Historia odświeżona ✓', 'info');
+          setTimeout(() => { refreshing = false; }, 1000);
+        }
+      }, { passive: true });
+    }
+
+    function init30sAutosave() {
+      setInterval(() => {
+        try {
+          if (typeof saveDraft === 'function') saveDraft();
+        } catch (_) {}
+      }, 30000);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    function obsluzHomeCta(docType, e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      wejdzWKreatorMobile(docType);
+      if (typeof wibruj === 'function') wibruj([10]);
+    }
+
+    function initMobileHome() {
+      if (!MOBILE_MQL.matches) return;
+
+      function onHomeTap(e) {
+        if (document.body.dataset.activeView !== 'view-home') return;
+        const wycena = e.target.closest('#btn-home-wycena, [data-home-action="wycena"]');
+        const faktura = e.target.closest('#btn-home-faktura, [data-home-action="faktura"]');
+        if (wycena) {
+          obsluzHomeCta('', e);
+          return;
+        }
+        if (faktura) {
+          obsluzHomeCta('faktura_vat', e);
+        }
+      }
+
+      document.addEventListener('click', onHomeTap, true);
+      document.addEventListener('touchend', onHomeTap, { capture: true, passive: false });
+
+      const btnNowaWycena = document.getElementById('btn-home-wycena');
+      if (btnNowaWycena) {
+        btnNowaWycena.addEventListener('click', (e) => obsluzHomeCta('', e));
+      }
+
+      const btnNowaFaktura = document.getElementById('btn-home-faktura');
+      if (btnNowaFaktura) {
+        btnNowaFaktura.addEventListener('click', (e) => obsluzHomeCta('faktura_vat', e));
+      }
+
+      pokazViewHome();
+    }
+
+    // ── Wizard Krok 1-2-3 ────────────────────────────────────────────────────
+
+    const WIZARD_KROKI = [
+      { nr: 1, title: 'Co wyceniasz?',           sekcje: ['pozycje'] },
+      { nr: 2, title: 'Dla kogo?',              sekcje: ['klient'] },
+      { nr: 3, title: 'Ostatnie szczegóły',     sekcje: ['szczegoly'] },
+    ];
+
+    function odswiezWizardPozycjeUI() {
+      if (!MOBILE_MQL.matches) return;
+      if (document.body.dataset.activeView !== 'view-kreator') return;
+      const viewKreator = document.getElementById('view-kreator');
+      if (!viewKreator) return;
+      const hasPozycje = [...tbody.querySelectorAll('tr')].some(tr => !wierszJestPusty(tr));
+      let pokazListe = false;
+      if (_wizardKrok === 1) {
+        pokazListe = hasPozycje && viewKreator.classList.contains('wizard-manual-mode');
+      } else {
+        pokazListe = hasPozycje;
+      }
+      viewKreator.classList.toggle('wizard-has-pozycje', pokazListe);
+    }
+
+    function irziNaKrok(krok) {
+      if (!MOBILE_MQL.matches) return;
+      _wizardKrok = Math.max(1, Math.min(3, krok));
+      const kroiData = WIZARD_KROKI.find(k => k.nr === _wizardKrok);
+      if (!kroiData) return;
+
+      const stepTitle = document.getElementById('wizard-step-title');
+      if (stepTitle) stepTitle.textContent = kroiData.title;
+
+      const stepLabel = document.getElementById('wizard-step-label');
+      if (stepLabel) stepLabel.textContent = 'Krok ' + _wizardKrok + ' z 3';
+
+      document.querySelectorAll('.wizard-dot[data-dot]').forEach(dot => {
+        const nr = parseInt(dot.dataset.dot);
+        dot.classList.toggle('is-active', nr === _wizardKrok);
+        dot.classList.toggle('is-done', nr < _wizardKrok);
+      });
+
+      document.querySelectorAll('#oferta-form .accordion-section[data-accordion-id]').forEach(s => {
+        const visible = kroiData.sekcje.includes(s.dataset.accordionId);
+        s.classList.toggle('wizard-hidden', !visible);
+        s.removeAttribute('hidden');
+        if (visible) {
+          ustawAkordeonOtwarty(s, true);
+        }
+      });
+
+      document.body.dataset.wizardKrok = String(_wizardKrok);
+
+      const btnWizardDalej = document.getElementById('btn-wizard-dalej');
+      const btnGeneruj = document.getElementById('btn-generuj');
+      if (btnWizardDalej) btnWizardDalej.hidden = (_wizardKrok === 3);
+      if (btnGeneruj) {
+        btnGeneruj.hidden = (_wizardKrok !== 3);
+      }
+
+      const btnBack = document.getElementById('btn-wizard-back');
+      if (btnBack) {
+        btnBack.onclick = _wizardKrok === 1
+          ? () => pokazViewHome()
+          : () => irziNaKrok(_wizardKrok - 1);
+      }
+
+      const viewKreator = document.getElementById('view-kreator');
+      if (viewKreator) {
+        viewKreator.classList.remove('wizard-krok-1', 'wizard-krok-2', 'wizard-krok-3');
+        viewKreator.classList.add('wizard-krok-' + _wizardKrok);
+      }
+
+      if (tbody) {
+        tbody.querySelectorAll('tr.is-row-expanded').forEach(tr => {
+          tr.classList.remove('is-row-expanded');
+        });
+      }
+
+      const ofertaForm = document.getElementById('oferta-form');
+      if (ofertaForm) ofertaForm.scrollTop = 0;
+      window.scrollTo(0, 0);
+
+      if (_wizardKrok !== 1) {
+        const viewKreator = document.getElementById('view-kreator');
+        if (viewKreator) viewKreator.classList.remove('wizard-manual-mode');
+      }
+      odswiezWizardPozycjeUI();
+      odswiezWidoczneSekcjeWizarda();
+    }
+
+    function odswiezWidoczneSekcjeWizarda() {
+      if (!MOBILE_MQL.matches) return;
+      document.querySelectorAll('#oferta-form .accordion-section[data-accordion-id]').forEach((section) => {
+        if (section.classList.contains('wizard-hidden')) return;
+        const body = section.querySelector('.accordion-body');
+        if (!body) return;
+        section.classList.add('is-open');
+        body.style.maxHeight = '';
+        const header = section.querySelector('.accordion-header');
+        if (header) header.setAttribute('aria-expanded', 'true');
+      });
+    }
+
+    function walidujKrokWizarda(krok) {
+      if (krok === 1) {
+        const rows = [...tbody.querySelectorAll('tr')];
+        const maRzad = rows.some(tr => {
+          const inp = tr.querySelector('.in-nazwa, [name="nazwa[]"]');
+          return inp && String(inp.value || '').trim().length > 0;
+        });
+        if (!maRzad) {
+          pokazToast('Dodaj przynajmniej jedną pozycję.', 'error');
+          wibruj([40, 30, 40]);
+          return false;
+        }
+      } else if (krok === 2) {
+        const klientEl = document.getElementById('klient');
+        if (!klientEl || !String(klientEl.value || '').trim()) {
+          pokazToast('Podaj nazwę klienta.', 'error');
+          wibruj([40, 30, 40]);
+          if (klientEl) klientEl.focus();
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function inicjujWizard() {
+      if (!MOBILE_MQL.matches) return;
+
+      const wizardHeader = document.getElementById('wizard-header');
+      if (wizardHeader) wizardHeader.removeAttribute('hidden');
+
+      if (!_wizardGotowy) {
+        _wizardGotowy = true;
+
+      const btnDalej = document.getElementById('btn-wizard-dalej');
+      if (btnDalej) {
+        btnDalej.addEventListener('click', () => {
+          if (!walidujKrokWizarda(_wizardKrok)) return;
+          wibruj([20]);
+          irziNaKrok(_wizardKrok + 1);
+        });
+      }
+
+      // Wire Step 1 method buttons
+      const btnWizAi = document.getElementById('btn-wizard-ai');
+      if (btnWizAi) {
+        btnWizAi.addEventListener('click', () => {
+          if (typeof window.otworzAiInputSheet === 'function') window.otworzAiInputSheet();
+        });
+      }
+
+      const btnWizManual = document.getElementById('btn-wizard-manual');
+      if (btnWizManual) {
+        btnWizManual.addEventListener('click', () => {
+          const viewKreator = document.getElementById('view-kreator');
+          if (viewKreator) viewKreator.classList.add('wizard-manual-mode');
+          const btnAdd = document.getElementById('btn-dodaj');
+          if (btnAdd) {
+            btnAdd.click();
+            const tbl = document.getElementById('pozycje-tbody');
+            if (tbl) setTimeout(() => {
+              const lastTr = tbl.querySelector('tr:last-child');
+              if (lastTr) {
+                ujawnijWiersz(lastTr);
+                lastTr.classList.add('is-row-expanded');
+              }
+              odswiezWidocznoscWierszy();
+              const lastRow = tbl.querySelector('tr:last-child .in-nazwa, tr:last-child [name="nazwa[]"]');
+              if (lastRow) lastRow.focus();
+            }, 100);
+          }
+        });
+      }
+
+      // Wire Step 2 method buttons
+      const btnKlientPhoto = document.getElementById('btn-wizard-klient-photo');
+      const klientPhotoInput = document.getElementById('klient-photo-input');
+      if (btnKlientPhoto && klientPhotoInput) {
+        btnKlientPhoto.addEventListener('click', () => klientPhotoInput.click());
+        klientPhotoInput.addEventListener('change', () => {
+          const file = klientPhotoInput.files && klientPhotoInput.files[0];
+          if (file) {
+            przetworzZdjecieKlienta(file);
+            klientPhotoInput.value = '';
+          }
+        });
+      }
+
+      const btnKlientNip = document.getElementById('btn-wizard-klient-nip');
+      if (btnKlientNip) {
+        btnKlientNip.addEventListener('click', () => pobierzKlientaPoNIP());
+      }
+
+      const btnKlientManual = document.getElementById('btn-wizard-klient-manual');
+      if (btnKlientManual) {
+        btnKlientManual.addEventListener('click', () => {
+          const klientEl = document.getElementById('klient');
+          if (klientEl) klientEl.focus();
+        });
+      }
+
+      }
+
+      irziNaKrok(1);
+    }
+
+    function initMobileWizard() {
+      if (!MOBILE_MQL.matches) return;
     }
 
     const STORAGE_KEY_KATALOG = 'sumit_katalog';
@@ -2961,7 +3830,7 @@
       if (btnAiPhoto) btnAiPhoto.disabled = loading;
       if (btnAiPhotoRemove) btnAiPhotoRemove.disabled = loading;
       if (btnAiParseLabel) {
-        btnAiParseLabel.textContent = loading ? 'Przygotowuję…' : 'Pokaż propozycję';
+        btnAiParseLabel.textContent = loading ? 'Przygotowuję…' : 'Pokaż propozycje';
       }
       if (btnAiParseSpinner) {
         btnAiParseSpinner.hidden = !loading;
@@ -3172,6 +4041,14 @@
         return 0;
       }
 
+      const viewKreator = document.getElementById('view-kreator');
+      if (viewKreator && window.matchMedia('(max-width: 1023px)').matches) {
+        viewKreator.classList.add('wizard-has-pozycje');
+        if (_wizardKrok === 1) {
+          viewKreator.classList.add('wizard-manual-mode');
+        }
+      }
+
       aktualizujSzacowanyZysk();
       saveDraft();
       return dodane;
@@ -3253,6 +4130,71 @@
         img.src = objectUrl;
       });
     }
+
+    // ── OCR klienta — Groq Vision tryb='klient' ──────────────────────────────
+
+    async function przetworzZdjecieKlienta(file) {
+      const klientEl = document.getElementById('klient');
+      if (!file || !klientEl) return;
+
+      pokazToast('Rozpoznaję dane klienta...', 'info');
+
+      let imgData;
+      try {
+        imgData = await przygotujObrazDoAi(file);
+      } catch (err) {
+        const msg = err && err.message;
+        if (msg === 'too_large') pokazToast('Zdjęcie jest za duże (maks. 2 MB).', 'error');
+        else if (msg === 'bad_type') pokazToast('Użyj JPG lub PNG.', 'error');
+        else pokazToast('Nie udało się wczytać zdjęcia.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ obraz: imgData.base64, mime_type: imgData.mime_type, tryb: 'klient' }),
+        });
+
+        const dane = await res.json();
+
+        if (!res.ok) {
+          pokazToast((dane && dane.error) || 'Nie rozpoznano danych klienta.', 'error');
+          klientEl.focus();
+          return;
+        }
+
+        const c = dane && dane.client;
+        if (!c || (typeof c === 'object' && !c.nazwa && !c.nip && !c.adres)) {
+          pokazToast('Nie rozpoznano — wpisz ręcznie.', 'error');
+          klientEl.focus();
+          return;
+        }
+
+        const rekord = typeof c === 'object' ? normalizeKlientRekord(c) : parseKlientBlok(String(c));
+        if (!rekord.nazwa && !rekord.nip && !rekord.adres) {
+          pokazToast('Nie rozpoznano — wpisz ręcznie.', 'error');
+          klientEl.focus();
+          return;
+        }
+
+        klientEl.value = formatKlientBlok(rekord);
+        klientEl.dispatchEvent(new Event('input', { bubbles: true }));
+        saveDraft();
+        pokazToast('Dane klienta rozpoznane ✓', 'success');
+        wibruj([20]);
+
+        if (rekord.nip && rekord.nip.length === 10 && (!rekord.nazwa || !rekord.adres)) {
+          if (nipInput) nipInput.value = rekord.nip.replace(/\D/g, '');
+          await pobierzDaneKlientaPoNIP(rekord.nip, { zamknijModal: false });
+        }
+      } catch (err) {
+        pokazToast('Błąd sieci — spróbuj ponownie.', 'error');
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     async function przetworzNotatkeAi() {
       if (!btnAiParse) return;
@@ -3350,6 +4292,10 @@
       const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognitionCtor || !btnAiMic) {
         if (btnAiMic) btnAiMic.style.display = 'none';
+        window.rozpocznijDyktowanieAi = () => {
+          ustawAiParseStatus('Dyktowanie niedostępne w tej przeglądarce.', 'error');
+          return false;
+        };
         return;
       }
 
@@ -3390,21 +4336,36 @@
         ustawAiParseStatus('Dyktowanie niedostępne w tej przeglądarce.', 'error');
       });
 
-      btnAiMic.addEventListener('click', () => {
-        if (speechRecording) {
-          zatrzymajDyktowanie();
-          return;
+      function rozpocznijDyktowanieAi() {
+        if (speechRecording) return true;
+        if (!speechRecognition) {
+          ustawAiParseStatus('Dyktowanie niedostępne w tej przeglądarce.', 'error');
+          return false;
         }
         try {
           speechRecording = true;
           speechBaseText = aiNotatka ? aiNotatka.value : '';
           btnAiMic.classList.add('is-recording');
           speechRecognition.start();
+          ustawAiParseStatus('Mów teraz — dotknij ponownie, aby zakończyć.', 'info');
+          return true;
         } catch (e) {
           zatrzymajDyktowanie();
           ustawAiParseStatus('Nie udało się uruchomić mikrofonu.', 'error');
+          return false;
         }
+      }
+
+      btnAiMic.addEventListener('click', () => {
+        if (speechRecording) {
+          zatrzymajDyktowanie();
+          ustawAiParseStatus('');
+          return;
+        }
+        rozpocznijDyktowanieAi();
       });
+
+      window.rozpocznijDyktowanieAi = rozpocznijDyktowanieAi;
     }
 
     function initAiPhoto() {
@@ -3414,6 +4375,9 @@
           const file = aiPhotoInput.files && aiPhotoInput.files[0];
           if (!file) return;
           ustawAiParseStatus('');
+          if (MOBILE_MQL.matches && typeof window.otworzAiInputSheet === 'function') {
+            window.otworzAiInputSheet();
+          }
           try {
             wyczyscZdjecieAi();
             const prepared = await przygotujObrazDoAi(file);
@@ -3723,6 +4687,40 @@
       upsertKlientaZTekstu(payload.klient || '');
     }
 
+    // ── Milestones i nagrody ──────────────────────────────────────────────────
+
+    const MILESTONE_PROGI = [1, 5, 10, 25, 50, 100];
+
+    function sprawdzMilestone() {
+      const historia = wczytajHistorie();
+      const count = historia.length;
+      let osiagniete = [];
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_MILESTONES);
+        osiagniete = raw ? JSON.parse(raw) : [];
+      } catch (_) {}
+
+      const nowy = MILESTONE_PROGI.find(p => p === count && !osiagniete.includes(p));
+      if (!nowy) return;
+
+      osiagniete.push(nowy);
+      try { localStorage.setItem(STORAGE_KEY_MILESTONES, JSON.stringify(osiagniete)); } catch (_) {}
+
+      if (nowy === 1) {
+        setTimeout(() => {
+          pokazToast('Pierwsza wycena gotowa! Twój klient czeka.', 'success');
+          odpalConfetti();
+        }, 600);
+      } else {
+        setTimeout(() => {
+          pokazToast(`${nowy} wycen! Jesteś pro!`, 'success');
+          if (nowy >= 5) odpalConfetti();
+        }, 600);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
     const STORAGE_KEY_KLIENCI = 'sumit_klienci';
     const MAX_KLIENCI = 100;
 
@@ -3760,7 +4758,21 @@
     }
 
     function parseKlientBlok(text) {
-      const linie = String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
+      const raw = String(text || '').trim();
+      if (!raw) return { nip: '', nazwa: '', adres: '' };
+
+      if (raw.startsWith('{')) {
+        try {
+          return normalizeKlientRekord(JSON.parse(raw));
+        } catch (_) {}
+      }
+
+      if (/NIP\s*:/i.test(raw) || /Nazwa\s*:/i.test(raw) || /Adres\s*:/i.test(raw)) {
+        const kv = extractKlientKeyValues(raw);
+        if (kv.nazwa || kv.nip || kv.adres) return kv;
+      }
+
+      const linie = raw.split('\n').map(s => s.trim()).filter(Boolean);
       let nip = '';
       const reszta = [];
       linie.forEach(l => {
@@ -3776,6 +4788,42 @@
       const nazwa = reszta.shift() || '';
       const adres = reszta.join('\n');
       return { nip, nazwa, adres };
+    }
+
+    function normalizeKlientRekord(o) {
+      if (!o || typeof o !== 'object') return { nip: '', nazwa: '', adres: '' };
+      const nip = String(o.nip || o.NIP || o.Nip || '').replace(/\D/g, '').slice(0, 10);
+      let nazwa = String(o.nazwa || o.Nazwa || o.name || '').trim();
+      let adres = String(o.adres || o.Adres || o.address || '').trim();
+      if (nazwa && (/NIP\s*:/i.test(nazwa) || /Nazwa\s*:/i.test(nazwa))) {
+        const inner = extractKlientKeyValues(nazwa);
+        if (inner.nazwa) nazwa = inner.nazwa;
+        if (inner.adres && !adres) adres = inner.adres;
+        if (inner.nip) return { nip: inner.nip, nazwa: inner.nazwa, adres: inner.adres || adres };
+      }
+      return { nip, nazwa, adres };
+    }
+
+    function extractKlientKeyValues(raw) {
+      const result = { nip: '', nazwa: '', adres: '' };
+      const nipM = raw.match(/NIP\s*:\s*([\d\s-]+)/i);
+      if (nipM) {
+        const cyfry = nipM[1].replace(/\D/g, '');
+        if (cyfry.length >= 10) result.nip = cyfry.slice(0, 10);
+      }
+      const nazwaQuoted = raw.match(/Nazwa\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+      const nazwaPlain = raw.match(/Nazwa\s*:\s*([^,",\n)]+)/i);
+      if (nazwaQuoted) result.nazwa = nazwaQuoted[1].trim();
+      else if (nazwaPlain) result.nazwa = nazwaPlain[1].trim();
+      const adresQuoted = raw.match(/Adres\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+      const adresPlain = raw.match(/Adres\s*:\s*([^)",\n]+)/i);
+      if (adresQuoted) result.adres = adresQuoted[1].trim();
+      else if (adresPlain) result.adres = adresPlain[1].trim();
+      return result;
+    }
+
+    function klientTekstDoPola(text) {
+      return formatKlientBlok(parseKlientBlok(text));
     }
 
     function formatKlientBlok(rekord) {
@@ -4677,164 +5725,164 @@
       statsSection.appendChild(heatmapCard);
     }
 
-    function renderujHistorie() {
-      const lista = wczytajHistorie();
-      historiaList.innerHTML = '';
-      btnHistoriaWyczysc.hidden = lista.length === 0;
+    function utworzElementHistorii(wpis) {
+      const li = document.createElement('li');
+      li.className = 'historia-item';
 
-      if (lista.length === 0) {
-        const li = document.createElement('li');
-        li.className = 'historia-empty';
-        li.textContent = 'Brak zapisanych wycen';
-        historiaList.appendChild(li);
-        return;
+      const info = document.createElement('div');
+      info.className = 'historia-item-info';
+
+      const row1 = document.createElement('div');
+      row1.className = 'historia-item-row';
+      const numer = document.createElement('span');
+      numer.className = 'historia-item-numer';
+      numer.textContent = wpis.numerOferty || 'Bez numeru';
+      const suma = document.createElement('span');
+      suma.className = 'historia-item-suma';
+      suma.textContent = formatujSume(wpis.suma);
+
+      const docType = wpis.payload && wpis.payload.typ_dokumentu;
+      if (docType) {
+        const docBadge = document.createElement('span');
+        docBadge.className = 'badge-doc-type';
+        if (docType === 'faktura_vat') { docBadge.textContent = 'Faktura VAT'; docBadge.classList.add('is-faktura'); }
+        else if (docType === 'faktura_proforma') { docBadge.textContent = 'Pro Forma'; docBadge.classList.add('is-proforma'); }
+        row1.appendChild(docBadge);
       }
 
-      lista.forEach(wpis => {
-        const li = document.createElement('li');
-        li.className = 'historia-item';
+      row1.appendChild(numer);
+      row1.appendChild(suma);
 
-        const info = document.createElement('div');
-        info.className = 'historia-item-info';
+      const row2 = document.createElement('div');
+      row2.className = 'historia-item-row historia-item-meta';
+      const klient = document.createElement('span');
+      klient.className = 'historia-item-klient';
+      klient.textContent = wpis.klient || 'Bez nazwy klienta';
+      const data = document.createElement('span');
+      data.className = 'historia-item-data';
+      data.textContent = formatujDateZapisu(wpis.dataZapisu);
+      row2.appendChild(klient);
+      row2.appendChild(data);
 
-        const row1 = document.createElement('div');
-        row1.className = 'historia-item-row';
-        const numer = document.createElement('span');
-        numer.className = 'historia-item-numer';
-        numer.textContent = wpis.numerOferty || 'Bez numeru';
-        const suma = document.createElement('span');
-        suma.className = 'historia-item-suma';
-        suma.textContent = formatujSume(wpis.suma);
+      info.appendChild(row1);
+      info.appendChild(row2);
 
-        // Badge typu dokumentu (F3)
-        const docType = wpis.payload && wpis.payload.typ_dokumentu;
-        if (docType) {
-          const docBadge = document.createElement('span');
-          docBadge.className = 'badge-doc-type';
-          if (docType === 'faktura_vat') { docBadge.textContent = 'Faktura VAT'; docBadge.classList.add('is-faktura'); }
-          else if (docType === 'faktura_proforma') { docBadge.textContent = 'Pro Forma'; docBadge.classList.add('is-proforma'); }
-          row1.appendChild(docBadge);
-        }
+      if (wpis.zysk != null && Number.isFinite(Number(wpis.zysk))) {
+        const zyskNum = Number(wpis.zysk);
+        const row3 = document.createElement('div');
+        row3.className = 'historia-item-row historia-item-meta';
+        const zyskInfo = document.createElement('span');
+        zyskInfo.textContent = 'Szacowany zysk: ' + formatujSume(zyskNum);
+        if (zyskNum > 0.005) zyskInfo.classList.add('stats-trend-positive');
+        else if (zyskNum < -0.005) zyskInfo.classList.add('stats-trend-negative');
+        row3.appendChild(zyskInfo);
+        info.appendChild(row3);
+      }
 
-        row1.appendChild(numer);
-        row1.appendChild(suma);
-
-        const row2 = document.createElement('div');
-        row2.className = 'historia-item-row historia-item-meta';
-        const klient = document.createElement('span');
-        klient.className = 'historia-item-klient';
-        klient.textContent = wpis.klient || 'Bez nazwy klienta';
-        const data = document.createElement('span');
-        data.className = 'historia-item-data';
-        data.textContent = formatujDateZapisu(wpis.dataZapisu);
-        row2.appendChild(klient);
-        row2.appendChild(data);
-
-        info.appendChild(row1);
-        info.appendChild(row2);
-
-        if (wpis.zysk != null && Number.isFinite(Number(wpis.zysk))) {
-          const zyskNum = Number(wpis.zysk);
-          const row3 = document.createElement('div');
-          row3.className = 'historia-item-row historia-item-meta';
-          const zyskInfo = document.createElement('span');
-          zyskInfo.textContent = 'Szacowany zysk: ' + formatujSume(zyskNum);
-          if (zyskNum > 0.005) zyskInfo.classList.add('stats-trend-positive');
-          else if (zyskNum < -0.005) zyskInfo.classList.add('stats-trend-negative');
-          row3.appendChild(zyskInfo);
-          info.appendChild(row3);
-        }
-
-        // Akceptacja wyceny (F2)
-        if (wpis.token) {
-          const rowAkceptacja = document.createElement('div');
-          rowAkceptacja.className = 'historia-item-row historia-item-meta';
-          const badgeAkceptacji = document.createElement('span');
-          badgeAkceptacji.className = 'badge-akceptacja';
-          badgeAkceptacji.dataset.token = wpis.token;
-          if (wpis.akceptacja && wpis.akceptacja.accepted) {
-            const ts = new Date(wpis.akceptacja.acceptedAt);
-            const datStr = ts.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-            const kto = wpis.akceptacja.imie ? ' · ' + wpis.akceptacja.imie : '';
-            badgeAkceptacji.textContent = 'Zaakceptowana ' + datStr + kto;
-            badgeAkceptacji.classList.add('is-accepted');
-          } else {
-            badgeAkceptacji.textContent = 'Oczekuje na akceptację';
-            badgeAkceptacji.classList.add('is-pending');
-            // Sprawdź status na serwerze asynchronicznie
-            (async () => {
-              try {
-                const res = await fetch('/api/accept?token=' + encodeURIComponent(wpis.token));
-                if (!res.ok) return;
-                const data = await res.json();
-                if (data.accepted) {
-                  // Zaktualizuj cache w historii
-                  const lista = wczytajHistorie();
-                  const idx = lista.findIndex(w => w.id === wpis.id);
-                  if (idx !== -1) {
-                    lista[idx].akceptacja = data;
-                    zapiszHistorie(lista);
-                  }
-                  const ts = new Date(data.acceptedAt);
-                  const datStr = ts.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                  const kto = data.imie ? ' · ' + data.imie : '';
-                  badgeAkceptacji.textContent = 'Zaakceptowana ' + datStr + kto;
-                  badgeAkceptacji.classList.remove('is-pending');
-                  badgeAkceptacji.classList.add('is-accepted');
+      if (wpis.token) {
+        const rowAkceptacja = document.createElement('div');
+        rowAkceptacja.className = 'historia-item-row historia-item-meta';
+        const badgeAkceptacji = document.createElement('span');
+        badgeAkceptacji.className = 'badge-akceptacja';
+        badgeAkceptacji.dataset.token = wpis.token;
+        if (wpis.akceptacja && wpis.akceptacja.accepted) {
+          const ts = new Date(wpis.akceptacja.acceptedAt);
+          const datStr = ts.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+          const kto = wpis.akceptacja.imie ? ' · ' + wpis.akceptacja.imie : '';
+          badgeAkceptacji.textContent = 'Zaakceptowana ' + datStr + kto;
+          badgeAkceptacji.classList.add('is-accepted');
+        } else {
+          badgeAkceptacji.textContent = 'Oczekuje na akceptację';
+          badgeAkceptacji.classList.add('is-pending');
+          (async () => {
+            try {
+              const res = await fetch('/api/accept?token=' + encodeURIComponent(wpis.token));
+              if (!res.ok) return;
+              const data = await res.json();
+              if (data.accepted) {
+                const listaCache = wczytajHistorie();
+                const idx = listaCache.findIndex(w => w.id === wpis.id);
+                if (idx !== -1) {
+                  listaCache[idx].akceptacja = data;
+                  zapiszHistorie(listaCache);
                 }
-              } catch (_) {}
-            })();
-          }
-          rowAkceptacja.appendChild(badgeAkceptacji);
-          info.appendChild(rowAkceptacja);
+                const ts = new Date(data.acceptedAt);
+                const datStr = ts.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const kto = data.imie ? ' · ' + data.imie : '';
+                badgeAkceptacji.textContent = 'Zaakceptowana ' + datStr + kto;
+                badgeAkceptacji.classList.remove('is-pending');
+                badgeAkceptacji.classList.add('is-accepted');
+              }
+            } catch (_) {}
+          })();
         }
+        rowAkceptacja.appendChild(badgeAkceptacji);
+        info.appendChild(rowAkceptacja);
+      }
 
-        const actions = document.createElement('div');
-        actions.className = 'historia-item-actions';
+      const actions = document.createElement('div');
+      actions.className = 'historia-item-actions';
 
-        const btnLoad = document.createElement('button');
-        btnLoad.type = 'button';
-        btnLoad.className = 'btn-historia-action';
-        btnLoad.textContent = 'Wczytaj do formularza';
-        btnLoad.addEventListener('click', () => wczytajWpisDoFormularza(wpis));
+      const btnLoad = document.createElement('button');
+      btnLoad.type = 'button';
+      btnLoad.className = 'btn-historia-action';
+      btnLoad.textContent = 'Wczytaj do formularza';
+      btnLoad.addEventListener('click', () => wczytajWpisDoFormularza(wpis));
 
-        const btnPdf = document.createElement('button');
-        btnPdf.type = 'button';
-        btnPdf.className = 'btn-historia-action';
-        btnPdf.textContent = 'Pobierz PDF ponownie';
-        btnPdf.addEventListener('click', () => pobierzPdfZHistorii(wpis, btnPdf));
+      const btnPdf = document.createElement('button');
+      btnPdf.type = 'button';
+      btnPdf.className = 'btn-historia-action';
+      btnPdf.textContent = 'Pobierz PDF ponownie';
+      btnPdf.addEventListener('click', () => pobierzPdfZHistorii(wpis, btnPdf));
 
-        const btnDel = document.createElement('button');
-        btnDel.type = 'button';
-        btnDel.className = 'btn-historia-action is-delete';
-        btnDel.textContent = 'Usuń';
-        btnDel.setAttribute('aria-label', 'Usuń wpis z historii');
-        btnDel.addEventListener('click', () => {
-          usunZHistorii(wpis.id);
-          renderujHistorie();
-          renderStatystyki();
-        });
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'btn-historia-action is-delete';
+      btnDel.textContent = 'Usuń';
+      btnDel.setAttribute('aria-label', 'Usuń wpis z historii');
+      btnDel.addEventListener('click', () => {
+        usunZHistorii(wpis.id);
+        renderujHistorie();
+        renderStatystyki();
+      });
 
-        actions.appendChild(btnLoad);
-        actions.appendChild(btnPdf);
+      actions.appendChild(btnLoad);
+      actions.appendChild(btnPdf);
 
-        // Przycisk "Wystaw fakturę" (F3) — tylko dla ofert, nie dla faktur
-        const docTypeWpis = wpis.payload && wpis.payload.typ_dokumentu;
-        const isAlreadyInvoice = (docTypeWpis === 'faktura_vat' || docTypeWpis === 'faktura_proforma');
-        if (!isAlreadyInvoice) {
-          const btnFaktura = document.createElement('button');
-          btnFaktura.type = 'button';
-          btnFaktura.className = 'btn-historia-action';
-          btnFaktura.textContent = 'Wystaw fakturę';
-          btnFaktura.addEventListener('click', () => wystawFaktureZHistorii(wpis));
-          actions.appendChild(btnFaktura);
+      const docTypeWpis = wpis.payload && wpis.payload.typ_dokumentu;
+      const isAlreadyInvoice = (docTypeWpis === 'faktura_vat' || docTypeWpis === 'faktura_proforma');
+      if (!isAlreadyInvoice) {
+        const btnFaktura = document.createElement('button');
+        btnFaktura.type = 'button';
+        btnFaktura.className = 'btn-historia-action';
+        btnFaktura.textContent = 'Wystaw fakturę';
+        btnFaktura.addEventListener('click', () => wystawFaktureZHistorii(wpis));
+        actions.appendChild(btnFaktura);
+      }
+
+      actions.appendChild(btnDel);
+
+      li.appendChild(info);
+      li.appendChild(actions);
+      return li;
+    }
+
+    function renderujHistorie() {
+      const lista = wczytajHistorie();
+      const listy = [historiaList, document.getElementById('historia-list-page')].filter(Boolean);
+      const btnsWyczysc = [btnHistoriaWyczysc, document.getElementById('btn-historia-wyczysc-page')].filter(Boolean);
+      btnsWyczysc.forEach(btn => { btn.hidden = lista.length === 0; });
+
+      listy.forEach(ul => {
+        ul.innerHTML = '';
+        if (lista.length === 0) {
+          const li = document.createElement('li');
+          li.className = 'historia-empty';
+          li.textContent = 'Brak zapisanych wycen';
+          ul.appendChild(li);
+          return;
         }
-
-        actions.appendChild(btnDel);
-
-        li.appendChild(info);
-        li.appendChild(actions);
-        historiaList.appendChild(li);
+        lista.forEach(wpis => ul.appendChild(utworzElementHistorii(wpis)));
       });
     }
 
@@ -4849,7 +5897,7 @@
       const dataEl = document.getElementById('data_waznosci');
       const uwagiEl = document.getElementById('uwagi');
 
-      if (klientEl) klientEl.value = String(p.klient || '');
+      if (klientEl) klientEl.value = klientTekstDoPola(String(p.klient || ''));
       if (numerEl) numerEl.value = String(p.numer_oferty || '');
       if (dataEl) dataEl.value = String(p.data_waznosci || '');
       if (uwagiEl) uwagiEl.value = String(p.uwagi || '');
@@ -4894,7 +5942,11 @@
       odswiezStanPresetow();
       aktualizujSzacowanyZysk();
       saveDraft();
-      zamknijHistorie();
+      if (MOBILE_MQL.matches && typeof aktywujWidok === 'function') {
+        aktywujWidok('view-kreator');
+      } else {
+        zamknijHistorie();
+      }
       pokazKomunikat('Wczytano wycenę z historii.', 'success');
     }
 
@@ -4933,6 +5985,10 @@
 
     function otworzHistorie() {
       renderujHistorie();
+      if (MOBILE_MQL.matches && typeof aktywujWidok === 'function') {
+        aktywujWidok('view-historia');
+        return;
+      }
       historiaModal.hidden = false;
       historiaModal.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
@@ -4944,17 +6000,26 @@
     }
 
     function zamknijHistorie() {
+      if (MOBILE_MQL.matches && document.body.dataset.activeView === 'view-historia') {
+        pokazViewHome();
+        return;
+      }
       historiaModal.hidden = true;
       historiaModal.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
     }
 
     btnHistoria.addEventListener('click', otworzHistorie);
-    const btnHistoriaMobile = document.getElementById('btn-historia-mobile');
-    if (btnHistoriaMobile) {
-      btnHistoriaMobile.addEventListener('click', () => {
-        zamknijAppSettings();
-        window.setTimeout(otworzHistorie, 300);
+    const btnHistoriaBack = document.getElementById('btn-historia-back');
+    if (btnHistoriaBack) btnHistoriaBack.addEventListener('click', () => pokazViewHome());
+    const btnHistoriaWyczyscPage = document.getElementById('btn-historia-wyczysc-page');
+    if (btnHistoriaWyczyscPage) {
+      btnHistoriaWyczyscPage.addEventListener('click', () => {
+        const ok = window.confirm('Wyczyścić całą historię wycen? Tej operacji nie można cofnąć.');
+        if (!ok) return;
+        zapiszHistorie([]);
+        renderujHistorie();
+        renderStatystyki();
       });
     }
     btnZamknijHistoria.addEventListener('click', zamknijHistorie);
@@ -5537,9 +6602,10 @@
       // Aktualizuj tekst przycisku generuj
       const btnGenerujEl = document.getElementById('btn-generuj');
       if (btnGenerujEl) {
-        if (isInvoice) {
-          const isMobile = !(window.matchMedia && window.matchMedia('(min-width: 1024px)').matches);
-          btnGenerujEl.textContent = isMobile ? 'Podgląd i pobierz' : 'Generuj dokument';
+        if (MOBILE_MQL.matches && _wizardGotowy && _wizardKrok === 3) {
+          btnGenerujEl.textContent = 'GENERUJ';
+        } else if (isInvoice) {
+          btnGenerujEl.textContent = 'Generuj dokument';
         } else {
           if (typeof aktualizujTekstPrzyciskuGeneruj === 'function') aktualizujTekstPrzyciskuGeneruj();
         }

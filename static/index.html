@@ -26,35 +26,14 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16.png">
   <link rel="apple-touch-icon" href="/static/icons/pwa-512.png">
 </head>
-<body data-active-view="view-kreator">
+<body data-active-view="view-home">
   <div class="page">
     <div class="mobile-chrome" id="mobile-chrome">
     <header class="header header-sticky" id="header-sticky">
-      <button type="button" class="btn-settings btn-theme btn-theme-mobile" id="btn-theme-mobile" aria-label="Przełącz motyw" title="Przełącz motyw">
-        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4"></circle>
-          <path d="M12 2v2"></path>
-          <path d="M12 20v2"></path>
-          <path d="m4.93 4.93 1.41 1.41"></path>
-          <path d="m17.66 17.66 1.41 1.41"></path>
-          <path d="M2 12h2"></path>
-          <path d="M20 12h2"></path>
-          <path d="m6.34 17.66-1.41 1.41"></path>
-          <path d="m19.07 4.93-1.41 1.41"></path>
-        </svg>
-      </button>
-      <div class="header-brand">
-        <div class="logo">
-          <div id="app-logo">
-            <img src="/static/sumit-logo.png" alt="SumIt logo">
-          </div>
-        </div>
-      </div>
-      <button type="button" class="btn-settings btn-settings-mobile btn-settings-primary" id="btn-settings-mobile" aria-haspopup="dialog" aria-controls="app-settings-modal" title="Ustawienia" aria-label="Ustawienia">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <button type="button" class="btn-settings btn-theme btn-theme-mobile" id="btn-theme-mobile" hidden aria-hidden="true" tabindex="-1"></button>
+      <div class="header-brand" aria-hidden="true"></div>
+      <button type="button" class="btn-settings btn-settings-mobile btn-settings-primary" id="btn-settings-mobile" title="Ustawienia" aria-label="Ustawienia">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="20" height="20">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09c0 .66.39 1.26 1.03 1.51a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87c.25.64.85 1.03 1.51 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.03z"></path>
         </svg>
@@ -65,9 +44,22 @@
 
     <div class="page-nav-row header-toolbar">
       <nav class="view-tabs" role="tablist" aria-label="Widoki aplikacji">
-        <button type="button" class="view-tab is-active" role="tab" id="tab-kreator" aria-selected="true" aria-controls="view-kreator" data-view-target="view-kreator">Nowa wycena</button>
-        <button type="button" class="view-tab" role="tab" id="tab-ustawienia" aria-selected="false" aria-controls="view-firma" data-view-target="view-firma">Moja firma</button>
-        <button type="button" class="view-tab" role="tab" id="tab-statystyki" aria-selected="false" aria-controls="view-statystyki" data-view-target="view-statystyki">Statystyki</button>
+        <button type="button" class="view-tab is-active" role="tab" id="tab-kreator" aria-selected="true" aria-controls="view-kreator" data-view-target="view-kreator">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span class="tab-label">Wycena</span>
+        </button>
+        <button type="button" class="view-tab mobile-only-tab" role="tab" id="tab-historia" aria-selected="false" aria-controls="view-historia" data-view-target="view-historia">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="tab-label">Historia</span>
+        </button>
+        <button type="button" class="view-tab" role="tab" id="tab-ustawienia" aria-selected="false" aria-controls="view-firma" data-view-target="view-firma">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="tab-label">Firma</span>
+        </button>
+        <button type="button" class="view-tab" role="tab" id="tab-statystyki" aria-selected="false" aria-controls="view-statystyki" data-view-target="view-statystyki">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span class="tab-label">Statystyki</span>
+        </button>
       </nav>
       <div class="header-actions">
       <button type="button" class="btn-settings btn-theme" id="btn-theme" aria-label="Przełącz motyw" title="Przełącz motyw">
@@ -99,7 +91,69 @@
       </div>
     </div>
 
+    <!-- ── Ekran główny (mobile only) ── -->
+    <div id="view-home" class="view view-home" hidden aria-label="Ekran główny">
+      <div class="home-main">
+        <div class="home-brand">
+          <div class="home-logo-circle" aria-hidden="true">
+            <img class="home-fish" src="/static/sumit-fish.png" alt="" width="28" height="28">
+          </div>
+          <p class="home-brand-name">SumIt</p>
+        </div>
+        <div class="home-cta-group">
+          <button type="button" id="btn-home-wycena" class="btn btn-home-cta" data-home-action="wycena">
+            <span class="home-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </span>
+            <span class="home-btn-label">Nowa<br>wycena</span>
+          </button>
+          <button type="button" id="btn-home-faktura" class="btn btn-home-cta" data-home-action="faktura">
+            <span class="home-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6"/><path d="M16 12h-6"/><path d="M10 16h6"/></svg>
+            </span>
+            <span class="home-btn-label">Nowa<br>faktura</span>
+          </button>
+        </div>
+      </div>
+      <p id="home-total" class="home-total" hidden></p>
+    </div>
+
+    <!-- ── Historia wycen (mobile: pełny widok) ── -->
+    <div id="view-historia" class="view view-historia hidden" role="tabpanel" aria-labelledby="tab-historia" hidden>
+      <div class="mobile-subpage-header">
+        <button type="button" id="btn-historia-back" class="wizard-back-btn" aria-label="Wstecz">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="22" height="22"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 class="mobile-subpage-title">Historia wycen</h2>
+        <div class="wizard-header-spacer"></div>
+      </div>
+      <div class="historia-page-body" id="historia-page-body">
+        <ul class="historia-list" id="historia-list-page" aria-label="Zapisane wyceny"></ul>
+        <div class="historia-page-footer">
+          <button type="button" class="btn-clear" id="btn-historia-wyczysc-page" hidden>Wyczyść historię</button>
+        </div>
+      </div>
+    </div>
+
     <div id="view-kreator" class="view" role="tabpanel" aria-labelledby="tab-kreator">
+
+    <!-- ── Wizard header (mobile only) ── -->
+    <div id="wizard-header" class="wizard-header" hidden>
+      <button type="button" id="btn-wizard-back" class="wizard-back-btn" aria-label="Wstecz">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="22" height="22"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="wizard-step-info">
+        <span id="wizard-step-label" class="wizard-step-label">Krok 1 z 3</span>
+        <span id="wizard-step-title" class="wizard-step-title">Co wyceniasz?</span>
+        <div class="wizard-dots">
+          <span class="wizard-dot" data-dot="1"></span>
+          <span class="wizard-dot" data-dot="2"></span>
+          <span class="wizard-dot" data-dot="3"></span>
+        </div>
+      </div>
+      <div class="wizard-header-spacer"></div>
+    </div>
+
     <div class="mobile-flow-intro" aria-hidden="true">
       <ol class="mobile-flow-steps">
         <li class="is-active">Pozycje</li>
@@ -127,21 +181,17 @@
           <div class="accordion-body" id="accordion-body-szczegoly">
           <p class="accordion-body-hint">Ustaw numer wyceny i datę ważności — skorzystaj z przycisków +7, +14 lub +30 dni.</p>
 
-          <div class="field field-doc-type">
-            <div class="doc-type-switcher" id="doc-type-switcher" role="group" aria-label="Typ dokumentu">
-              <button type="button" class="chip is-active" data-doc-type="" aria-pressed="true">Wycena</button>
-              <button type="button" class="chip" data-doc-type="faktura_vat" aria-pressed="false">Faktura VAT</button>
+          <div class="wizard-essential-fields">
+            <div class="field field-doc-type">
+              <div class="doc-type-switcher" id="doc-type-switcher" role="group" aria-label="Typ dokumentu">
+                <button type="button" class="chip is-active" data-doc-type="" aria-pressed="true">Wycena</button>
+                <button type="button" class="chip" data-doc-type="faktura_vat" aria-pressed="false">Faktura VAT</button>
+              </div>
             </div>
-          </div>
 
-          <div class="row">
-            <div class="field">
-              <label for="numer_oferty" id="label-numer-oferty">Numer wyceny</label>
-              <input type="text" id="numer_oferty" name="numer_oferty" placeholder="np. 2026/001">
-            </div>
-            <div class="field">
-              <label for="data_waznosci">Data ważności</label>
-              <input type="date" id="data_waznosci" name="data_waznosci">
+            <div class="field field-data-waznosci">
+              <label for="data_waznosci" class="field-label-mobile-wizard">Data ważności</label>
+              <input type="date" id="data_waznosci" name="data_waznosci" aria-label="Data ważności">
               <div class="date-helpers" role="group" aria-label="Szybkie ustawienie daty ważności">
                 <button type="button" class="chip" data-days="7">+7 dni</button>
                 <button type="button" class="chip" data-days="14">+14 dni</button>
@@ -150,26 +200,49 @@
             </div>
           </div>
 
-          <div class="invoice-fields hidden" id="invoice-fields">
-            <div class="row">
-              <div class="field">
-                <label for="numer_faktury">Numer faktury</label>
-                <input type="text" id="numer_faktury" name="numer_faktury" placeholder="np. FV/2026/001">
+          <details class="wizard-advanced-options" id="wizard-advanced-szczegoly">
+            <summary class="wizard-advanced-summary">Opcje zaawansowane</summary>
+            <div class="wizard-advanced-body">
+              <div class="row">
+                <div class="field">
+                  <label for="numer_oferty" id="label-numer-oferty">Numer wyceny</label>
+                  <input type="text" id="numer_oferty" name="numer_oferty" placeholder="np. 2026/001">
+                </div>
               </div>
-              <div class="field">
-                <label for="data_sprzedazy">Data sprzedaży</label>
-                <input type="date" id="data_sprzedazy" name="data_sprzedazy">
-              </div>
-            </div>
-            <div class="row">
-              <div class="field">
-                <label for="termin_platnosci">Termin płatności</label>
-                <input type="text" id="termin_platnosci" name="termin_platnosci" placeholder="np. 14 dni lub 2026-07-15">
-              </div>
-            </div>
-          </div>
 
-          <p class="ksef-hint hidden" id="ksef-hint">Wgraj plik na <a href="https://ksef.podatki.gov.pl" target="_blank" rel="noopener">ksef.podatki.gov.pl</a>, aby wysłać fakturę do KSeF. SumIt generuje plik pomocniczy — odpowiedzialność za poprawność i wysyłkę ponosi użytkownik.</p>
+              <div class="invoice-fields hidden" id="invoice-fields">
+                <div class="row">
+                  <div class="field">
+                    <label for="numer_faktury">Numer faktury</label>
+                    <input type="text" id="numer_faktury" name="numer_faktury" placeholder="np. FV/2026/001">
+                  </div>
+                  <div class="field">
+                    <label for="data_sprzedazy">Data sprzedaży</label>
+                    <input type="date" id="data_sprzedazy" name="data_sprzedazy">
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="field">
+                    <label for="termin_platnosci">Termin płatności</label>
+                    <input type="text" id="termin_platnosci" name="termin_platnosci" placeholder="np. 14 dni lub 2026-07-15">
+                  </div>
+                </div>
+              </div>
+
+              <p class="ksef-hint hidden" id="ksef-hint">Wgraj plik na <a href="https://ksef.podatki.gov.pl" target="_blank" rel="noopener">ksef.podatki.gov.pl</a>, aby wysłać fakturę do KSeF. SumIt generuje plik pomocniczy — odpowiedzialność za poprawność i wysyłkę ponosi użytkownik.</p>
+
+              <div class="field field-uwagi-advanced">
+                <label for="uwagi" class="field-label-desktop">Uwagi</label>
+                <textarea id="uwagi" name="uwagi" rows="4" placeholder="np. dodatkowe warunki, terminy, gwarancje" aria-label="Uwagi"></textarea>
+                <div class="footer-presets" role="group" aria-label="Szybkie wstawianie uwag">
+                  <button type="button" class="chip" data-preset="Zaliczka 30%" aria-pressed="false">Zaliczka 30%</button>
+                  <button type="button" class="chip" data-preset="Termin 7 dni" aria-pressed="false">Termin 7 dni</button>
+                  <button type="button" class="chip" data-preset="Gwarancja 12 m-cy" aria-pressed="false">Gwarancja 12 m-cy</button>
+                  <button type="button" class="chip" data-preset="Ważność 30 dni" aria-pressed="false">Ważność 30 dni</button>
+                </div>
+              </div>
+            </div>
+          </details>
 
           </div>
         </section>
@@ -190,21 +263,35 @@
           </button>
           <div class="accordion-body" id="accordion-body-klient">
           <p class="accordion-body-hint">Wpisz nazwę i adres albo pobierz dane po NIP z Białej Listy MF.</p>
-          <div class="field">
-            <div class="label-row">
-              <label for="klient">Nazwa klienta</label>
-              <button type="button" class="btn-link-nip" id="btn-pobierz-nip" aria-label="Pobierz dane klienta po NIP z Białej Listy MF">
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <circle cx="7" cy="7" r="4.5"></circle>
-                  <line x1="10.5" y1="10.5" x2="14" y2="14"></line>
-                </svg>
-                <span class="btn-link-nip-label">Pobierz po NIP</span>
-              </button>
-            </div>
+
+          <!-- Hidden camera input for client photo OCR -->
+          <input type="file" id="klient-photo-input" class="visually-hidden" accept="image/jpeg,image/png" capture="environment">
+
+          <!-- ── Wizard: 3 metody klienta (mobile only) ── -->
+          <div id="wizard-klient-methods" class="wizard-klient-methods wizard-input-methods">
+            <button type="button" id="btn-wizard-klient-photo" class="wizard-input-btn wizard-input-secondary">
+              <span class="wizard-input-label">Zrób zdjęcie wizytówki</span>
+            </button>
+            <button type="button" id="btn-wizard-klient-nip" class="wizard-input-btn wizard-input-secondary">
+              <span class="wizard-input-label">Wpisz NIP</span>
+            </button>
+            <button type="button" id="btn-wizard-klient-manual" class="wizard-input-btn wizard-input-secondary">
+              <span class="wizard-input-label">Wpisz ręcznie</span>
+            </button>
+          </div>
+
+          <div class="field field-klient-plain">
             <div class="klient-wrapper">
-              <textarea id="klient" name="klient" rows="3" placeholder="Nazwa klienta&#10;Adres&#10;NIP: 1234567890" autocomplete="off" required aria-autocomplete="list" aria-controls="klient-autocomplete" aria-expanded="false"></textarea>
+              <textarea id="klient" name="klient" rows="3" placeholder="Nazwa klienta, adres..." autocomplete="off" required aria-label="Dane klienta" aria-autocomplete="list" aria-controls="klient-autocomplete" aria-expanded="false"></textarea>
               <ul id="klient-autocomplete" class="dropdown-menu hidden" role="listbox" aria-label="Powracający klienci z książki adresowej i historii"></ul>
             </div>
+            <button type="button" class="btn-link-nip btn-link-nip-desktop" id="btn-pobierz-nip" aria-label="Pobierz dane klienta po NIP z Białej Listy MF">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="7" cy="7" r="4.5"></circle>
+                <line x1="10.5" y1="10.5" x2="14" y2="14"></line>
+              </svg>
+              <span class="btn-link-nip-label">Pobierz po NIP</span>
+            </button>
           </div>
           </div>
         </section>
@@ -225,72 +312,25 @@
           </button>
           <div class="accordion-body" id="accordion-body-pozycje">
           <p class="accordion-body-hint">Dodaj ręcznie, z katalogu albo wklej wiadomość od klienta (AI).</p>
+
+          <!-- ── Wizard: wejście w pozycje (mobile only) ── -->
+          <div id="wizard-input-methods" class="wizard-input-methods">
+            <button type="button" id="btn-wizard-ai" class="wizard-input-btn wizard-cta-ai">
+              <span class="wizard-cta-copy">
+                <span class="wizard-input-label">Opisz z AI</span>
+                <span class="wizard-input-hint">Głos, zdjęcie lub tekst</span>
+              </span>
+            </button>
+            <button type="button" id="btn-wizard-manual" class="wizard-input-btn wizard-cta-manual">
+              <span class="wizard-input-label">Wpisz ręcznie</span>
+            </button>
+          </div>
+
+          <div class="wizard-step-separator" aria-hidden="true"></div>
+
           <details class="manual-items" open>
             <summary class="manual-items-summary">Edytuj pozycje ręcznie</summary>
             <div class="manual-items-body">
-          <div class="items-actions">
-            <button type="button" class="btn-add btn-add-ai" id="btn-ai-fab" aria-expanded="true" aria-controls="ai-input-modal">
-              <span class="btn-add-ai-badge" aria-hidden="true">AI</span>
-              <span>Z wiadomości</span>
-            </button>
-            <button type="button" class="btn-add" id="btn-dodaj">
-              <span class="plus">+</span>
-              <span>Dodaj pozycję</span>
-            </button>
-            <button type="button" class="btn-add" id="btn-katalog" aria-haspopup="dialog" aria-controls="catalog-modal">
-              <span class="plus">+</span>
-              <span>Z katalogu</span>
-            </button>
-          </div>
-          <div class="modal ai-sheet-modal hidden" id="ai-input-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="ai-input-modal-title">
-            <div class="modal-backdrop" id="ai-input-modal-backdrop"></div>
-            <div class="modal-card ai-sheet-card">
-              <div class="modal-header ai-sheet-header">
-                <h3 class="modal-title" id="ai-input-modal-title">Pozycje z wiadomości</h3>
-                <button type="button" class="btn-ai-sheet-close" id="btn-ai-sheet-close" aria-label="Zamknij">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-              <div class="modal-body ai-sheet-body">
-          <details class="card ai-quick-input" open>
-            <summary class="ai-quick-input-summary">Pozycje z wiadomości</summary>
-            <div class="ai-quick-input-body">
-              <p class="ai-sheet-intro"><span class="ai-pill" aria-hidden="true">AI</span><span>Jedna wiadomość → wiele pozycji. Sprawdzisz przed dodaniem.</span></p>
-              <textarea id="ai-notatka" rows="3" placeholder="np. Udrożnienie kanalizacji 350 zł, przegląd instalacji 200 zł…"></textarea>
-              <div class="ai-photo-thumb hidden" id="ai-photo-thumb">
-                <img id="ai-photo-thumb-img" alt="" width="80" height="80">
-                <button type="button" class="btn-secondary btn-ai-photo-remove" id="btn-ai-photo-remove">Usuń zdjęcie</button>
-              </div>
-              <input type="file" id="ai-photo-input" class="visually-hidden" accept="image/jpeg,image/png" capture="environment">
-              <div class="ai-quick-input-actions">
-                <button type="button" class="btn-primary" id="btn-ai-parse" aria-busy="false">
-                  <span class="btn-ai-parse-label">Pokaż propozycję</span>
-                  <span class="btn-ai-parse-spinner" hidden aria-hidden="true"></span>
-                </button>
-                <button type="button" class="btn-secondary btn-ai-mic" id="btn-ai-mic" aria-label="Dyktuj notatkę" title="Dyktuj notatkę">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" y1="19" x2="12" y2="23"></line>
-                    <line x1="8" y1="23" x2="16" y2="23"></line>
-                  </svg>
-                </button>
-                <button type="button" class="btn-secondary btn-ai-photo" id="btn-ai-photo" aria-label="Zrób zdjęcie notatki" title="Zrób zdjęcie notatki">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                    <circle cx="12" cy="13" r="4"></circle>
-                  </svg>
-                </button>
-              </div>
-              <p id="ai-parse-status" class="ai-parse-status" role="status" aria-live="polite"></p>
-            </div>
-          </details>
-              </div>
-            </div>
-          </div>
           <table>
             <thead>
               <tr>
@@ -305,36 +345,22 @@
             <tbody id="pozycje-tbody"></tbody>
           </table>
           <datalist id="szablony-pozycji-datalist"></datalist>
+          <div class="items-actions items-actions-secondary">
+            <button type="button" class="btn-add btn-add-ai" id="btn-ai-fab" aria-expanded="false" aria-controls="ai-input-modal">
+              <span class="btn-add-ai-badge" aria-hidden="true">AI</span>
+              <span>Z wiadomości</span>
+            </button>
+            <button type="button" class="btn-add" id="btn-dodaj">
+              <span class="plus">＋</span>
+              <span>Dodaj kolejną</span>
+            </button>
+            <button type="button" class="btn-add" id="btn-katalog" aria-haspopup="dialog" aria-controls="catalog-modal">
+              <span class="plus">＋</span>
+              <span>Z katalogu</span>
+            </button>
+          </div>
             </div>
           </details>
-          </div>
-        </section>
-
-        <section class="section accordion-section" data-accordion-id="uwagi" data-accordion-default="closed">
-          <h2 class="section-title">Uwagi</h2>
-          <button type="button" class="accordion-header" aria-expanded="false" aria-controls="accordion-body-uwagi">
-            <span class="accordion-header-left">
-              <span class="step-badge" aria-hidden="true">4</span>
-              <span class="accordion-header-text">
-              <span class="section-title">Uwagi</span>
-              <span class="accordion-preview" hidden></span>
-              </span>
-            </span>
-            <svg class="accordion-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M4 6l4 4 4-4"></path>
-            </svg>
-          </button>
-          <div class="accordion-body" id="accordion-body-uwagi">
-          <p class="accordion-body-hint">Dodaj warunki widoczne na PDF pod tabelą — wstaw gotowe frazy jednym kliknięciem.</p>
-          <div class="field">
-            <textarea id="uwagi" name="uwagi" rows="4" placeholder="np. dodatkowe warunki, terminy, gwarancje" aria-label="Uwagi"></textarea>
-            <div class="footer-presets" role="group" aria-label="Szybkie wstawianie uwag">
-              <button type="button" class="chip" data-preset="Zaliczka 30%" aria-pressed="false">Zaliczka 30%</button>
-              <button type="button" class="chip" data-preset="Termin 7 dni" aria-pressed="false">Termin 7 dni</button>
-              <button type="button" class="chip" data-preset="Gwarancja 12 m-cy" aria-pressed="false">Gwarancja 12 m-cy</button>
-              <button type="button" class="chip" data-preset="Ważność 30 dni" aria-pressed="false">Ważność 30 dni</button>
-            </div>
-          </div>
           </div>
         </section>
 
@@ -342,6 +368,7 @@
 
         <div class="submit-wrap">
           <div class="cta-row">
+            <button type="button" id="btn-wizard-dalej" class="btn-primary wizard-dalej-btn" hidden>Dalej</button>
             <button type="submit" class="btn-primary" id="btn-generuj">Wygeneruj wycenę</button>
             <button type="button" class="btn-cta-secondary" id="btn-udostepnij-pdf-desktop" hidden aria-label="Wyślij wycenę klientowi przez aplikację natywną">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -567,9 +594,6 @@
         <h3 class="modal-title" id="app-settings-modal-title">Ustawienia</h3>
       </div>
       <div class="modal-body">
-        <div class="settings-mobile-actions">
-          <button type="button" class="btn-secondary" id="btn-historia-mobile" aria-haspopup="dialog" aria-controls="historia-modal">Historia wycen</button>
-        </div>
         <section class="settings-section">
           <h4 class="settings-section-title">Wygląd</h4>
           <div class="settings-chips" id="app-settings-theme" role="group" aria-label="Motyw aplikacji">
@@ -700,6 +724,45 @@
     </div>
   </div>
 
+  <div class="ai-focus-modal ai-sheet-modal hidden" id="ai-input-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="ai-input-modal-title">
+    <div class="ai-focus-backdrop" id="ai-input-modal-backdrop"></div>
+    <div class="ai-focus-card">
+      <button type="button" class="ai-focus-close" id="btn-ai-sheet-close" aria-label="Zamknij">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="ai-focus-top">
+        <h3 class="ai-focus-title" id="ai-input-modal-title">Opisz pracę</h3>
+        <p class="ai-focus-lead" id="ai-sheet-lead">Powiedz, wklej lub sfotografuj notatkę — AI rozbije ją na pozycje.</p>
+      </div>
+      <div class="ai-focus-body">
+        <textarea id="ai-notatka" rows="4" placeholder="np. Udrożnienie kanalizacji 350 zł, przegląd instalacji 200 zł…" aria-describedby="ai-sheet-lead"></textarea>
+        <div class="ai-photo-thumb hidden" id="ai-photo-thumb">
+          <img id="ai-photo-thumb-img" alt="" width="72" height="72">
+          <button type="button" class="ai-photo-remove" id="btn-ai-photo-remove">Usuń zdjęcie</button>
+        </div>
+        <input type="file" id="ai-photo-input" class="visually-hidden" accept="image/jpeg,image/png" capture="environment">
+        <div class="ai-focus-tools">
+          <button type="button" class="ai-focus-tool" id="btn-ai-mic" aria-label="Dyktuj notatkę">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            <span>Dyktuj</span>
+          </button>
+          <button type="button" class="ai-focus-tool" id="btn-ai-photo" aria-label="Zrób zdjęcie notatki">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <span>Zdjęcie</span>
+          </button>
+        </div>
+        <button type="button" class="ai-focus-cta" id="btn-ai-parse" aria-busy="false">
+          <span class="btn-ai-parse-label">Pokaż propozycje</span>
+          <span class="btn-ai-parse-spinner" hidden aria-hidden="true"></span>
+        </button>
+        <p id="ai-parse-status" class="ai-parse-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </div>
+
   <div class="modal hidden" id="modal-ai-preview" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-ai-preview-title">
     <div class="modal-backdrop" id="modal-ai-preview-backdrop"></div>
     <div class="modal-card ai-preview-card">
@@ -748,6 +811,31 @@
         <button type="button" class="btn-secondary" id="btn-nip-anuluj">Anuluj</button>
         <button type="button" class="btn-primary" id="btn-nip-pobierz">Pobierz</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Fundament mobile UX ── -->
+  <div id="toast-stack" aria-label="Powiadomienia" aria-live="polite" aria-atomic="false"></div>
+  <canvas id="confetti-canvas" aria-hidden="true" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:9999;"></canvas>
+
+  <!-- ── Overlay generowania PDF (mobile only) ── -->
+  <div id="gen-overlay" class="gen-overlay" hidden aria-live="assertive" aria-label="Generowanie PDF">
+    <div class="gen-overlay-content">
+      <div class="gen-logo-wrap">
+        <img src="/static/sumit-fish.png" class="gen-logo-fish" alt="" aria-hidden="true" width="80" height="80">
+      </div>
+      <div class="gen-progress-track">
+        <div id="gen-progress-bar" class="gen-progress-bar"></div>
+      </div>
+      <p id="gen-status-text" class="gen-status-text" aria-live="polite">Przygotowuję wycenę...</p>
+    </div>
+    <div id="gen-sukces" class="gen-sukces" hidden>
+      <p id="gen-sukces-kwota" class="gen-sukces-kwota"></p>
+      <div class="gen-sukces-actions">
+        <button type="button" id="btn-gen-pobierz" class="btn btn-gen-primary">Pobierz PDF</button>
+        <button type="button" id="btn-gen-wyslij" class="btn btn-gen-secondary">Wyślij klientowi</button>
+      </div>
+      <button type="button" id="btn-gen-zamknij" class="btn-link gen-zamknij">Zamknij</button>
     </div>
   </div>
 

@@ -170,6 +170,56 @@ func TestHandleParse_brakKluczaAPI(t *testing.T) {
 	}
 }
 
+func TestHandleParse_trybKlient(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.Copy(io.Discard, r.Body)
+		_ = json.NewEncoder(w).Encode(groqChatResponse{
+			Choices: []struct {
+				Message struct {
+					Content string `json:"content"`
+				} `json:"message"`
+			}{
+				{Message: struct {
+					Content string `json:"content"`
+				}{Content: `{"nazwa":"ABC Sp. z o.o.","nip":"1234567890","adres":"ul. Testowa 1, 00-001 Warszawa"}`}},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	prevURL := groqAPIEndpoint
+	prevClient := httpClientGroq
+	groqAPIEndpoint = srv.URL
+	httpClientGroq = srv.Client()
+	t.Cleanup(func() {
+		groqAPIEndpoint = prevURL
+		httpClientGroq = prevClient
+	})
+
+	t.Setenv("GROQ_API_KEY", "test-key")
+
+	body := `{"tekst":"ABC Sp. z o.o. NIP 1234567890","tryb":"klient"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/parse", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handleParse(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d, body=%s", rec.Code, rec.Body.String())
+	}
+
+	var resp parseClientResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v, body=%s", err, rec.Body.String())
+	}
+	if resp.Client.Nazwa != "ABC Sp. z o.o." {
+		t.Fatalf("nazwa=%q, chciano ABC Sp. z o.o.", resp.Client.Nazwa)
+	}
+	if resp.Client.NIP != "1234567890" {
+		t.Fatalf("nip=%q", resp.Client.NIP)
+	}
+}
+
 func TestHandleParse_sukcesTekst(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.Copy(io.Discard, r.Body)

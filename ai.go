@@ -47,17 +47,38 @@ ZASADY:
 - Każdy element tablicy musi mieć dokładnie pola: "nazwa" (string), "ilosc" (number), "cena" (number).
 - Jeśli nie ma pozycji, zwróć pustą tablicę [].`
 
+const parseClientSystemPrompt = `Jesteś parserem danych kontaktowych klienta. Wyodrębnij z tekstu lub zdjęcia wizytówki/dokumentu dane identyfikacyjne firmy lub osoby.
+
+ZASADY:
+- Wyodrębnij: nazwę firmy lub imię i nazwisko, numer NIP (10 cyfr, ignoruj prefix PL i separatory), adres.
+- NIP: wyodrębnij ciąg dokładnie 10 cyfr — ignoruj prefiksy "PL", "nip:", myślniki i spacje.
+- Jeśli nie znajdziesz danego pola, zostaw pusty string "".
+- Zwróć WYŁĄCZNIE surowy obiekt JSON bez żadnego dodatkowego tekstu.
+- ZAKAZ używania znaczników Markdown.
+- Odpowiedź musi mieć dokładnie trzy pola: "nazwa" (string), "nip" (string — same cyfry lub ""), "adres" (string lub "").`
+
 type parseRequest struct {
 	Tekst    string   `json:"tekst"`
 	Kontekst []string `json:"kontekst,omitempty"`
 	Obraz    string   `json:"obraz,omitempty"`
 	MimeType string   `json:"mime_type,omitempty"`
+	Tryb     string   `json:"tryb,omitempty"`
 }
 
 type parseItem struct {
 	Nazwa string  `json:"nazwa"`
 	Ilosc float64 `json:"ilosc"`
 	Cena  float64 `json:"cena"`
+}
+
+type parseClientResult struct {
+	Nazwa string `json:"nazwa"`
+	NIP   string `json:"nip"`
+	Adres string `json:"adres"`
+}
+
+type parseClientResponse struct {
+	Client parseClientResult `json:"client"`
 }
 
 type groqChatRequest struct {
@@ -377,6 +398,71 @@ func callGroqParse(ctx context.Context, apiKey string, in parseRequest) ([]parse
 	return items, nil
 }
 
+func callGroqParseClient(ctx context.Context, apiKey string, in parseRequest) (parseClientResult, error) {
+	userContent, err := buildGroqUserContent(in)
+	if err != nil {
+		return parseClientResult{}, err
+	}
+
+	reqBody := groqChatRequest{
+		Model: groqModelForParse(in),
+		Messages: []groqMessage{
+			{Role: "system", Content: parseClientSystemPrompt},
+			{Role: "user", Content: userContent},
+		},
+		Temperature: 0,
+	}
+
+	payload, err := json.Marshal(reqBody)
+	if err != nil {
+		return parseClientResult{}, fmt.Errorf("marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, groqAPIEndpoint, bytes.NewReader(payload))
+	if err != nil {
+		return parseClientResult{}, fmt.Errorf("new request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	resp, err := httpClientGroq.Do(req)
+	if err != nil {
+		return parseClientResult{}, fmt.Errorf("groq request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 256<<10))
+	if err != nil {
+		return parseClientResult{}, fmt.Errorf("read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var env groqChatResponse
+		if json.Unmarshal(body, &env) == nil && env.Error != nil && env.Error.Message != "" {
+			return parseClientResult{}, fmt.Errorf("groq status %d: %s", resp.StatusCode, env.Error.Message)
+		}
+		return parseClientResult{}, fmt.Errorf("groq status %d", resp.StatusCode)
+	}
+
+	var gen groqChatResponse
+	if err := json.Unmarshal(body, &gen); err != nil {
+		return parseClientResult{}, fmt.Errorf("decode groq: %w", err)
+	}
+	if len(gen.Choices) == 0 || gen.Choices[0].Message.Content == "" {
+		return parseClientResult{}, fmt.Errorf("empty groq response")
+	}
+
+	raw := stripMarkdownJSON(gen.Choices[0].Message.Content)
+	var result parseClientResult
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		return parseClientResult{}, fmt.Errorf("decode client: %w", err)
+	}
+	result.Nazwa = strings.TrimSpace(result.Nazwa)
+	result.Adres = strings.TrimSpace(result.Adres)
+	result.NIP = strings.TrimSpace(result.NIP)
+	return result, nil
+}
+
 func sanitizeParseRequest(in *parseRequest) error {
 	in.Tekst = strings.TrimSpace(in.Tekst)
 	in.Obraz = strings.TrimSpace(in.Obraz)
@@ -446,6 +532,19 @@ func handleParse(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+
+	if strings.TrimSpace(in.Tryb) == "klient" {
+		client, err := callGroqParseClient(ctx, apiKey, in)
+		if err != nil {
+			writeParseError(w, http.StatusBadGateway, "nie udało się przetworzyć danych klienta — spróbuj ponownie")
+			return
+		}
+		_ = json.NewEncoder(w).Encode(parseClientResponse{Client: client})
+		return
+	}
+
 	items, err := callGroqParse(ctx, apiKey, in)
 	if err != nil {
 		if strings.Contains(err.Error(), "no valid items") {
@@ -456,7 +555,5 @@ func handleParse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(w).Encode(items)
 }
