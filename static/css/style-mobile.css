@@ -1,5 +1,5 @@
 ﻿/* SumIt — responsywność tablet + telefon (≤1023px).
-   Ładowany przez <link media="(max-width: 1023px)"> — desktop używa wyłącznie style.css. */
+   Ładowany przez <link media="(max-width: 1023px)"> — desktop używa wyłącznie css/style.css. */
 
 :root {
   --touch-min: 44px;
@@ -5527,7 +5527,7 @@ body[data-active-view="view-historia"] #view-historia {
   top: 0;
   left: 0;
   right: 0;
-  bottom: calc(var(--tab-bar-h, 56px) + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--tab-bar-h, 68px) + env(safe-area-inset-bottom, 0px));
   z-index: 50;
   isolation: isolate;
   width: 100%;
@@ -5599,10 +5599,14 @@ body:not([data-active-view="view-historia"]) #view-historia {
 body[data-active-view="view-historia"] .page {
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - var(--tab-bar-h, 56px) - env(safe-area-inset-bottom, 0px));
-  max-height: calc(100dvh - var(--tab-bar-h, 56px) - env(safe-area-inset-bottom, 0px));
+  height: 100dvh;
+  max-height: 100dvh;
   min-height: 0;
   overflow: hidden;
+}
+
+body[data-active-view="view-historia"] .page-nav-row .view-tabs {
+  z-index: 250;
 }
 
 .mobile-only-tab { display: flex !important; }

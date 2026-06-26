@@ -364,8 +364,8 @@
       position: absolute;
       inset: 0;
       background-color: var(--accent);
-      -webkit-mask-image: url('/static/sumit-logo.png');
-      mask-image: url('/static/sumit-logo.png');
+      -webkit-mask-image: url('/static/images/sumit-logo.png');
+      mask-image: url('/static/images/sumit-logo.png');
       -webkit-mask-size: contain;
       mask-size: contain;
       -webkit-mask-repeat: no-repeat;
@@ -4280,8 +4280,8 @@
       width: 24px;
       height: 24px;
       background-color: var(--accent);
-      -webkit-mask-image: url('/static/sumit-logo.png');
-      mask-image: url('/static/sumit-logo.png');
+      -webkit-mask-image: url('/static/images/sumit-logo.png');
+      mask-image: url('/static/images/sumit-logo.png');
       -webkit-mask-size: contain;
       mask-size: contain;
       -webkit-mask-repeat: no-repeat;

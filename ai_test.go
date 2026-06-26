@@ -312,9 +312,9 @@ func TestLiveGroqIntegration(t *testing.T) {
 	})
 
 	t.Run("klient_obraz", func(t *testing.T) {
-		img, err := os.ReadFile("testdata_wizytowka.png")
+		img, err := os.ReadFile("testdata/wizytowka.png")
 		if err != nil {
-			t.Skip("pominięto: brak testdata_wizytowka.png (wygeneruj skryptem testowym)")
+			t.Skip("pominięto: brak testdata/wizytowka.png (wygeneruj skryptem testowym)")
 		}
 		body := fmt.Sprintf(`{"obraz":%q,"mime_type":"image/png","tryb":"klient"}`, base64.StdEncoding.EncodeToString(img))
 		req := httptest.NewRequest(http.MethodPost, "/api/parse", strings.NewReader(body))

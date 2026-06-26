@@ -5,18 +5,21 @@
 - Frontend: vanilla HTML/CSS/JS, zero frameworków, zero npm
 
 ## Struktura plików
-- main.go            — bootstrap serwera HTTP, routing
-- quote.go           — model (Quote, LineItem, Company), JSON, walidacja, handler /quote
-- pdf.go             — generowanie PDF + embed czcionek z assets/fonts/
-- qr.go              — kod QR przelewu w standardzie ZBP
-- nip.go             — proxy do API Białej Listy MF (handler /api/nip)
-- assets/fonts/      — wbudowane TTF (Liberation Sans Regular + Bold)
-- static/index.html  — markup + JS aplikacji klienckiej (vanilla)
-- static/style.css   — wszystkie style aplikacji (wydzielone z `<style>` w index.html)
-- static/sumit-logo.png — logo aplikacji (ryba + napis, header)
-- static/sumit-fish.png — ryba bez napisu (źródło do generowania ikon PWA/favicon)
-- static/icons/ — favicon-16.png, favicon-32.png, pwa-192.png, pwa-512.png
-- static/readme-banner.png — banner do README
+- main.go, quote.go, pdf.go, qr.go, nip.go, ai.go, … — backend Go (katalog główny)
+- assets/fonts/ — wbudowane TTF (Liberation Sans)
+- assets/ksef/ — schematy XSD KSeF
+- static/index.html — entry HTML
+- static/css/style.css — style desktop + wspólne tokeny
+- static/css/style-mobile.css — mobile (≤1023px)
+- static/js/app.js — logika aplikacji
+- static/js/sw.js — service worker PWA
+- static/images/ — logo, banner README, sumit-fish.png
+- static/icons/ — favicon + ikony PWA
+- static/manifest.json, static/stats.html
+- deploy/deploy.sh — wdrożenie produkcyjne (wrapper: ./deploy.sh w root)
+- deploy/DEPLOY.md, deploy/deploy.env.example, deploy/sumit.service
+- scripts/gen_pwa_icons.py — generowanie ikon PWA z sumit-fish.png
+- testdata/ — pliki testowe (np. wizytowka.png dla ai_test.go)
 
 ## Pliki kontekstowe (gitignored)
 - KONTEKST.MD — prywatny brief projektu (architekt Claude → wykonawca Cursor); zawiera sekcję „Co już działa", model biznesowy, notatki workflow. Plik jest w `.gitignore` (linia 6), więc nie pokazują go Glob/Grep — **zawsze na początku sesji czytaj go bezpośrednio przez `Read C:\Users\frani\sumit\KONTEKST.MD`** zanim zaczniesz pracę nad zadaniem. Po skończeniu zmian funkcjonalnych dopisuj nowe wpisy do odpowiedniej subsekcji „Co już działa" (Backend / Frontend).

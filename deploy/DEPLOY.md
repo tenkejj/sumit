@@ -1,13 +1,15 @@
 # Deploy
 
-Instructions for maintainers. End users only need the live URL from [README.md](README.md).
+Instructions for maintainers. End users only need the live URL from [README.md](../README.md).
 
 ## Config
 
 Copy the example file and fill in your values:
 
 ```bash
-cp deploy.env.example deploy.env
+cp deploy/deploy.env.example deploy/deploy.env
+# or keep config at project root:
+cp deploy/deploy.env.example deploy.env
 ```
 
 `deploy.env` is gitignored — never commit keys or server addresses there.
@@ -26,7 +28,7 @@ You can also export variables in the shell instead of using `deploy.env`.
 Ubuntu 24.04, user `ubuntu`. Go is **not** required on the server.
 
 ```bash
-source deploy.env   # or: export SERVER=... SSH_KEY=...
+source deploy/deploy.env   # or: source deploy.env / export SERVER=... SSH_KEY=...
 
 ssh -i "${SSH_KEY}" "${SERVER}"
 
@@ -35,7 +37,7 @@ sudo mkdir -p /opt/sumit/static /opt/sumit/assets
 sudo chown -R ubuntu:ubuntu /opt/sumit
 exit
 
-scp -i "${SSH_KEY}" sumit.service "${SERVER}:/tmp/sumit.service"
+scp -i "${SSH_KEY}" deploy/sumit.service "${SERVER}:/tmp/sumit.service"
 ssh -i "${SSH_KEY}" "${SERVER}" \
   'sudo mv /tmp/sumit.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now sumit'
 
@@ -58,7 +60,7 @@ The script cross-compiles for `linux/amd64`, uploads the binary and `static/` + 
 ## Verify
 
 ```bash
-source deploy.env
+source deploy/deploy.env
 
 ssh -i "${SSH_KEY}" "${SERVER}" 'sudo systemctl status sumit'
 ssh -i "${SSH_KEY}" "${SERVER}" 'journalctl -u sumit -f'
@@ -68,12 +70,14 @@ ssh -i "${SSH_KEY}" "${SERVER}" 'journalctl -u sumit -f'
 
 # Wdrożenie
 
-Instrukcja dla maintainera. Użytkownicy końcowi potrzebują tylko linku z [README.md](README.md).
+Instrukcja dla maintainera. Użytkownicy końcowi potrzebują tylko linku z [README.md](../README.md).
 
 ## Konfiguracja
 
 ```bash
-cp deploy.env.example deploy.env
+cp deploy/deploy.env.example deploy/deploy.env
+# albo w katalogu głównym:
+cp deploy/deploy.env.example deploy.env
 ```
 
 Plik `deploy.env` jest w `.gitignore` — nie commituj tam kluczy ani adresów serwera.
@@ -92,7 +96,7 @@ Zmienne możesz też ustawić w shellu zamiast trzymać je w `deploy.env`.
 Ubuntu 24.04, użytkownik `ubuntu`. Go na serwerze **nie jest potrzebne**.
 
 ```bash
-source deploy.env   # lub: export SERVER=... SSH_KEY=...
+source deploy/deploy.env   # lub: source deploy.env / export SERVER=... SSH_KEY=...
 
 ssh -i "${SSH_KEY}" "${SERVER}"
 
@@ -101,7 +105,7 @@ sudo mkdir -p /opt/sumit/static /opt/sumit/assets
 sudo chown -R ubuntu:ubuntu /opt/sumit
 exit
 
-scp -i "${SSH_KEY}" sumit.service "${SERVER}:/tmp/sumit.service"
+scp -i "${SSH_KEY}" deploy/sumit.service "${SERVER}:/tmp/sumit.service"
 ssh -i "${SSH_KEY}" "${SERVER}" \
   'sudo mv /tmp/sumit.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now sumit'
 
@@ -124,7 +128,7 @@ Skrypt kompiluje pod `linux/amd64`, wysyła binarkę oraz `static/` i `assets/` 
 ## Sprawdzenie
 
 ```bash
-source deploy.env
+source deploy/deploy.env
 
 ssh -i "${SSH_KEY}" "${SERVER}" 'sudo systemctl status sumit'
 ssh -i "${SSH_KEY}" "${SERVER}" 'journalctl -u sumit -f'

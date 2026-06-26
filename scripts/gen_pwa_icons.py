@@ -4,7 +4,7 @@ from PIL import Image
 
 STATIC = Path("static")
 ICONS = STATIC / "icons"
-FISH_SRC = STATIC / "sumit-fish.png"
+FISH_SRC = STATIC / "images" / "sumit-fish.png"
 KURENAI = (192, 20, 60, 255)
 BG = (10, 10, 10, 255)
 

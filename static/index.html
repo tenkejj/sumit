@@ -18,8 +18,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="/static/style-mobile.css" media="(max-width: 1023px)">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style-mobile.css" media="(max-width: 1023px)">
   <link rel="manifest" href="/static/manifest.json">
   <meta name="theme-color" content="#0a0a0a">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
@@ -82,7 +82,7 @@
     <div id="view-home" class="view view-home" aria-label="Ekran główny">
       <header class="home-header">
         <div class="home-header-spacer" aria-hidden="true"></div>
-        <img class="home-logo-img home-logo-img--header" src="/static/sumit-logo.png" alt="SumIt" width="200" height="80">
+        <img class="home-logo-img home-logo-img--header" src="/static/images/sumit-logo.png" alt="SumIt" width="200" height="80">
         <button type="button" class="btn-home-settings wizard-back-btn mobile-header-action" id="btn-home-settings" aria-haspopup="dialog" aria-controls="app-settings-modal" title="Ustawienia" aria-label="Ustawienia">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="22" height="22">
             <circle cx="12" cy="12" r="3"></circle>
@@ -956,7 +956,7 @@
     <div class="gen-overlay-content">
       <div class="gen-card">
         <div class="gen-logo-wrap">
-          <img src="/static/sumit-logo.png" class="gen-logo-img" alt="" aria-hidden="true" width="200" height="84">
+          <img src="/static/images/sumit-logo.png" class="gen-logo-img" alt="" aria-hidden="true" width="200" height="84">
         </div>
 
         <div id="gen-progress-stage" class="gen-progress-stage">
@@ -999,12 +999,12 @@
     </div>
   </div>
 
-  <script src="/static/app.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
 
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+        navigator.serviceWorker.register('/static/js/sw.js').catch(() => {});
       });
     }
   </script>
