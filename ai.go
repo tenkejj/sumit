@@ -463,6 +463,19 @@ func callGroqParseClient(ctx context.Context, apiKey string, in parseRequest) (p
 	return result, nil
 }
 
+func parseNoItemsMessage(in parseRequest) string {
+	hasObraz := strings.TrimSpace(in.Obraz) != ""
+	hasTekst := strings.TrimSpace(in.Tekst) != ""
+	switch {
+	case hasObraz && !hasTekst:
+		return "Na zdjęciu nie widać pozycji do wyceny — sfotografuj notatkę z listą prac i cen."
+	case hasObraz && hasTekst:
+		return "Nie znaleziono pozycji — sprawdź tekst notatki lub użyj zdjęcia z czytelną listą prac i cen."
+	default:
+		return "W notatce nie ma pozycji do wyceny — dodaj opis prac i ceny, np. „montaż 350 zł”."
+	}
+}
+
 func sanitizeParseRequest(in *parseRequest) error {
 	in.Tekst = strings.TrimSpace(in.Tekst)
 	in.Obraz = strings.TrimSpace(in.Obraz)
@@ -548,7 +561,7 @@ func handleParse(w http.ResponseWriter, r *http.Request) {
 	items, err := callGroqParse(ctx, apiKey, in)
 	if err != nil {
 		if strings.Contains(err.Error(), "no valid items") {
-			writeParseError(w, http.StatusBadRequest, "nie znaleziono poprawnych pozycji w notatce")
+			writeParseError(w, http.StatusBadRequest, parseNoItemsMessage(in))
 			return
 		}
 		writeParseError(w, http.StatusBadGateway, "nie udało się przetworzyć notatki — spróbuj ponownie")

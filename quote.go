@@ -53,6 +53,7 @@ type Quote struct {
 	InvoiceNumber string     `json:"numer_faktury,omitempty"`
 	SaleDate      string     `json:"data_sprzedazy,omitempty"`
 	PaymentDue    string     `json:"termin_platnosci,omitempty"`
+	HideQR        bool       `json:"hide_qr,omitempty"`
 }
 
 // quoteJSON to wewnętrzna reprezentacja serializacji przyjmująca płaski
@@ -70,6 +71,7 @@ type quoteJSON struct {
 	InvoiceNumber string     `json:"numer_faktury,omitempty"`
 	SaleDate      string     `json:"data_sprzedazy,omitempty"`
 	PaymentDue    string     `json:"termin_platnosci,omitempty"`
+	HideQR        bool       `json:"hide_qr,omitempty"`
 }
 
 func (q *Quote) UnmarshalJSON(data []byte) error {
@@ -88,6 +90,7 @@ func (q *Quote) UnmarshalJSON(data []byte) error {
 		InvoiceNumber: raw.InvoiceNumber,
 		SaleDate:      raw.SaleDate,
 		PaymentDue:    raw.PaymentDue,
+		HideQR:        raw.HideQR,
 	}
 	return nil
 }
@@ -104,7 +107,13 @@ func (q Quote) MarshalJSON() ([]byte, error) {
 		InvoiceNumber: q.InvoiceNumber,
 		SaleDate:      q.SaleDate,
 		PaymentDue:    q.PaymentDue,
+		HideQR:        q.HideQR,
 	})
+}
+
+// ShouldShowTransferQR zwraca true gdy hide_qr nie jest ustawione (domyślnie pokaż QR).
+func (q Quote) ShouldShowTransferQR() bool {
+	return !q.HideQR
 }
 
 func (q Quote) Total() float64 {

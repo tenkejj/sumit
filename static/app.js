@@ -7,6 +7,10 @@
 
     const MOBILE_MQL = window.matchMedia('(max-width: 1023px)');
     let _wizardKrok = 1;
+    let _wizardStepAnimTimer = null;
+    let _homeWizardAnimTimer = null;
+    const WIZARD_STEP_ANIM_MS = 220;
+    const HOME_WIZARD_ANIM_MS = 360;
     let _wizardGotowy = false;
 
     const shareSupported = typeof navigator !== 'undefined'
@@ -62,8 +66,7 @@
     const DEFAULT_DOC_TYPE_OPTIONS = ['', 'faktura_vat'];
     const DEFAULT_VAT_OPTIONS = ['23', '8', '5', '0'];
     const btnTheme = document.getElementById('btn-theme');
-    const btnThemeMobile = document.getElementById('btn-theme-mobile');
-    const themeButtons = [btnTheme, btnThemeMobile].filter(Boolean);
+    const themeButtons = [btnTheme].filter(Boolean);
 
     // ── Fundament mobile UX: toast / haptic / confetti / checkmark ────────────
 
@@ -92,6 +95,64 @@
       el._toastRemoving = true;
       el.classList.remove('is-visible');
       setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 380);
+    }
+
+    function pokazMilestone(kamien, konfig) {
+      const stack = document.getElementById('milestone-stack');
+      if (!stack || !konfig) return;
+
+      stack.querySelectorAll('.milestone-card').forEach((karta) => ukryjMilestone(karta));
+
+      const el = document.createElement('div');
+      el.className = 'milestone-card';
+      el.setAttribute('role', 'status');
+
+      const numer = document.createElement('div');
+      numer.className = 'milestone-card__num';
+      numer.setAttribute('aria-hidden', 'true');
+      numer.textContent = String(kamien);
+
+      const tekst = document.createElement('div');
+      tekst.className = 'milestone-card__text';
+
+      const eyebrow = document.createElement('span');
+      eyebrow.className = 'milestone-card__eyebrow';
+      eyebrow.textContent = konfig.eyebrow || 'Kamień milowy';
+
+      const tytul = document.createElement('span');
+      tytul.className = 'milestone-card__title';
+      tytul.textContent = konfig.tytul;
+
+      const opis = document.createElement('span');
+      opis.className = 'milestone-card__desc';
+      opis.textContent = konfig.opis;
+
+      tekst.appendChild(eyebrow);
+      tekst.appendChild(tytul);
+      tekst.appendChild(opis);
+      el.appendChild(numer);
+      el.appendChild(tekst);
+      stack.appendChild(el);
+
+      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('is-visible')));
+
+      if (konfig.confetti) odpalConfetti();
+      if (konfig.wibracja) wibruj(konfig.wibracja);
+
+      const czasMs = konfig.czasMs || 5000;
+      const t = setTimeout(() => ukryjMilestone(el), czasMs);
+      el._milestoneTimer = t;
+      el.addEventListener('click', () => {
+        clearTimeout(el._milestoneTimer);
+        ukryjMilestone(el);
+      }, { once: true });
+    }
+
+    function ukryjMilestone(el) {
+      if (!el || el._milestoneRemoving) return;
+      el._milestoneRemoving = true;
+      el.classList.remove('is-visible');
+      setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 420);
     }
 
     function odpalConfetti() {
@@ -342,20 +403,50 @@
       return nazwaPusta && cenaVal === 0;
     }
 
+    function odswiezWalidacjeWiersza(tr) {
+      if (!tr) return;
+      const ukryty = tr.classList.contains('is-row-empty-hidden');
+      tr.querySelectorAll('input, select, textarea').forEach((el) => {
+        if (ukryty) {
+          if (el.required) el.setAttribute('data-was-required', '1');
+          el.required = false;
+          el.disabled = true;
+        } else {
+          el.disabled = false;
+          if (el.getAttribute('data-was-required') === '1') {
+            el.required = true;
+            el.removeAttribute('data-was-required');
+          }
+        }
+      });
+    }
+
+    function odswiezWalidacjeKlientaWizarda() {
+      const klientEl = document.getElementById('klient');
+      if (!klientEl) return;
+      const wWizardzie = MOBILE_MQL.matches
+        && document.body.dataset.activeView === 'view-kreator'
+        && document.body.dataset.wizardKrok;
+      klientEl.required = !wWizardzie || _wizardKrok === 1;
+    }
+
     function odswiezWidocznoscWierszy() {
       const mobile = window.matchMedia('(max-width: 1023px)').matches;
       if (!mobile) {
         tbody.querySelectorAll('tr.is-row-empty-hidden').forEach(tr => {
           tr.classList.remove('is-row-empty-hidden');
+          odswiezWalidacjeWiersza(tr);
         });
         return;
       }
       tbody.querySelectorAll('tr').forEach(tr => {
         if (tr.classList.contains('is-row-revealed')) {
           tr.classList.remove('is-row-empty-hidden');
+          odswiezWalidacjeWiersza(tr);
           return;
         }
         tr.classList.toggle('is-row-empty-hidden', wierszJestPusty(tr));
+        odswiezWalidacjeWiersza(tr);
       });
       odswiezWizardPozycjeUI();
     }
@@ -419,11 +510,24 @@
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </button>
-            <button type="button" class="btn-remove" title="Usuń" aria-label="Usuń wiersz">&times;</button>
+            <button type="button" class="btn-remove" title="Usuń" aria-label="Usuń wiersz">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
           </div>
+          <button type="button" class="btn-row-toggle" title="Rozwiń pozycję" aria-label="Rozwiń pozycję" aria-expanded="false">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6l4 4 4-4"></path>
+            </svg>
+          </button>
         </td>
       `;
-      tr.querySelector('.btn-remove').addEventListener('click', () => {
+      tr.querySelector('.btn-remove').addEventListener('click', (e) => {
+        e.stopPropagation();
         if (tbody.children.length <= 1) {
           pokazKomunikat('Musi pozostać co najmniej jedna pozycja.', 'error');
           return;
@@ -434,7 +538,29 @@
         aktualizujSzacowanyZysk();
         odswiezPodgladPozycjiAkordeon();
       });
-      tr.querySelector('.btn-duplicate').addEventListener('click', () => duplikujWiersz(tr));
+      const btnToggle = tr.querySelector('.btn-row-toggle');
+      if (btnToggle) {
+        btnToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!MOBILE_MQL.matches) return;
+          if (tr.classList.contains('is-row-expanded')) {
+            zwinWierszPozycji(tr);
+          } else if (_wizardKrok === 2) {
+            rozwinTylkoWierszPozycji(tr);
+            const inp = tr.querySelector('.in-nazwa');
+            if (inp) setTimeout(() => inp.focus(), 0);
+          } else {
+            ujawnijWiersz(tr);
+            tr.classList.add('is-row-expanded');
+          }
+          odswiezPrzyciskToggleWiersza(tr);
+        });
+      }
+      odswiezPrzyciskToggleWiersza(tr);
+      tr.querySelector('.btn-duplicate').addEventListener('click', (e) => {
+        e.stopPropagation();
+        duplikujWiersz(tr);
+      });
       tr.querySelector('.btn-calc').addEventListener('click', () => otworzKalkulator(tr));
       tr.querySelectorAll('.btn-adjust').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -446,7 +572,12 @@
         if (!MOBILE_MQL.matches) return;
         if (e.target.closest('input, button, select, textarea, a, label')) return;
         const bylRozwiniety = tr.classList.contains('is-row-expanded');
-        tr.classList.toggle('is-row-expanded');
+        if (MOBILE_MQL.matches && _wizardKrok === 2 && !bylRozwiniety) {
+          rozwinTylkoWierszPozycji(tr);
+        } else {
+          tr.classList.toggle('is-row-expanded');
+          odswiezPrzyciskiTogglePozycji();
+        }
         if (!bylRozwiniety && tr.classList.contains('is-row-expanded')) {
           ujawnijWiersz(tr);
           const inp = tr.querySelector('.in-nazwa');
@@ -462,8 +593,11 @@
         });
         nazwaInput.addEventListener('focus', () => {
           if (!MOBILE_MQL.matches) return;
-          ujawnijWiersz(tr);
-          tr.classList.add('is-row-expanded');
+          if (_wizardKrok === 2) rozwinTylkoWierszPozycji(tr);
+          else {
+            ujawnijWiersz(tr);
+            tr.classList.add('is-row-expanded');
+          }
         });
       }
       const cenaInput = tr.querySelector('.in-cena');
@@ -474,8 +608,18 @@
         });
         cenaInput.addEventListener('focus', () => {
           if (!MOBILE_MQL.matches) return;
+          if (_wizardKrok === 2) rozwinTylkoWierszPozycji(tr);
+          else {
+            ujawnijWiersz(tr);
+            tr.classList.add('is-row-expanded');
+          }
+        });
+      }
+      const kosztInput = tr.querySelector('.in-koszt');
+      if (kosztInput) {
+        kosztInput.addEventListener('input', () => {
           ujawnijWiersz(tr);
-          tr.classList.add('is-row-expanded');
+          odswiezWidocznoscWierszy();
         });
       }
       if (naKoniec) {
@@ -587,6 +731,9 @@
       } else if (suma < 0) {
         profitBadge.classList.add('is-loss');
       }
+      if (typeof odswiezWizardKrok3Podsumowanie === 'function') {
+        odswiezWizardKrok3Podsumowanie();
+      }
     }
 
     tbody.addEventListener('input', (e) => {
@@ -638,9 +785,196 @@
     document.querySelectorAll('.date-helpers .chip').forEach(btn => {
       btn.addEventListener('click', () => {
         const dni = parseInt(btn.dataset.days, 10);
-        if (Number.isFinite(dni)) ustawDateZaDniOdDzis(dni);
+        if (Number.isFinite(dni)) {
+          ustawDateZaDniOdDzis(dni);
+          odswiezAktywnyChipDaty();
+          zamknijWlasnaDateWaznosci();
+          zamknijPanelWaznosciWizarda();
+        }
       });
     });
+
+    const wizardStep3DateRow = document.getElementById('wizard-step3-date-row');
+    if (wizardStep3DateRow) {
+      wizardStep3DateRow.addEventListener('click', () => {
+        const input = document.getElementById('data_waznosci');
+        if (!input) return;
+        if (typeof input.showPicker === 'function') {
+          try { input.showPicker(); return; } catch (e) { /* fallback */ }
+        }
+        input.focus();
+        input.click();
+      });
+    }
+
+    function formatujDateWaznosciWyswietlana(iso) {
+      if (!iso) return '';
+      const d = new Date(iso + 'T12:00:00');
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function formatujDateWaznosciKrotka(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso + 'T12:00:00');
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function odswiezEtykieteDatyWaznosci() {
+      const input = document.getElementById('data_waznosci');
+      const label = document.getElementById('wizard-step3-date-label');
+      if (!input || !label) return;
+      label.textContent = MOBILE_MQL.matches
+        ? formatujDateWaznosciKrotka(input.value)
+        : formatujDateWaznosciWyswietlana(input.value);
+    }
+
+    function odswiezWizardKrok3WaznoscWartosc() {
+      const valEl = document.getElementById('wizard-step3-duration-value');
+      if (!valEl) return;
+      const aktywny = document.querySelector('.date-helpers .chip[data-days].is-active');
+      if (aktywny) {
+        const dni = parseInt(aktywny.dataset.days, 10);
+        valEl.textContent = Number.isFinite(dni) ? (dni + ' dni') : '—';
+        return;
+      }
+      const input = document.getElementById('data_waznosci');
+      if (!input || !input.value) {
+        valEl.textContent = '—';
+        return;
+      }
+      const today = new Date();
+      today.setHours(12, 0, 0, 0);
+      const selected = new Date(input.value + 'T12:00:00');
+      if (Number.isNaN(selected.getTime())) {
+        valEl.textContent = '—';
+        return;
+      }
+      const diffDays = Math.round((selected - today) / 86400000);
+      valEl.textContent = diffDays > 0 ? (diffDays + ' dni') : 'Inna';
+    }
+
+    function skrotKlientaDoPodsumowania() {
+      const klientEl = document.getElementById('klient');
+      if (!klientEl) return '—';
+      const txt = String(klientEl.value || '').trim();
+      if (!txt) return '—';
+      const pierwsza = txt.split('\n')[0].trim();
+      if (!pierwsza) return '—';
+      return pierwsza.length > 26 ? pierwsza.slice(0, 24) + '…' : pierwsza;
+    }
+
+    function odswiezWizardKrok3UwagiWartosc() {
+      /* mobile: uwagi widoczne inline — brak wiersza podsumowania */
+    }
+
+    function odswiezWizardKrok3Podsumowanie() {
+      const line = document.getElementById('wizard-step3-summary-text');
+      if (!line || !MOBILE_MQL.matches || _wizardKrok !== 3) return;
+      const { pozycje } = budujPayloadZFormularza();
+      const liczba = pozycje.length;
+      const pozLabel = liczba === 1 ? '1 poz.' : liczba + ' poz.';
+      const suma = formatujKwote(obliczSumePozycji(pozycje));
+      line.textContent = skrotKlientaDoPodsumowania() + ' · ' + pozLabel + ' · ' + suma;
+    }
+
+    function zamknijPanelWaznosciWizarda() {
+      /* panel 7/14/30 zawsze widoczny na mobile */
+    }
+
+    function zamknijWlasnaDateWaznosci() {
+      if (MOBILE_MQL.matches) return;
+      const panel = document.getElementById('wizard-step3-date-field');
+      const btn = document.getElementById('btn-wizard-step3-custom-date');
+      if (panel) panel.hidden = true;
+      if (btn) {
+        btn.setAttribute('aria-expanded', 'false');
+        btn.classList.remove('is-active');
+      }
+      document.body.classList.remove('wizard-step3-custom-date-open');
+    }
+
+    function otworzWlasnaDateWaznosci() {
+      const panel = document.getElementById('wizard-step3-date-field');
+      const btn = document.getElementById('btn-wizard-step3-custom-date');
+      if (MOBILE_MQL.matches) {
+        if (panel) panel.hidden = false;
+        return;
+      }
+      if (panel) panel.hidden = false;
+      if (btn) {
+        btn.setAttribute('aria-expanded', 'true');
+        btn.classList.add('is-active');
+      }
+      if (!MOBILE_MQL.matches) {
+        document.body.classList.add('wizard-step3-custom-date-open');
+      }
+    }
+
+    const btnWizardStep3CustomDate = document.getElementById('btn-wizard-step3-custom-date');
+    if (btnWizardStep3CustomDate) {
+      btnWizardStep3CustomDate.addEventListener('click', () => {
+        const panel = document.getElementById('wizard-step3-date-field');
+        if (!panel) return;
+        if (panel.hidden) {
+          otworzWlasnaDateWaznosci();
+          const input = document.getElementById('data_waznosci');
+          if (input) input.focus();
+        } else {
+          zamknijWlasnaDateWaznosci();
+        }
+      });
+    }
+
+    function odswiezAktywnyChipDaty() {
+      const input = document.getElementById('data_waznosci');
+      if (!input || !input.value) return;
+      const selected = new Date(input.value + 'T12:00:00');
+      if (Number.isNaN(selected.getTime())) return;
+      const today = new Date();
+      today.setHours(12, 0, 0, 0);
+      const diffDays = Math.round((selected - today) / 86400000);
+      document.querySelectorAll('.date-helpers .chip[data-days]').forEach((chip) => {
+        const dni = parseInt(chip.dataset.days, 10);
+        chip.classList.toggle('is-active', Number.isFinite(dni) && dni === diffDays);
+        chip.setAttribute('aria-pressed', dni === diffDays ? 'true' : 'false');
+      });
+      odswiezEtykieteDatyWaznosci();
+      odswiezWizardKrok3WaznoscWartosc();
+    }
+
+    const dataWaznosciInput = document.getElementById('data_waznosci');
+    if (dataWaznosciInput) {
+      dataWaznosciInput.addEventListener('input', odswiezAktywnyChipDaty);
+      dataWaznosciInput.addEventListener('change', odswiezAktywnyChipDaty);
+    }
+    odswiezAktywnyChipDaty();
+    if (MOBILE_MQL.matches) {
+      otworzWlasnaDateWaznosci();
+    }
+
+    function odswiezWizardKrok3UI() {
+      if (!MOBILE_MQL.matches || _wizardKrok !== 3) return;
+      otworzWlasnaDateWaznosci();
+      const input = document.getElementById('data_waznosci');
+      if (input) {
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        let diffDays = -1;
+        if (input.value) {
+          const selected = new Date(input.value + 'T12:00:00');
+          if (!Number.isNaN(selected.getTime())) {
+            diffDays = Math.round((selected - today) / 86400000);
+          }
+        }
+        if (![7, 14, 30].includes(diffDays)) {
+          ustawDateZaDniOdDzis(wczytajDomyslnaWaznoscDni());
+        }
+      }
+      odswiezAktywnyChipDaty();
+      odswiezWizardKrok3Podsumowanie();
+    }
 
     const uwagiTextarea = document.getElementById('uwagi');
     const presetChips = document.querySelectorAll('.footer-presets .chip');
@@ -689,7 +1023,10 @@
     });
 
     if (uwagiTextarea) {
-      uwagiTextarea.addEventListener('input', odswiezStanPresetow);
+      uwagiTextarea.addEventListener('input', () => {
+        odswiezStanPresetow();
+        odswiezWizardKrok3UwagiWartosc();
+      });
     }
 
     function budujPayloadZFormularza() {
@@ -752,6 +1089,9 @@
         uwagi: document.getElementById('uwagi').value.trim(),
         pozycje: pozycjeOk,
       };
+      if (cfg.show_qr_przelew === false) {
+        payloadBase.hide_qr = true;
+      }
       if (aktualnyDocType && (!isInvoice || invoiceReady)) {
         payloadBase.typ_dokumentu = aktualnyDocType;
         payloadBase.numer_faktury = numerFaktury;
@@ -991,9 +1331,16 @@
       }
     });
 
+    function ustawEtykietePrzyciskuGeneruj(tekst) {
+      if (!btnGeneruj) return;
+      const label = btnGeneruj.querySelector('.btn-generuj-label');
+      if (label) label.textContent = tekst;
+      else btnGeneruj.textContent = tekst;
+    }
+
     function aktualizujTekstPrzyciskuGeneruj() {
       if (!btnGeneruj) return;
-      btnGeneruj.textContent = livePodgladMql.matches ? 'Pobierz PDF' : 'Wygeneruj wycenę';
+      ustawEtykietePrzyciskuGeneruj(livePodgladMql.matches ? 'Pobierz PDF' : 'Wygeneruj wycenę');
     }
     aktualizujTekstPrzyciskuGeneruj();
 
@@ -1129,23 +1476,112 @@
       'Gotowe! ✓',
     ];
 
+    const GEN_PROGRESS_MS = 12000;
+    const GEN_PROGRESS_TARGET_PCT = 88;
+    const GEN_FINISH_MS = 1800;
+    const GEN_TEKST_INTERVAL_MS = 1600;
+
     let _genAnimTimer = null;
-    let _genProgressTimer = null;
+    let _genProgressRaf = null;
+    let _genProgressPct = 0;
+    let _genProgressDisplayedPct = -1;
     let _genAktualnyBlob = null;
     let _genAktualnaNazwa = '';
     let _genAktualnyPayload = null;
     let _genAktualneKoszty = null;
 
+    function ustawPostepGenerowania(pct) {
+      const track = document.getElementById('gen-progress-track');
+      const bar = document.getElementById('gen-progress-bar');
+      const pctEl = document.getElementById('gen-progress-pct');
+      const clamped = Math.max(0, Math.min(100, pct));
+      _genProgressPct = clamped;
+      if (bar) {
+        bar.style.width = clamped + '%';
+      }
+      const displayed = Math.round(clamped);
+      if (displayed !== _genProgressDisplayedPct) {
+        _genProgressDisplayedPct = displayed;
+        if (pctEl) pctEl.textContent = displayed + '%';
+        if (track) track.setAttribute('aria-valuenow', String(displayed));
+      }
+    }
+
+    function stopGenProgressAnim() {
+      if (_genProgressRaf) {
+        cancelAnimationFrame(_genProgressRaf);
+        _genProgressRaf = null;
+      }
+    }
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function easeInOutCubic(t) {
+      return t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function startGenProgressSteps() {
+      stopGenProgressAnim();
+      _genProgressPct = 0;
+      _genProgressDisplayedPct = -1;
+      ustawPostepGenerowania(0);
+      const start = performance.now();
+
+      const tick = (now) => {
+        const elapsed = now - start;
+        if (elapsed >= GEN_PROGRESS_MS) {
+          ustawPostepGenerowania(GEN_PROGRESS_TARGET_PCT);
+          return;
+        }
+        const ratio = elapsed / GEN_PROGRESS_MS;
+        const next = 1 + (GEN_PROGRESS_TARGET_PCT - 1) * easeOutCubic(ratio);
+        ustawPostepGenerowania(next);
+        _genProgressRaf = requestAnimationFrame(tick);
+      };
+
+      _genProgressRaf = requestAnimationFrame(tick);
+    }
+
+    function dokonczPostepGenerowania(onDone) {
+      stopGenProgressAnim();
+      const startPct = Math.max(0, _genProgressPct);
+      const start = performance.now();
+
+      const tick = (now) => {
+        const elapsed = now - start;
+        const ratio = Math.min(1, elapsed / GEN_FINISH_MS);
+        const next = startPct + (100 - startPct) * easeInOutCubic(ratio);
+        ustawPostepGenerowania(next);
+        if (ratio >= 1) {
+          ustawPostepGenerowania(100);
+          if (typeof onDone === 'function') onDone();
+          return;
+        }
+        _genProgressRaf = requestAnimationFrame(tick);
+      };
+
+      _genProgressRaf = requestAnimationFrame(tick);
+    }
+
     function uruchomAnimacjeGenerowania() {
       if (!MOBILE_MQL.matches) return;
       const overlay = document.getElementById('gen-overlay');
       const sukces = document.getElementById('gen-sukces');
+      const progressStage = document.getElementById('gen-progress-stage');
       const statusEl = document.getElementById('gen-status-text');
       const progressBar = document.getElementById('gen-progress-bar');
       if (!overlay) return;
 
+      overlay.classList.remove('is-complete');
       if (sukces) sukces.setAttribute('hidden', '');
+      if (progressStage) progressStage.removeAttribute('hidden');
+      overlay.classList.remove('hidden');
       overlay.removeAttribute('hidden');
+      document.body.classList.add('gen-overlay-open');
       document.body.style.overflow = 'hidden';
 
       let idx = 0;
@@ -1154,14 +1590,15 @@
       _genAnimTimer = setInterval(() => {
         idx = Math.min(idx + 1, GEN_TEKSTY.length - 2);
         if (statusEl) statusEl.textContent = GEN_TEKSTY[idx];
-      }, 600);
+      }, GEN_TEKST_INTERVAL_MS);
 
       if (progressBar) {
         progressBar.style.transition = 'none';
         progressBar.style.width = '0%';
+        _genProgressDisplayedPct = -1;
+        ustawPostepGenerowania(0);
         requestAnimationFrame(() => {
-          progressBar.style.transition = 'width 2.8s cubic-bezier(0.4, 0, 0.2, 1)';
-          progressBar.style.width = '85%';
+          startGenProgressSteps();
         });
       }
     }
@@ -1176,30 +1613,37 @@
 
       const overlay = document.getElementById('gen-overlay');
       const sukces = document.getElementById('gen-sukces');
-      const statusEl = document.getElementById('gen-status-text');
+      const progressStage = document.getElementById('gen-progress-stage');
       const progressBar = document.getElementById('gen-progress-bar');
       const kwotaEl = document.getElementById('gen-sukces-kwota');
       if (!overlay) return;
 
-      if (statusEl) statusEl.textContent = 'Gotowe! ✓';
       if (progressBar) {
-        progressBar.style.transition = 'width 0.3s ease';
-        progressBar.style.width = '100%';
+        progressBar.style.transition = 'none';
       }
 
-      setTimeout(() => {
-        if (kwotaEl) kwotaEl.textContent = 'Wycena na ' + formatujKwote(suma) + ' gotowa!';
+      dokonczPostepGenerowania(() => {
+        if (kwotaEl) kwotaEl.textContent = formatujKwote(suma);
+        overlay.classList.add('is-complete');
+        if (progressStage) progressStage.setAttribute('hidden', '');
         if (sukces) sukces.removeAttribute('hidden');
-        odpalConfetti();
         wibruj([100, 50, 100]);
-      }, 400);
+      });
     }
 
     function zamknijGenOverlay() {
       const overlay = document.getElementById('gen-overlay');
-      if (overlay) overlay.setAttribute('hidden', '');
+      if (overlay) {
+        overlay.setAttribute('hidden', '');
+        overlay.classList.add('hidden');
+        overlay.classList.remove('is-complete');
+      }
+      const progressStage = document.getElementById('gen-progress-stage');
+      if (progressStage) progressStage.removeAttribute('hidden');
+      document.body.classList.remove('gen-overlay-open');
       document.body.style.overflow = '';
       clearInterval(_genAnimTimer);
+      stopGenProgressAnim();
       _genAktualnyBlob = null;
       _genAktualnaNazwa = '';
       _genAktualnyPayload = null;
@@ -1207,6 +1651,24 @@
     }
 
     // Wire overlay buttons (once, on DOMContentLoaded)
+    function otworzMailtoDlaWyceny(payload) {
+      if (!payload) return false;
+      const numer = String(payload.numer_oferty || '').trim();
+      const firma = String(payload.nazwa_firmy || '').trim();
+      const sumaNum = obliczSumePozycji(payload.pozycje);
+      const sumaTxt = (Number.isFinite(sumaNum) ? sumaNum : 0).toFixed(2).replace('.', ',');
+
+      const numerTxt = numer || 'bez numeru';
+      const subject = firma
+        ? `Oferta ${numerTxt} - ${firma}`
+        : `Oferta ${numerTxt}`;
+      const podpis = firma ? `Pozdrawiam,\n${firma}` : 'Pozdrawiam';
+      const body = `Dzień dobry,\n\nw załączniku przesyłam ofertę ${numerTxt} na kwotę ${sumaTxt} zł. W razie pytań jestem do dyspozycji.\n\n${podpis}`;
+
+      window.location.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      return true;
+    }
+
     function initGenOverlay() {
       const btnPobierz = document.getElementById('btn-gen-pobierz');
       if (btnPobierz) {
@@ -1250,6 +1712,18 @@
         });
       }
 
+      const btnEmail = document.getElementById('btn-gen-email');
+      if (btnEmail) {
+        btnEmail.addEventListener('click', () => {
+          if (!otworzMailtoDlaWyceny(_genAktualnyPayload)) {
+            pokazToast('Brak danych wyceny do e-maila.', 'error');
+            return;
+          }
+          pokazToast('Dołącz PDF jako załącznik w aplikacji pocztowej.', 'info');
+          zamknijGenOverlay();
+        });
+      }
+
       const btnZamknij = document.getElementById('btn-gen-zamknij');
       if (btnZamknij) {
         btnZamknij.addEventListener('click', zamknijGenOverlay);
@@ -1273,7 +1747,7 @@
       const desktopTryb = livePodgladMql.matches;
 
       btnGeneruj.disabled = true;
-      btnGeneruj.textContent = desktopTryb ? 'Pobieranie...' : 'Generowanie...';
+      ustawEtykietePrzyciskuGeneruj(desktopTryb ? 'Pobieranie...' : 'Generowanie...');
 
       if (!desktopTryb) uruchomAnimacjeGenerowania();
 
@@ -1522,21 +1996,7 @@
         pokazKomunikat('Najpierw wygeneruj wycenę, aby przygotować e-mail.', 'error');
         return;
       }
-      const p = aktualnyPayloadEmail;
-      const numer = String(p.numer_oferty || '').trim();
-      const firma = String(p.nazwa_firmy || '').trim();
-      const sumaNum = obliczSumePozycji(p.pozycje);
-      const sumaTxt = (Number.isFinite(sumaNum) ? sumaNum : 0).toFixed(2).replace('.', ',');
-
-      const numerTxt = numer || 'bez numeru';
-      const subject = firma
-        ? `Oferta ${numerTxt} - ${firma}`
-        : `Oferta ${numerTxt}`;
-      const podpis = firma ? `Pozdrawiam,\n${firma}` : 'Pozdrawiam';
-      const body = `Dzień dobry,\n\nw załączniku przesyłam ofertę ${numerTxt} na kwotę ${sumaTxt} zł. W razie pytań jestem do dyspozycji.\n\n${podpis}`;
-
-      const mailto = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-      window.location.href = mailto;
+      otworzMailtoDlaWyceny(aktualnyPayloadEmail);
     });
 
     const STORAGE_KEY_CONFIG = 'sumit_config';
@@ -1548,8 +2008,14 @@
     const appSettingsBackdrop = document.getElementById('app-settings-modal-backdrop');
     const appSettingsMobileMql = window.matchMedia('(max-width: 1023px)');
     const btnAppSettingsZamknij = document.getElementById('btn-app-settings-zamknij');
-    const btnSettings = document.getElementById('btn-settings');
-    const btnSettingsMobile = document.getElementById('btn-settings-mobile');
+    const APP_SETTINGS_BTN_IDS = [
+      'btn-settings',
+      'btn-home-settings',
+      'btn-settings-mobile',
+      'btn-settings-historia',
+      'btn-settings-statystyki',
+      'btn-settings-wizard',
+    ];
     const btnCfgWyczysc = document.getElementById('btn-cfg-wyczysc');
     const btnCfgZapisz = document.getElementById('btn-cfg-zapisz');
     const settingsMessage = document.getElementById('settings-message');
@@ -1614,8 +2080,12 @@
       ustawLiniePodgladuFirmy(previewEmail, cfg.email.trim() ? cfg.email.trim() : '');
 
       const cyfryKonta = (cfg.numer_konta || '').replace(/\D+/g, '');
+      const qrEnabled = cfg.show_qr_przelew !== false;
       if (statusQr) {
-        if (cyfryKonta.length === 26) {
+        if (!qrEnabled) {
+          statusQr.textContent = 'QR wyłączony';
+          statusQr.dataset.state = 'warn';
+        } else if (cyfryKonta.length === 26) {
           statusQr.textContent = 'QR na PDF';
           statusQr.dataset.state = 'ok';
         } else if (cyfryKonta.length > 0) {
@@ -1738,12 +2208,15 @@
     function wczytajConfig() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY_CONFIG);
-        if (!raw) return {};
+        if (!raw) return { show_qr_przelew: true };
         const dane = JSON.parse(raw);
-        if (!dane || typeof dane !== 'object') return {};
+        if (!dane || typeof dane !== 'object') return { show_qr_przelew: true };
+        if (typeof dane.show_qr_przelew !== 'boolean') {
+          dane.show_qr_przelew = true;
+        }
         return dane;
       } catch (e) {
-        return {};
+        return { show_qr_przelew: true };
       }
     }
 
@@ -1784,6 +2257,8 @@
         const el = document.getElementById('cfg-' + k);
         if (el) el.value = typeof cfg[k] === 'string' ? cfg[k] : '';
       });
+      const qrToggle = document.getElementById('cfg-show_qr_przelew');
+      if (qrToggle) qrToggle.checked = cfg.show_qr_przelew !== false;
       ustawPodgladLogo(typeof cfg.logo_base64 === 'string' ? cfg.logo_base64 : '');
       ukryjKomunikatCfg();
       odswiezPodgladFirmy();
@@ -1796,6 +2271,8 @@
         cfg[k] = el ? el.value.trim() : '';
       });
       cfg.logo_base64 = cfgLogoBase64 || '';
+      const qrToggle = document.getElementById('cfg-show_qr_przelew');
+      cfg.show_qr_przelew = qrToggle ? qrToggle.checked : true;
       return cfg;
     }
 
@@ -1861,6 +2338,8 @@
         const el = document.getElementById('cfg-' + k);
         if (el) el.value = '';
       });
+      const qrToggle = document.getElementById('cfg-show_qr_przelew');
+      if (qrToggle) qrToggle.checked = true;
       ustawPodgladLogo('');
       cfgLogoInput.value = '';
       try { localStorage.removeItem(STORAGE_KEY_CONFIG); } catch (e) {}
@@ -1878,6 +2357,7 @@
       settingsForm.addEventListener('change', () => {
         if (!walidujNumerKonta()) return;
         zapiszCfgZFormularza();
+        if (typeof saveDraft === 'function') saveDraft();
       });
       settingsForm.addEventListener('input', () => {
         odswiezPodgladFirmy();
@@ -1925,8 +2405,10 @@
     function ukryjAppSettingsModal() {
       if (!appSettingsModal) return;
       appSettingsModal.hidden = true;
+      appSettingsModal.setAttribute('hidden', '');
       appSettingsModal.setAttribute('aria-hidden', 'true');
       appSettingsModal.classList.remove('is-open');
+      appSettingsModal.classList.add('hidden');
       document.body.style.overflow = '';
     }
 
@@ -1934,7 +2416,9 @@
       if (!appSettingsModal) return;
       odswiezWszystkieChipyAppSettings();
       appSettingsModal.hidden = false;
+      appSettingsModal.removeAttribute('hidden');
       appSettingsModal.setAttribute('aria-hidden', 'false');
+      appSettingsModal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
       if (appSettingsMobileMql.matches) {
         appSettingsModal.classList.remove('is-open');
@@ -1977,10 +2461,10 @@
       ukryjAppSettingsModal();
     }
 
-    if (btnSettings) btnSettings.addEventListener('click', () => otworzAppSettings());
-    if (btnSettingsMobile) {
-      btnSettingsMobile.addEventListener('click', () => otworzAppSettings());
-    }
+    APP_SETTINGS_BTN_IDS.forEach((id) => {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', () => otworzAppSettings());
+    });
     if (btnAppSettingsZamknij) btnAppSettingsZamknij.addEventListener('click', zamknijAppSettings);
     if (appSettingsBackdrop) appSettingsBackdrop.addEventListener('click', zamknijAppSettings);
     appSettingsMobileMql.addEventListener('change', () => {
@@ -2193,19 +2677,37 @@
     let nipFetchController = null;
 
     function ustawStanLadowaniaNIP(loading) {
-      if (!btnNipPobierz || !nipInput) return;
-      btnNipPobierz.disabled = loading;
-      btnNipPobierz.textContent = loading ? 'Pobieram…' : 'Pobierz';
-      btnNipPobierz.setAttribute('aria-busy', loading ? 'true' : 'false');
-      nipInput.disabled = loading;
+      const btnInline = document.getElementById('btn-pobierz-nip');
+      if (btnNipPobierz && nipInput) {
+        btnNipPobierz.disabled = loading;
+        btnNipPobierz.textContent = loading ? 'Pobieram…' : 'Pobierz';
+        btnNipPobierz.setAttribute('aria-busy', loading ? 'true' : 'false');
+        nipInput.disabled = loading;
+      }
+      if (btnInline) {
+        btnInline.disabled = loading;
+        btnInline.setAttribute('aria-busy', loading ? 'true' : 'false');
+        const label = btnInline.querySelector('.btn-link-nip-label');
+        if (label) label.textContent = loading ? 'Pobieram…' : 'Pobierz po NIP';
+      }
     }
 
-    function otworzModalNIP() {
+    function wyciagnijNipZPolaKlienta(text) {
+      const parsed = parseKlientBlok(text);
+      if (parsed.nip && parsed.nip.length === 10) return parsed.nip;
+      const digits = String(text || '').replace(/\D/g, '');
+      if (digits.length === 10) return digits;
+      if (digits.length > 10) return digits.slice(-10);
+      return '';
+    }
+
+    function otworzModalNIP(prefill) {
       if (!modalNIP || !nipInput) return;
-      nipInput.value = '';
+      nipInput.value = prefill ? String(prefill).replace(/\D/g, '').slice(0, 10) : '';
       ustawStanLadowaniaNIP(false);
       modalNIP.classList.remove('hidden');
       modalNIP.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('nip-modal-open');
       document.body.style.overflow = 'hidden';
       setTimeout(() => nipInput.focus(), 0);
     }
@@ -2218,6 +2720,7 @@
       }
       modalNIP.classList.add('hidden');
       modalNIP.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('nip-modal-open');
       document.body.style.overflow = '';
       ustawStanLadowaniaNIP(false);
     }
@@ -2227,6 +2730,11 @@
       const klientEl = document.getElementById('klient');
       const nip = oczyscNIPWejscie(nipRaw);
       if (!klientEl) return false;
+      const nipOnlyRe = /^\s*NIP:\s*(\d{10})\s*$/i;
+      const nipOnlyMatch = String(klientEl.value || '').match(nipOnlyRe);
+      if (nipOnlyMatch) {
+        klientEl.value = '';
+      }
       if (nip.length !== 10) {
         pokazToast('Nieprawidłowy NIP — musi zawierać dokładnie 10 cyfr.', 'error');
         if (nipInput) nipInput.focus();
@@ -2258,6 +2766,8 @@
 
         klientEl.value = formatKlientBlok(rekord);
         klientEl.dispatchEvent(new Event('input', { bubbles: true }));
+        if (MOBILE_MQL.matches && wizardMobileAktywny()) otworzPoleKlientaWizarda();
+        zapiszDoNipCache(rekord);
         upsertKlienta(rekord);
         saveDraft();
         if (opcje.zamknijModal !== false) zamknijModalNIP();
@@ -2270,9 +2780,7 @@
         return false;
       } finally {
         nipFetchController = null;
-        if (!modalNIP || !modalNIP.classList.contains('hidden')) {
-          ustawStanLadowaniaNIP(false);
-        }
+        ustawStanLadowaniaNIP(false);
       }
     }
 
@@ -2282,52 +2790,313 @@
     }
 
     function pobierzKlientaPoNIP() {
-      otworzModalNIP();
+      const klientEl = document.getElementById('klient');
+      const nipZZawartosci = klientEl ? wyciagnijNipZPolaKlienta(klientEl.value) : '';
+      if (MOBILE_MQL.matches && wizardMobileAktywny()) {
+        if (nipZZawartosci.length === 10) {
+          void pobierzDaneKlientaPoNIP(nipZZawartosci, { zamknijModal: false });
+          return;
+        }
+        otworzModalNIP(nipZZawartosci);
+        return;
+      }
+      otworzModalNIP(nipZZawartosci);
     }
 
     const klientTextarea = document.getElementById('klient');
     const klientAutocompleteEl = document.getElementById('klient-autocomplete');
     let autocompleteResults = [];
     let autocompleteIndex = -1;
+    let _nipPodpowiedzSeq = 0;
+    const _nipCachePamiec = new Map();
+    const _nipFetchPending = new Map();
+    const STORAGE_KEY_NIP_CACHE = 'sumit_nip_cache';
     const MAX_PODPOWIEDZI_KLIENT = 8;
 
-    function getUnikalniKlienci() {
-      const seen = new Set();
-      const wynik = [];
-      const push = (blok) => {
-        const klucz = String(blok || '').replace(/\s+/g, ' ').trim().toLowerCase();
-        if (!klucz || seen.has(klucz)) return;
-        seen.add(klucz);
-        wynik.push(blok);
+    function klientBlokDoListy(blok) {
+      const tekst = String(blok || '').trim();
+      if (!tekst) return '';
+      const sformatowany = formatKlientBlok(wzbogacRekordKlienta(parseKlientBlok(tekst)));
+      return sformatowany || tekst;
+    }
+
+    function klientZHistorii(wpis) {
+      if (!wpis) return '';
+      const zWpisu = String(wpis.klient || '').trim();
+      const zPayload = String((wpis.payload && wpis.payload.klient) || '').trim();
+      if (!zWpisu) return zPayload;
+      if (!zPayload) return zWpisu;
+      return ocenaKompletnosciKlientaRaw(zPayload) > ocenaKompletnosciKlientaRaw(zWpisu)
+        ? zPayload
+        : zWpisu;
+    }
+
+    function wczytajCacheNip() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_NIP_CACHE);
+        if (!raw) return {};
+        const dane = JSON.parse(raw);
+        return dane && typeof dane === 'object' ? dane : {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function zapiszCacheNip(cache) {
+      try {
+        localStorage.setItem(STORAGE_KEY_NIP_CACHE, JSON.stringify(cache));
+      } catch (_) {}
+    }
+
+    function pobierzZNipCache(nip) {
+      const n = String(nip || '').replace(/\D/g, '').slice(0, 10);
+      if (n.length !== 10) return null;
+      if (_nipCachePamiec.has(n)) return _nipCachePamiec.get(n);
+      const cache = wczytajCacheNip();
+      if (cache[n]) {
+        _nipCachePamiec.set(n, cache[n]);
+        return cache[n];
+      }
+      return null;
+    }
+
+    function zapiszDoNipCache(rekord) {
+      const n = String(rekord && rekord.nip || '').replace(/\D/g, '').slice(0, 10);
+      if (n.length !== 10) return;
+      const wpis = {
+        nip: n,
+        nazwa: String(rekord.nazwa || '').trim(),
+        adres: String(rekord.adres || '').trim(),
       };
-      wczytajKlientow().forEach(k => push(formatKlientBlok(k)));
-      wczytajHistorie().forEach(wpis => {
-        const raw = (wpis && (wpis.klient || (wpis.payload && wpis.payload.klient))) || '';
-        push(String(raw).trim());
+      _nipCachePamiec.set(n, wpis);
+      const cache = wczytajCacheNip();
+      cache[n] = wpis;
+      const klucze = Object.keys(cache);
+      if (klucze.length > 200) {
+        klucze.slice(0, klucze.length - 200).forEach((k) => { delete cache[k]; });
+      }
+      zapiszCacheNip(cache);
+    }
+
+    function zapiszNipCacheMiss(nip) {
+      const n = String(nip || '').replace(/\D/g, '').slice(0, 10);
+      if (n.length !== 10) return;
+      const wpis = { nip: n, nazwa: '', adres: '', miss: true };
+      _nipCachePamiec.set(n, wpis);
+      const cache = wczytajCacheNip();
+      cache[n] = wpis;
+      const klucze = Object.keys(cache);
+      if (klucze.length > 200) {
+        klucze.slice(0, klucze.length - 200).forEach((k) => { delete cache[k]; });
+      }
+      zapiszCacheNip(cache);
+    }
+
+    async function pobierzDaneNipDoPodpowiedzi(nip) {
+      const n = String(nip || '').replace(/\D/g, '').slice(0, 10);
+      if (n.length !== 10) return null;
+      const cached = pobierzZNipCache(n);
+      if (cached) {
+        if (cached.nazwa) return cached;
+        if (cached.miss) return null;
+      }
+      if (_nipFetchPending.has(n)) return _nipFetchPending.get(n);
+
+      const job = (async () => {
+        try {
+          const resp = await fetch('/api/nip?nip=' + encodeURIComponent(n), {
+            headers: { 'Accept': 'application/json' },
+          });
+          let dane = null;
+          try { dane = await resp.json(); } catch (_) {}
+          if (!resp.ok || !dane) {
+            zapiszNipCacheMiss(n);
+            return null;
+          }
+          const rekord = normalizeKlientRekord(dane);
+          if (!rekord.nazwa && !rekord.adres) {
+            zapiszNipCacheMiss(n);
+            return null;
+          }
+          zapiszDoNipCache(rekord);
+          upsertKlienta(rekord);
+          return rekord;
+        } catch (_) {
+          zapiszNipCacheMiss(n);
+          return null;
+        }
+      })();
+
+      _nipFetchPending.set(n, job);
+      try {
+        return await job;
+      } finally {
+        _nipFetchPending.delete(n);
+      }
+    }
+
+    function uzupelnijPodpowiedziNipZApi(wyniki) {
+      const seq = ++_nipPodpowiedzSeq;
+      const nipy = [];
+      wyniki.forEach((k) => {
+        const nip = (wzbogacRekordKlienta(parseKlientBlok(k)).nip || '').replace(/\D/g, '');
+        if (nip.length === 10 && !nipy.includes(nip)) nipy.push(nip);
       });
-      return wynik;
+
+      const cyfryPola = klientTextarea
+        ? String(klientTextarea.value || '').replace(/\D/g, '')
+        : '';
+      const doPobrania = nipy.filter((nip) => {
+        if (cyfryPola.length !== 10 || cyfryPola !== nip) return false;
+        const cached = pobierzZNipCache(nip);
+        if (cached && (cached.nazwa || cached.miss)) return false;
+        const wzbogacony = wzbogacRekordKlienta({ nip, nazwa: '', adres: '' });
+        return !wzbogacony.nazwa;
+      });
+      if (!doPobrania.length) return;
+
+      Promise.all(doPobrania.map((nip) => pobierzDaneNipDoPodpowiedzi(nip))).then((results) => {
+        if (seq !== _nipPodpowiedzSeq) return;
+        if (!results.some((r) => r && r.nazwa)) return;
+        if (!klientTextarea || klientAutocompleteEl.classList.contains('hidden')) return;
+        odswiezAutocompleteKlient();
+      });
+    }
+
+    function wzbogacRekordKlienta(rekord) {
+      const r = {
+        nip: String(rekord && rekord.nip || '').replace(/\D/g, '').slice(0, 10),
+        nazwa: String(rekord && rekord.nazwa || '').trim(),
+        adres: String(rekord && rekord.adres || '').trim(),
+      };
+      if (!r.nip) return r;
+
+      const zCache = pobierzZNipCache(r.nip);
+      if (zCache) {
+        r.nazwa = r.nazwa || String(zCache.nazwa || '').trim();
+        r.adres = r.adres || String(zCache.adres || '').trim();
+      }
+
+      if (!r.nazwa || !r.adres) {
+        const zKsiazki = wczytajKlientow().find(
+          k => String(k.nip || '').replace(/\D/g, '').slice(0, 10) === r.nip
+        );
+        if (zKsiazki) {
+          r.nazwa = r.nazwa || String(zKsiazki.nazwa || '').trim();
+          r.adres = r.adres || String(zKsiazki.adres || '').trim();
+        }
+      }
+
+      if (!r.nazwa || !r.adres) {
+        let najlepszaNazwa = r.nazwa;
+        let najlepszyAdres = r.adres;
+        wczytajHistorie().forEach((wpis) => {
+          const kandydaci = [
+            String(wpis.klient || '').trim(),
+            String((wpis.payload && wpis.payload.klient) || '').trim(),
+          ].filter(Boolean);
+          kandydaci.forEach((raw) => {
+            const parsed = parseKlientBlok(raw);
+            const nip = String(parsed.nip || '').replace(/\D/g, '').slice(0, 10);
+            if (nip !== r.nip) return;
+            const nazwa = String(parsed.nazwa || '').trim();
+            const adres = String(parsed.adres || '').trim();
+            if (nazwa && nazwa.length > najlepszaNazwa.length) najlepszaNazwa = nazwa;
+            if (adres && !najlepszyAdres) najlepszyAdres = adres;
+          });
+        });
+        r.nazwa = najlepszaNazwa;
+        r.adres = najlepszyAdres;
+      }
+
+      return r;
+    }
+
+    function ocenaKompletnosciKlientaRaw(rekord) {
+      const p = rekord && typeof rekord === 'object' && rekord.nip !== undefined
+        ? rekord
+        : parseKlientBlok(String(rekord || ''));
+      return (p.nazwa ? 4 : 0) + (p.adres ? 2 : 0) + (p.nip ? 1 : 0);
+    }
+
+    function ocenaKompletnosciKlienta(rekord) {
+      if (rekord && typeof rekord === 'object' && rekord.nip !== undefined) {
+        return ocenaKompletnosciKlientaRaw(rekord);
+      }
+      return ocenaKompletnosciKlientaRaw(
+        wzbogacRekordKlienta(parseKlientBlok(String(rekord || '')))
+      );
+    }
+
+    function getUnikalniKlienci() {
+      const poNip = new Map();
+      const bezNip = [];
+      const seenKey = new Set();
+
+      const dodaj = (blok) => {
+        const parsed = wzbogacRekordKlienta(parseKlientBlok(blok));
+        const sformatowany = formatKlientBlok(parsed);
+        if (!sformatowany.trim()) return;
+
+        const nip = (parsed.nip || '').replace(/\D/g, '');
+        if (nip) {
+          const poprzedni = poNip.get(nip);
+          if (!poprzedni) {
+            poNip.set(nip, sformatowany);
+            return;
+          }
+          if (ocenaKompletnosciKlienta(parsed) > ocenaKompletnosciKlienta(poprzedni)) {
+            poNip.set(nip, sformatowany);
+          }
+          return;
+        }
+
+        const klucz = sformatowany.replace(/\s+/g, ' ').trim().toLowerCase();
+        if (!seenKey.has(klucz)) {
+          seenKey.add(klucz);
+          bezNip.push(sformatowany);
+        }
+      };
+
+      wczytajHistorie().forEach((wpis) => {
+        dodaj(klientZHistorii(wpis));
+      });
+      wczytajKlientow().forEach((k) => dodaj(formatKlientBlok(k)));
+
+      return [...poNip.values(), ...bezNip];
     }
 
     function renderujAutocompleteKlient(matches) {
       klientAutocompleteEl.innerHTML = '';
       matches.forEach((klient, idx) => {
+        const parsed = wzbogacRekordKlienta(parseKlientBlok(klient));
         const li = document.createElement('li');
         li.className = 'dropdown-item';
         li.setAttribute('role', 'option');
         li.dataset.idx = String(idx);
-        const linie = klient.split('\n').map(s => s.trim()).filter(Boolean);
         const primary = document.createElement('span');
-        primary.textContent = linie[0] || klient;
+        primary.className = 'dropdown-item-primary';
+        primary.textContent = parsed.nazwa
+          || (parsed.nip ? ('NIP ' + parsed.nip) : '')
+          || klient.split('\n').map(s => s.trim()).filter(Boolean)[0]
+          || klient;
         li.appendChild(primary);
-        if (linie.length > 1) {
+        const metaParts = [];
+        if (parsed.nazwa) {
+          if (parsed.nip) metaParts.push('NIP: ' + parsed.nip);
+          if (parsed.adres) metaParts.push(parsed.adres);
+        } else if (parsed.adres) {
+          metaParts.push(parsed.adres);
+        }
+        if (metaParts.length) {
           const meta = document.createElement('span');
           meta.className = 'dropdown-item-meta';
-          meta.textContent = linie.slice(1).join(' · ');
+          meta.textContent = metaParts.join(' · ');
           li.appendChild(meta);
         }
         li.addEventListener('mousedown', (e) => {
           e.preventDefault();
-          wybierzKlientaZAutocomplete(klient);
+          wybierzKlientaZAutocomplete(formatKlientBlok(parsed));
         });
         klientAutocompleteEl.appendChild(li);
       });
@@ -2352,18 +3121,28 @@
         return;
       }
       const unikalni = getUnikalniKlienci();
+      const zapytanieCyfry = zapytanie.replace(/\D/g, '');
       const dopasowane = unikalni.filter(k => {
+        const parsed = wzbogacRekordKlienta(parseKlientBlok(k));
+        const nip = (parsed.nip || '').replace(/\D/g, '');
         const lower = k.toLowerCase();
-        return lower.includes(zapytanie) && lower !== zapytanie;
+        const nazwaLower = (parsed.nazwa || '').toLowerCase();
+        if (lower === zapytanie) return false;
+        if (zapytanieCyfry.length >= 2 && nip && nip.includes(zapytanieCyfry)) return true;
+        if (nazwaLower && nazwaLower.includes(zapytanie)) return true;
+        if (parsed.nazwa && lower.includes(zapytanie)) return true;
+        return lower.includes(zapytanie);
       });
       if (dopasowane.length === 0) {
         ukryjAutocompleteKlient();
         return;
       }
-      autocompleteResults = dopasowane.slice(0, MAX_PODPOWIEDZI_KLIENT);
+      autocompleteResults = dopasowane.slice(0, MAX_PODPOWIEDZI_KLIENT)
+        .map(k => formatKlientBlok(wzbogacRekordKlienta(parseKlientBlok(k))));
       autocompleteIndex = -1;
       renderujAutocompleteKlient(autocompleteResults);
       pokazAutocompleteKlient();
+      uzupelnijPodpowiedziNipZApi(autocompleteResults);
     }
 
     function wybierzKlientaZAutocomplete(klient) {
@@ -2398,9 +3177,11 @@
       if (klientTextarea && klientTextarea.dataset.klientAutofill === '1') return;
       if (sprobujAutofillKlientaZKsiazki()) {
         ukryjAutocompleteKlient();
+        if (typeof odswiezWizardKrok3Podsumowanie === 'function') odswiezWizardKrok3Podsumowanie();
         return;
       }
       odswiezAutocompleteKlient();
+      if (typeof odswiezWizardKrok3Podsumowanie === 'function') odswiezWizardKrok3Podsumowanie();
     }
 
     function ustawAktywnyItemAutocomplete(idx) {
@@ -2479,8 +3260,35 @@
     function wizardMobileAktywny() {
       if (!accordionMql.matches) return false;
       if (document.body.dataset.activeView !== 'view-kreator') return false;
-      const wh = document.getElementById('wizard-header');
-      return !!(wh && !wh.hasAttribute('hidden'));
+      return !!document.body.dataset.wizardKrok;
+    }
+
+    function syncMobileTopChromeHeight() {
+      if (!MOBILE_MQL.matches) return;
+      const chrome = document.getElementById('wizard-mobile-chrome');
+      const pokazChrome = document.body.dataset.activeView === 'view-kreator'
+        && !!document.body.dataset.wizardKrok;
+
+      document.documentElement.style.removeProperty('--mobile-top-chrome-h');
+      document.documentElement.style.removeProperty('--wizard-chrome-h');
+
+      if (chrome) {
+        chrome.hidden = !pokazChrome;
+        chrome.classList.toggle('is-active', pokazChrome);
+      }
+    }
+
+    function odswiezWizardChrome() {
+      if (!MOBILE_MQL.matches) return;
+      const chrome = document.getElementById('wizard-mobile-chrome');
+      if (!chrome) return;
+      const pokaz = document.body.dataset.activeView === 'view-kreator'
+        && !!document.body.dataset.wizardKrok;
+      chrome.hidden = !pokaz;
+      chrome.classList.toggle('is-active', pokaz);
+      requestAnimationFrame(() => {
+        syncMobileTopChromeHeight();
+      });
     }
 
     function syncAccordionBodyHeight(section) {
@@ -2853,7 +3661,9 @@
 
       trackEvent('page_view');
 
-      initMobileHome();
+      if (MOBILE_MQL.matches) {
+        initMobileHome();
+      }
 
       wczytajDraft();
 
@@ -2877,12 +3687,12 @@
       form.addEventListener('input', saveDraftDebounced);
       btnDodaj.addEventListener('click', saveDraftDebounced);
       tbody.addEventListener('click', (e) => {
-        if (e.target && e.target.classList && e.target.classList.contains('btn-remove')) {
+        if (e.target && e.target.closest && e.target.closest('.btn-remove')) {
           saveDraftDebounced();
         }
       });
 
-      document.getElementById('btn-wyczysc-formularz').addEventListener('click', wyczyscFormularz);
+      document.getElementById('btn-wyczysc-formularz')?.addEventListener('click', wyczyscFormularz);
 
       const btnPobierzNIP = document.getElementById('btn-pobierz-nip');
       if (btnPobierzNIP) btnPobierzNIP.addEventListener('click', pobierzKlientaPoNIP);
@@ -2890,6 +3700,7 @@
       renderStatystyki();
       initViewTabs();
       initMobileWizard();
+      initWizardKlientMethodButtons();
       initSwipeNawigacja();
       initPullToRefresh();
       init30sAutosave();
@@ -2897,6 +3708,7 @@
       aktualizujSzacowanyZysk();
       aktualizujLivePodglad();
       synchronizujWysokoscPodgladu();
+      odswiezWalidacjeKlientaWizarda();
 
       const btnKopiujLink = document.getElementById('btn-kopiuj-link');
       if (btnKopiujLink) btnKopiujLink.addEventListener('click', skopiujLinkWyceny);
@@ -2905,9 +3717,14 @@
       if (btnPobierzXml) btnPobierzXml.addEventListener('click', pobierzXmlKSeF);
 
       initDocTypeSwitcher();
+
+      if (MOBILE_MQL.matches) {
+        initMobileHome();
+      }
     });
 
-    function zwolnijMobilneNakladki() {
+    function zwolnijMobilneNakladki(opts) {
+      const zamknijGen = !opts || opts.zamknijGenOverlay !== false;
       if (typeof zatrzymajDyktowanie === 'function') {
         try { zatrzymajDyktowanie(); } catch (_) {}
       }
@@ -2922,23 +3739,29 @@
         el.setAttribute('hidden', '');
         el.setAttribute('aria-hidden', 'true');
       });
-      const genOverlay = document.getElementById('gen-overlay');
-      if (genOverlay) genOverlay.setAttribute('hidden', '');
+      document.body.classList.remove('nip-modal-open', 'catalog-modal-open');
+      if (zamknijGen && typeof zamknijGenOverlay === 'function') {
+        zamknijGenOverlay();
+      }
       document.body.classList.remove('ai-modal-open');
-      document.body.style.overflow = '';
+      if (!document.body.classList.contains('gen-overlay-open')) {
+        document.body.style.overflow = '';
+      }
       document.body.style.position = '';
       document.body.style.touchAction = '';
     }
 
-    function pokazWidokKreatora() {
+    function pokazWidokKreatora(opts) {
+      const keepHomeVisible = !!(opts && opts.keepHomeVisible);
       const viewHome = document.getElementById('view-home');
       const viewKreator = document.getElementById('view-kreator');
       document.querySelectorAll('.view').forEach((v) => {
         if (v.id === 'view-kreator') return;
+        if (keepHomeVisible && v.id === 'view-home') return;
         v.classList.add('hidden');
         v.setAttribute('hidden', '');
       });
-      if (viewHome) {
+      if (viewHome && !keepHomeVisible) {
         viewHome.classList.add('hidden');
         viewHome.setAttribute('hidden', '');
       }
@@ -2954,7 +3777,92 @@
         t.classList.toggle('is-active', aktywny);
         t.setAttribute('aria-selected', aktywny ? 'true' : 'false');
       });
+      if (MOBILE_MQL.matches) {
+        odswiezWizardChrome();
+      }
       window.scrollTo(0, 0);
+    }
+
+    function odpalAnimacjeHomeDoKreatora(onDone) {
+      if (!MOBILE_MQL.matches || !animacjeWlaczone()) {
+        document.body.classList.remove('home-wizard-anim-prep', 'home-wizard-anim-forward', 'home-wizard-anim-back', 'home-wizard-anim-back-prep');
+        if (typeof onDone === 'function') onDone();
+        return;
+      }
+      const viewHome = document.getElementById('view-home');
+      const finish = () => {
+        document.body.classList.remove('home-wizard-anim-forward', 'home-wizard-anim-prep');
+        if (typeof onDone === 'function') onDone();
+      };
+      document.body.classList.remove('home-wizard-anim-back', 'home-wizard-anim-back-prep');
+      requestAnimationFrame(() => {
+        document.body.classList.remove('home-wizard-anim-forward');
+        document.body.classList.add('home-wizard-anim-prep');
+        if (viewHome) void viewHome.offsetHeight;
+        requestAnimationFrame(() => {
+          syncMobileTopChromeHeight();
+          document.body.classList.remove('home-wizard-anim-prep');
+          document.body.classList.add('home-wizard-anim-forward');
+          if (viewHome) void viewHome.offsetHeight;
+          clearTimeout(_homeWizardAnimTimer);
+          let done = false;
+          const wrapDone = () => {
+            if (done) return;
+            done = true;
+            if (viewHome) viewHome.removeEventListener('transitionend', onTransitionEnd);
+            finish();
+          };
+          const onTransitionEnd = (e) => {
+            if (e.propertyName !== 'opacity') return;
+            if (e.target === viewHome) wrapDone();
+          };
+          if (viewHome) viewHome.addEventListener('transitionend', onTransitionEnd);
+          _homeWizardAnimTimer = setTimeout(wrapDone, HOME_WIZARD_ANIM_MS + 80);
+        });
+      });
+    }
+
+    function odpalAnimacjeKreatoraDoHome(onDone) {
+      if (!MOBILE_MQL.matches || !animacjeWlaczone()) {
+        document.body.classList.remove('home-wizard-anim-prep', 'home-wizard-anim-forward', 'home-wizard-anim-back', 'home-wizard-anim-back-prep');
+        if (typeof onDone === 'function') onDone();
+        return;
+      }
+      const viewHome = document.getElementById('view-home');
+      if (viewHome) {
+        viewHome.classList.remove('hidden');
+        viewHome.removeAttribute('hidden');
+        viewHome.setAttribute('aria-hidden', 'false');
+      }
+      const finish = () => {
+        document.body.classList.remove('home-wizard-anim-back', 'home-wizard-anim-back-prep');
+        if (typeof onDone === 'function') onDone();
+      };
+      document.body.classList.remove('home-wizard-anim-forward', 'home-wizard-anim-prep');
+      requestAnimationFrame(() => {
+        document.body.classList.remove('home-wizard-anim-back');
+        document.body.classList.add('home-wizard-anim-back-prep');
+        if (viewHome) void viewHome.offsetHeight;
+        requestAnimationFrame(() => {
+          document.body.classList.remove('home-wizard-anim-back-prep');
+          document.body.classList.add('home-wizard-anim-back');
+          if (viewHome) void viewHome.offsetHeight;
+          clearTimeout(_homeWizardAnimTimer);
+          let done = false;
+          const wrapDone = () => {
+            if (done) return;
+            done = true;
+            if (viewHome) viewHome.removeEventListener('transitionend', onTransitionEnd);
+            finish();
+          };
+          const onTransitionEnd = (e) => {
+            if (e.propertyName !== 'opacity') return;
+            if (e.target === viewHome) wrapDone();
+          };
+          if (viewHome) viewHome.addEventListener('transitionend', onTransitionEnd);
+          _homeWizardAnimTimer = setTimeout(wrapDone, HOME_WIZARD_ANIM_MS + 80);
+        });
+      });
     }
 
     function wejdzWKreatorMobile(docType) {
@@ -2962,17 +3870,44 @@
         if (typeof aktywujWidok === 'function') aktywujWidok('view-kreator');
         return;
       }
-      zwolnijMobilneNakladki();
-      if (typeof docType === 'string' && typeof setActiveDocType === 'function') {
-        setActiveDocType(docType);
-      }
+      zwolnijMobilneNakladki({ zamknijGenOverlay: false });
       const viewKreator = document.getElementById('view-kreator');
       if (viewKreator) {
         viewKreator.classList.remove('wizard-manual-mode', 'wizard-has-pozycje', 'wizard-krok-1', 'wizard-krok-2', 'wizard-krok-3');
       }
-      _wizardKrok = 1;
-      pokazWidokKreatora();
-      inicjujWizard();
+      const step2Entry = document.getElementById('wizard-step-2-entry');
+      if (step2Entry) step2Entry.classList.remove('is-visible');
+      document.body.classList.remove('wizard-hide-step2-entry', 'wizard-klient-field-open', 'wizard-step-anim-forward', 'wizard-step-anim-back', 'home-wizard-anim-prep', 'home-wizard-anim-forward', 'home-wizard-anim-back', 'home-wizard-anim-back-prep');
+      clearTimeout(_homeWizardAnimTimer);
+      zamknijPoleKlientaWizarda();
+      if (typeof setActiveDocType === 'function') {
+        setActiveDocType(docType !== undefined ? docType : '');
+      }
+      const animujWejscie = MOBILE_MQL.matches && animacjeWlaczone();
+      _wizardKrok = 0;
+      delete document.body.dataset.wizardKrok;
+      if (animujWejscie) {
+        document.body.classList.add('home-wizard-anim-prep');
+        const homeTotal = document.getElementById('home-total');
+        if (homeTotal) homeTotal.setAttribute('hidden', '');
+      }
+      pokazWidokKreatora({ keepHomeVisible: animujWejscie });
+      if (animujWejscie) {
+        inicjujWizard();
+        odswiezWizardChrome();
+        requestAnimationFrame(() => {
+          odpalAnimacjeHomeDoKreatora(() => {
+            const viewHome = document.getElementById('view-home');
+            if (viewHome) {
+              viewHome.classList.add('hidden');
+              viewHome.setAttribute('hidden', '');
+              viewHome.setAttribute('aria-hidden', 'true');
+            }
+          });
+        });
+      } else {
+        inicjujWizard();
+      }
     }
 
     function initViewTabs() {
@@ -2985,25 +3920,31 @@
         const widok = document.getElementById(targetId);
         if (widok) widoki.set(targetId, widok);
       });
+      document.querySelectorAll('.page > .view[id^="view-"]').forEach((widok) => {
+        if (widok.id) widoki.set(widok.id, widok);
+      });
 
       function aktywuj(targetId) {
         if (widokFirmaAktywny() && targetId !== 'view-firma') {
           if (!zapiszFirmeJesliTrzeba()) return;
         }
         if (MOBILE_MQL.matches) {
+          if (document.body.classList.contains('gen-overlay-open')) return;
           zwolnijMobilneNakladki();
         }
         const poprzedniWidok = document.body.dataset.activeView || 'view-home';
         if (MOBILE_MQL.matches && poprzedniWidok === 'view-kreator' && targetId !== 'view-kreator') {
-          const wizardHeader = document.getElementById('wizard-header');
-          if (wizardHeader) wizardHeader.setAttribute('hidden', '');
           delete document.body.dataset.wizardKrok;
+          document.body.classList.remove('wizard-hide-step2-entry', 'wizard-klient-field-open', 'wizard-step-anim-forward', 'wizard-step-anim-back', 'home-wizard-anim-prep', 'home-wizard-anim-forward', 'home-wizard-anim-back', 'home-wizard-anim-back-prep');
           const vk = document.getElementById('view-kreator');
           if (vk) {
             vk.classList.remove('wizard-krok-1', 'wizard-krok-2', 'wizard-krok-3', 'wizard-manual-mode', 'wizard-has-pozycje');
           }
+          const step2Entry = document.getElementById('wizard-step-2-entry');
+          if (step2Entry) step2Entry.classList.remove('is-visible');
+          odswiezWizardChrome();
           document.querySelectorAll('#oferta-form .accordion-section[data-accordion-id]').forEach((s) => {
-            s.classList.remove('wizard-hidden');
+            s.classList.remove('wizard-hidden', 'wizard-step-active');
           });
         }
         if (MOBILE_MQL.matches && targetId === 'view-kreator') {
@@ -3025,9 +3966,12 @@
             widokWejscia = widok;
             widok.classList.remove('hidden');
             widok.removeAttribute('hidden');
+            widok.removeAttribute('aria-hidden');
+            widok.removeAttribute('inert');
           } else {
             widok.classList.add('hidden');
             widok.setAttribute('hidden', '');
+            widok.setAttribute('aria-hidden', 'true');
             widok.classList.remove('view-enter');
           }
         });
@@ -3063,10 +4007,19 @@
         }
         if (targetId === 'view-historia') {
           renderujHistorie();
+          const viewHistoria = document.getElementById('view-historia');
+          if (viewHistoria) {
+            viewHistoria.classList.remove('hidden');
+            viewHistoria.removeAttribute('hidden');
+            viewHistoria.removeAttribute('aria-hidden');
+            viewHistoria.removeAttribute('inert');
+          }
         }
         if (targetId === 'view-firma' && poprzedniWidok !== 'view-firma') {
           wypelnijFormularzCfg();
         }
+
+        if (MOBILE_MQL.matches) syncMobileTopChromeHeight();
 
       }
 
@@ -3079,6 +4032,11 @@
       if (viewTabsEl) {
         viewTabsEl.addEventListener('click', (e) => {
           if (!MOBILE_MQL.matches) return;
+          if (document.body.classList.contains('gen-overlay-open')) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
           const tab = e.target.closest('.view-tab[data-view-target]');
           if (!tab) return;
           const targetId = tab.getAttribute('data-view-target');
@@ -3106,20 +4064,35 @@
 
     const STORAGE_KEY_MILESTONES = 'sumit_milestones';
 
-    function pokazViewHome() {
+    function pokazViewHome(opts) {
+      const opcje = opts || {};
+      if (!opcje.skipAnim && MOBILE_MQL.matches && animacjeWlaczone()
+          && document.body.dataset.activeView === 'view-kreator'
+          && document.body.dataset.wizardKrok === '1') {
+        odpalAnimacjeKreatoraDoHome(() => pokazViewHome({ skipAnim: true }));
+        return;
+      }
+      clearTimeout(_homeWizardAnimTimer);
       zwolnijMobilneNakladki();
       const viewHome = document.getElementById('view-home');
       if (!viewHome) return;
       document.querySelectorAll('.view').forEach(v => {
         v.classList.add('hidden');
         v.setAttribute('hidden', '');
+        v.setAttribute('aria-hidden', 'true');
+        v.removeAttribute('inert');
       });
       viewHome.classList.remove('hidden');
       viewHome.removeAttribute('hidden');
+      viewHome.setAttribute('aria-hidden', 'false');
+      viewHome.removeAttribute('inert');
       document.body.dataset.activeView = 'view-home';
       delete document.body.dataset.wizardKrok;
-      const wizardHeader = document.getElementById('wizard-header');
-      if (wizardHeader) wizardHeader.setAttribute('hidden', '');
+      document.body.classList.remove('wizard-hide-step2-entry', 'wizard-klient-field-open', 'wizard-step-anim-forward', 'wizard-step-anim-back', 'home-wizard-anim-prep', 'home-wizard-anim-forward', 'home-wizard-anim-back', 'home-wizard-anim-back-prep');
+      zamknijPoleKlientaWizarda();
+      const step2Entry = document.getElementById('wizard-step-2-entry');
+      if (step2Entry) step2Entry.classList.remove('is-visible');
+      odswiezWizardChrome();
       const viewKreator = document.getElementById('view-kreator');
       if (viewKreator) {
         viewKreator.classList.add('hidden');
@@ -3129,7 +4102,7 @@
         viewKreator.classList.remove('wizard-manual-mode', 'wizard-has-pozycje', 'wizard-krok-1', 'wizard-krok-2', 'wizard-krok-3');
       }
       document.querySelectorAll('#oferta-form .accordion-section[data-accordion-id]').forEach((s) => {
-        s.classList.remove('wizard-hidden');
+        s.classList.remove('wizard-hidden', 'wizard-step-active');
         s.removeAttribute('hidden');
       });
       document.querySelectorAll('.view-tab').forEach(t => {
@@ -3147,14 +4120,28 @@
 
     function renderHomeScreen() {
       const totalEl = document.getElementById('home-total');
-      if (!totalEl) return;
+      const amountEl = document.getElementById('home-total-amount');
+      if (!totalEl || !amountEl) return;
+      if (document.body.classList.contains('home-wizard-anim-forward')
+          || document.body.classList.contains('home-wizard-anim-prep')) {
+        return;
+      }
 
       const historia = wczytajHistorie();
       const lacznie = historia.reduce((s, w) => s + (Number(w.suma) || 0), 0);
       if (lacznie > 0) {
-        totalEl.textContent = 'ŁĄCZNIE WYCENIŁEŚ ROBÓT ZA ' + lacznie.toFixed(2).replace('.', ',') + ' ZŁ';
+        const tekst = lacznie.toFixed(2).replace('.', ',') + ' zł';
+        const byloUkryte = totalEl.hasAttribute('hidden');
+        amountEl.textContent = tekst;
         totalEl.removeAttribute('hidden');
+        if (byloUkryte) {
+          totalEl.classList.remove('home-total--in');
+          void totalEl.offsetWidth;
+          totalEl.classList.add('home-total--in');
+        }
       } else {
+        totalEl.classList.remove('home-total--in');
+        amountEl.textContent = '';
         totalEl.setAttribute('hidden', '');
       }
     }
@@ -3178,7 +4165,9 @@
       }, { passive: true });
 
       viewKreator.addEventListener('touchend', (e) => {
+        if (document.body.classList.contains('gen-overlay-open')) return;
         if (!_wizardGotowy) return;
+        if (e.target.closest('.wizard-input-btn, #wizard-klient-methods, #btn-wizard-dalej, #btn-generuj, #btn-dodaj, #btn-katalog, .items-actions')) return;
         const t = e.changedTouches[0];
         const dx = t.clientX - touchStartX;
         const dy = t.clientY - touchStartY;
@@ -3190,7 +4179,7 @@
         const active = document.activeElement;
         if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
 
-        if (dx < -60 && _wizardKrok < 3) {
+        if (dx < -60 && _wizardKrok < WIZARD_KROK_MAX) {
           if (!walidujKrokWizarda(_wizardKrok)) return;
           irziNaKrok(_wizardKrok + 1);
         } else if (dx > 60 && _wizardKrok > 1) {
@@ -3235,7 +4224,7 @@
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    function obsluzHomeCta(docType, e) {
+    function obsluzHomeCta(e, docType) {
       if (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -3252,11 +4241,9 @@
         const wycena = e.target.closest('#btn-home-wycena, [data-home-action="wycena"]');
         const faktura = e.target.closest('#btn-home-faktura, [data-home-action="faktura"]');
         if (wycena) {
-          obsluzHomeCta('', e);
-          return;
-        }
-        if (faktura) {
-          obsluzHomeCta('faktura_vat', e);
+          obsluzHomeCta(e, '');
+        } else if (faktura) {
+          obsluzHomeCta(e, 'faktura_vat');
         }
       }
 
@@ -3265,24 +4252,89 @@
 
       const btnNowaWycena = document.getElementById('btn-home-wycena');
       if (btnNowaWycena) {
-        btnNowaWycena.addEventListener('click', (e) => obsluzHomeCta('', e));
+        btnNowaWycena.addEventListener('click', (e) => obsluzHomeCta(e, ''));
       }
 
       const btnNowaFaktura = document.getElementById('btn-home-faktura');
       if (btnNowaFaktura) {
-        btnNowaFaktura.addEventListener('click', (e) => obsluzHomeCta('faktura_vat', e));
+        btnNowaFaktura.addEventListener('click', (e) => obsluzHomeCta(e, 'faktura_vat'));
       }
 
       pokazViewHome();
+      syncMobileTopChromeHeight();
+      if (!window._mobileChromeResizeWired) {
+        window._mobileChromeResizeWired = true;
+        window.addEventListener('resize', syncMobileTopChromeHeight, { passive: true });
+        if (typeof MOBILE_MQL.addEventListener === 'function') {
+          MOBILE_MQL.addEventListener('change', syncMobileTopChromeHeight);
+        } else if (typeof MOBILE_MQL.addListener === 'function') {
+          MOBILE_MQL.addListener(syncMobileTopChromeHeight);
+        }
+      }
     }
 
-    // ── Wizard Krok 1-2-3 ────────────────────────────────────────────────────
+    // ── Wizard Krok 1-3 ────────────────────────────────────────────────────
 
+    const WIZARD_KROK_MAX = 3;
     const WIZARD_KROKI = [
-      { nr: 1, title: 'Co wyceniasz?',           sekcje: ['pozycje'] },
-      { nr: 2, title: 'Dla kogo?',              sekcje: ['klient'] },
-      { nr: 3, title: 'Ostatnie szczegóły',     sekcje: ['szczegoly'] },
+      { nr: 1, title: 'Dla kogo?',          sekcje: ['klient'] },
+      { nr: 2, title: 'Co wyceniasz?',       sekcje: ['pozycje'] },
+      { nr: 3, title: 'Ostatnie szczegóły', sekcje: ['szczegoly'] },
     ];
+
+    function zamknijPoleKlientaWizarda() {
+      document.body.classList.remove('wizard-klient-field-open');
+      const field = document.querySelector('#wizard-klient-methods .field-klient-plain');
+      if (field) field.setAttribute('hidden', '');
+    }
+
+    function otworzPoleKlientaWizarda() {
+      document.body.classList.add('wizard-klient-field-open');
+      const field = document.querySelector('#wizard-klient-methods .field-klient-plain');
+      if (field) field.removeAttribute('hidden');
+      const bodyKlient = document.getElementById('accordion-body-klient');
+      if (bodyKlient) bodyKlient.scrollTop = 0;
+    }
+
+    function initWizardKlientMethodButtons() {
+      if (!MOBILE_MQL.matches) return;
+      const methods = document.getElementById('wizard-klient-methods');
+      if (!methods || methods.dataset.wiredKlient === '1') return;
+      methods.dataset.wiredKlient = '1';
+
+      methods.addEventListener('click', (e) => {
+        if (e.target.closest('#btn-wizard-klient-manual')) {
+          e.preventDefault();
+          otworzPoleKlientaWizarda();
+          requestAnimationFrame(() => {
+            const klientEl = document.getElementById('klient');
+            if (klientEl) klientEl.focus();
+          });
+        }
+      });
+
+      const btnKlientPhoto = document.getElementById('btn-wizard-klient-photo');
+      const klientPhotoInput = document.getElementById('klient-photo-input');
+      if (btnKlientPhoto && klientPhotoInput) {
+        btnKlientPhoto.addEventListener('click', () => {
+          otworzPoleKlientaWizarda();
+          klientPhotoInput.click();
+        });
+        klientPhotoInput.addEventListener('change', () => {
+          const file = klientPhotoInput.files && klientPhotoInput.files[0];
+          if (file) {
+            przetworzZdjecieKlienta(file);
+            klientPhotoInput.value = '';
+          }
+        });
+      }
+    }
+
+    function odswiezPoleKlientaWizarda() {
+      if (!MOBILE_MQL.matches) return;
+      if (String(document.body.dataset.wizardKrok) !== '1') return;
+      // Pole klienta tylko po kliknięciu „Wpisz ręcznie” — bez auto-otwierania z draftu.
+    }
 
     function odswiezWizardPozycjeUI() {
       if (!MOBILE_MQL.matches) return;
@@ -3291,28 +4343,123 @@
       if (!viewKreator) return;
       const hasPozycje = [...tbody.querySelectorAll('tr')].some(tr => !wierszJestPusty(tr));
       let pokazListe = false;
-      if (_wizardKrok === 1) {
+      if (_wizardKrok === 2) {
         pokazListe = hasPozycje && viewKreator.classList.contains('wizard-manual-mode');
       } else {
         pokazListe = hasPozycje;
       }
       viewKreator.classList.toggle('wizard-has-pozycje', pokazListe);
+      odswiezWizardPozycjeEntry();
+    }
+
+    function odswiezWizardPozycjeEntry() {
+      if (!MOBILE_MQL.matches) return;
+      const entry = document.getElementById('wizard-step-2-entry');
+      const viewKreator = document.getElementById('view-kreator');
+      if (!entry || !viewKreator) return;
+      const pokaz = document.body.dataset.activeView === 'view-kreator'
+        && String(document.body.dataset.wizardKrok) === '2'
+        && !viewKreator.classList.contains('wizard-manual-mode')
+        && !viewKreator.classList.contains('wizard-has-pozycje');
+      entry.classList.toggle('is-visible', pokaz);
+      document.body.classList.toggle('wizard-hide-step2-entry', !pokaz);
+    }
+
+    function rozwinTylkoWierszPozycji(tr) {
+      if (!tr) return;
+      tbody.querySelectorAll('tr.is-row-expanded').forEach((row) => {
+        if (row !== tr) row.classList.remove('is-row-expanded');
+      });
+      ujawnijWiersz(tr);
+      tr.classList.add('is-row-expanded');
+      odswiezPrzyciskiTogglePozycji();
+    }
+
+    function zwinWierszPozycji(tr) {
+      if (!tr) return;
+      tr.classList.remove('is-row-expanded');
+      const active = document.activeElement;
+      if (active && tr.contains(active)) active.blur();
+      odswiezPrzyciskToggleWiersza(tr);
+    }
+
+    function odswiezPrzyciskToggleWiersza(tr) {
+      if (!tr) return;
+      const btn = tr.querySelector('.btn-row-toggle');
+      if (!btn) return;
+      const expanded = tr.classList.contains('is-row-expanded');
+      btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      const label = expanded ? 'Zwiń pozycję' : 'Rozwiń pozycję';
+      btn.setAttribute('aria-label', label);
+      btn.title = label;
+    }
+
+    function odswiezPrzyciskiTogglePozycji() {
+      tbody.querySelectorAll('tr').forEach(odswiezPrzyciskToggleWiersza);
+    }
+
+    function wejdzWTrybRecznyPozycji() {
+      if (!MOBILE_MQL.matches || _wizardKrok !== 2) return;
+      const viewKreator = document.getElementById('view-kreator');
+      if (viewKreator) viewKreator.classList.add('wizard-manual-mode');
+      odswiezWizardPozycjeEntry();
+
+      let targetTr = [...tbody.querySelectorAll('tr')].find((tr) => wierszJestPusty(tr));
+      if (!targetTr) {
+        const btnAdd = document.getElementById('btn-dodaj');
+        if (btnAdd) btnAdd.click();
+        targetTr = tbody.querySelector('tr:last-child');
+      }
+
+      odswiezWizardPozycjeUI();
+      if (!targetTr) return;
+
+      rozwinTylkoWierszPozycji(targetTr);
+      odswiezWidocznoscWierszy();
+
+      requestAnimationFrame(() => {
+        const body = document.getElementById('accordion-body-pozycje');
+        if (body) body.scrollTop = 0;
+        targetTr.scrollIntoView({ block: 'nearest' });
+        const inp = targetTr.querySelector('.in-nazwa');
+        if (inp) inp.focus();
+      });
+    }
+
+    function odpalAnimacjePrzejsciaKroku(prevKrok, nextKrok) {
+      if (!MOBILE_MQL.matches || prevKrok === nextKrok || prevKrok === 0) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      document.body.classList.remove('wizard-step-anim-forward', 'wizard-step-anim-back');
+      const cls = nextKrok > prevKrok ? 'wizard-step-anim-forward' : 'wizard-step-anim-back';
+      requestAnimationFrame(() => {
+        document.body.classList.add(cls);
+        clearTimeout(_wizardStepAnimTimer);
+        _wizardStepAnimTimer = setTimeout(() => {
+          document.body.classList.remove('wizard-step-anim-forward', 'wizard-step-anim-back');
+        }, WIZARD_STEP_ANIM_MS);
+      });
     }
 
     function irziNaKrok(krok) {
       if (!MOBILE_MQL.matches) return;
-      _wizardKrok = Math.max(1, Math.min(3, krok));
-      const kroiData = WIZARD_KROKI.find(k => k.nr === _wizardKrok);
+      const prevKrok = _wizardKrok;
+      const nextKrok = Math.max(1, Math.min(WIZARD_KROK_MAX, krok));
+      const kroiData = WIZARD_KROKI.find(k => k.nr === nextKrok);
       if (!kroiData) return;
+
+      _wizardKrok = nextKrok;
+
+      document.body.dataset.wizardKrok = String(_wizardKrok);
 
       const stepTitle = document.getElementById('wizard-step-title');
       if (stepTitle) stepTitle.textContent = kroiData.title;
 
       const stepLabel = document.getElementById('wizard-step-label');
-      if (stepLabel) stepLabel.textContent = 'Krok ' + _wizardKrok + ' z 3';
+      if (stepLabel) stepLabel.textContent = 'Krok ' + _wizardKrok + ' z ' + WIZARD_KROK_MAX;
 
       document.querySelectorAll('.wizard-dot[data-dot]').forEach(dot => {
-        const nr = parseInt(dot.dataset.dot);
+        const nr = parseInt(dot.dataset.dot, 10);
         dot.classList.toggle('is-active', nr === _wizardKrok);
         dot.classList.toggle('is-done', nr < _wizardKrok);
       });
@@ -3320,19 +4467,18 @@
       document.querySelectorAll('#oferta-form .accordion-section[data-accordion-id]').forEach(s => {
         const visible = kroiData.sekcje.includes(s.dataset.accordionId);
         s.classList.toggle('wizard-hidden', !visible);
+        s.classList.toggle('wizard-step-active', visible);
         s.removeAttribute('hidden');
         if (visible) {
           ustawAkordeonOtwarty(s, true);
         }
       });
 
-      document.body.dataset.wizardKrok = String(_wizardKrok);
-
       const btnWizardDalej = document.getElementById('btn-wizard-dalej');
       const btnGeneruj = document.getElementById('btn-generuj');
-      if (btnWizardDalej) btnWizardDalej.hidden = (_wizardKrok === 3);
+      if (btnWizardDalej) btnWizardDalej.hidden = (_wizardKrok === WIZARD_KROK_MAX);
       if (btnGeneruj) {
-        btnGeneruj.hidden = (_wizardKrok !== 3);
+        btnGeneruj.hidden = (_wizardKrok !== WIZARD_KROK_MAX);
       }
 
       const btnBack = document.getElementById('btn-wizard-back');
@@ -3358,12 +4504,20 @@
       if (ofertaForm) ofertaForm.scrollTop = 0;
       window.scrollTo(0, 0);
 
-      if (_wizardKrok !== 1) {
-        const viewKreator = document.getElementById('view-kreator');
-        if (viewKreator) viewKreator.classList.remove('wizard-manual-mode');
+      if (_wizardKrok !== 2) {
+        const vk = document.getElementById('view-kreator');
+        if (vk) vk.classList.remove('wizard-manual-mode');
+      }
+      if (nextKrok !== 1 || prevKrok !== nextKrok) {
+        zamknijPoleKlientaWizarda();
       }
       odswiezWizardPozycjeUI();
       odswiezWidoczneSekcjeWizarda();
+      odswiezWizardPozycjeEntry();
+      if (_wizardKrok === 3) odswiezWizardKrok3UI();
+      odswiezWizardChrome();
+      odswiezWalidacjeKlientaWizarda();
+      odpalAnimacjePrzejsciaKroku(prevKrok, nextKrok);
     }
 
     function odswiezWidoczneSekcjeWizarda() {
@@ -3381,6 +4535,14 @@
 
     function walidujKrokWizarda(krok) {
       if (krok === 1) {
+        const klientEl = document.getElementById('klient');
+        if (!klientEl || !String(klientEl.value || '').trim()) {
+          pokazToast('Podaj nazwę klienta.', 'error');
+          wibruj([40, 30, 40]);
+          if (klientEl) klientEl.focus();
+          return false;
+        }
+      } else if (krok === 2) {
         const rows = [...tbody.querySelectorAll('tr')];
         const maRzad = rows.some(tr => {
           const inp = tr.querySelector('.in-nazwa, [name="nazwa[]"]');
@@ -3391,23 +4553,12 @@
           wibruj([40, 30, 40]);
           return false;
         }
-      } else if (krok === 2) {
-        const klientEl = document.getElementById('klient');
-        if (!klientEl || !String(klientEl.value || '').trim()) {
-          pokazToast('Podaj nazwę klienta.', 'error');
-          wibruj([40, 30, 40]);
-          if (klientEl) klientEl.focus();
-          return false;
-        }
       }
       return true;
     }
 
     function inicjujWizard() {
       if (!MOBILE_MQL.matches) return;
-
-      const wizardHeader = document.getElementById('wizard-header');
-      if (wizardHeader) wizardHeader.removeAttribute('hidden');
 
       if (!_wizardGotowy) {
         _wizardGotowy = true;
@@ -3421,7 +4572,7 @@
         });
       }
 
-      // Wire Step 1 method buttons
+      // Wire Step 3 (pozycje) method buttons
       const btnWizAi = document.getElementById('btn-wizard-ai');
       if (btnWizAi) {
         btnWizAi.addEventListener('click', () => {
@@ -3432,54 +4583,12 @@
       const btnWizManual = document.getElementById('btn-wizard-manual');
       if (btnWizManual) {
         btnWizManual.addEventListener('click', () => {
-          const viewKreator = document.getElementById('view-kreator');
-          if (viewKreator) viewKreator.classList.add('wizard-manual-mode');
-          const btnAdd = document.getElementById('btn-dodaj');
-          if (btnAdd) {
-            btnAdd.click();
-            const tbl = document.getElementById('pozycje-tbody');
-            if (tbl) setTimeout(() => {
-              const lastTr = tbl.querySelector('tr:last-child');
-              if (lastTr) {
-                ujawnijWiersz(lastTr);
-                lastTr.classList.add('is-row-expanded');
-              }
-              odswiezWidocznoscWierszy();
-              const lastRow = tbl.querySelector('tr:last-child .in-nazwa, tr:last-child [name="nazwa[]"]');
-              if (lastRow) lastRow.focus();
-            }, 100);
-          }
-        });
-      }
-
-      // Wire Step 2 method buttons
-      const btnKlientPhoto = document.getElementById('btn-wizard-klient-photo');
-      const klientPhotoInput = document.getElementById('klient-photo-input');
-      if (btnKlientPhoto && klientPhotoInput) {
-        btnKlientPhoto.addEventListener('click', () => klientPhotoInput.click());
-        klientPhotoInput.addEventListener('change', () => {
-          const file = klientPhotoInput.files && klientPhotoInput.files[0];
-          if (file) {
-            przetworzZdjecieKlienta(file);
-            klientPhotoInput.value = '';
-          }
-        });
-      }
-
-      const btnKlientNip = document.getElementById('btn-wizard-klient-nip');
-      if (btnKlientNip) {
-        btnKlientNip.addEventListener('click', () => pobierzKlientaPoNIP());
-      }
-
-      const btnKlientManual = document.getElementById('btn-wizard-klient-manual');
-      if (btnKlientManual) {
-        btnKlientManual.addEventListener('click', () => {
-          const klientEl = document.getElementById('klient');
-          if (klientEl) klientEl.focus();
+          wejdzWTrybRecznyPozycji();
         });
       }
 
       }
+
 
       irziNaKrok(1);
     }
@@ -3758,8 +4867,9 @@
 
     function addFromCatalog(item) {
       if (!item || typeof item !== 'object') return;
-      dodajWiersz();
-      const tr = tbody.firstElementChild;
+      const wizMobile = MOBILE_MQL.matches && _wizardKrok === 2;
+      dodajWiersz({ naKoniec: true, ujawnij: true });
+      const tr = tbody.lastElementChild;
       if (!tr) return;
 
       const inNazwa = tr.querySelector('.in-nazwa');
@@ -3783,6 +4893,13 @@
       }
 
       aktywnyWiersz = tr;
+      if (wizMobile) {
+        const viewKreator = document.getElementById('view-kreator');
+        if (viewKreator) viewKreator.classList.add('wizard-manual-mode');
+        odswiezWizardPozycjeEntry();
+        rozwinTylkoWierszPozycji(tr);
+        odswiezWizardPozycjeUI();
+      }
       zamknijKatalog();
     }
 
@@ -4044,8 +5161,13 @@
       const viewKreator = document.getElementById('view-kreator');
       if (viewKreator && window.matchMedia('(max-width: 1023px)').matches) {
         viewKreator.classList.add('wizard-has-pozycje');
-        if (_wizardKrok === 1) {
+        if (_wizardKrok === 2) {
           viewKreator.classList.add('wizard-manual-mode');
+          odswiezWizardPozycjeEntry();
+          odswiezWizardPozycjeUI();
+          tbody.querySelectorAll('tr.is-row-expanded').forEach((tr) => {
+            tr.classList.remove('is-row-expanded');
+          });
         }
       }
 
@@ -4181,6 +5303,7 @@
 
         klientEl.value = formatKlientBlok(rekord);
         klientEl.dispatchEvent(new Event('input', { bubbles: true }));
+        if (MOBILE_MQL.matches && wizardMobileAktywny()) otworzPoleKlientaWizarda();
         saveDraft();
         pokazToast('Dane klienta rozpoznane ✓', 'success');
         wibruj([20]);
@@ -4195,6 +5318,17 @@
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+
+    function komunikatBrakPozycjiAi(tekst, maObraz) {
+      const hasTekst = !!(tekst && String(tekst).trim());
+      if (maObraz && !hasTekst) {
+        return 'Na zdjęciu nie widać pozycji do wyceny — sfotografuj notatkę z listą prac i cen.';
+      }
+      if (maObraz && hasTekst) {
+        return 'Nie znaleziono pozycji — sprawdź tekst notatki lub użyj zdjęcia z czytelną listą prac i cen.';
+      }
+      return 'W notatce nie ma pozycji do wyceny — dodaj opis prac i ceny, np. „montaż 350 zł”.';
+    }
 
     async function przetworzNotatkeAi() {
       if (!btnAiParse) return;
@@ -4248,11 +5382,14 @@
         }
 
         if (!resp.ok) {
-          const komunikat = (dane && dane.error)
+          let komunikat = (dane && dane.error)
             ? dane.error
             : (resp.status === 429
               ? 'Zbyt wiele żądań — spróbuj ponownie za chwilę.'
               : 'Nie udało się przetworzyć notatki.');
+          if (resp.status === 400 && komunikat === 'nie znaleziono poprawnych pozycji w notatce') {
+            komunikat = komunikatBrakPozycjiAi(tekst, !!aiPhotoPayload);
+          }
           ustawAiParseStatus(komunikat, 'error');
           return;
         }
@@ -4264,7 +5401,7 @@
 
         const pozycje = przygotujPozycjeAi(dane);
         if (pozycje.length === 0) {
-          ustawAiParseStatus('Nie znaleziono poprawnych pozycji w notatce.', 'error');
+          ustawAiParseStatus(komunikatBrakPozycjiAi(tekst, !!aiPhotoPayload), 'error');
           return;
         }
 
@@ -4572,28 +5709,46 @@
     });
 
     function otworzKatalog() {
-      if (!aktywnyWiersz || !tbody.contains(aktywnyWiersz)) {
-        aktywnyWiersz = tbody.lastElementChild;
-      }
+      if (!catalogModal) return;
+      const rows = [...tbody.querySelectorAll('tr')];
+      const expanded = rows.find((tr) => tr.classList.contains('is-row-expanded'));
+      const empty = rows.find((tr) => wierszJestPusty(tr));
+      if (expanded) aktywnyWiersz = expanded;
+      else if (empty) aktywnyWiersz = empty;
+      else aktywnyWiersz = rows[rows.length - 1] || null;
+
       catalogSearch.value = '';
       aktywnaKategoria = '';
       ukryjFeedbackKatalog();
       renderujKatalog();
+      catalogModal.classList.remove('hidden');
+      catalogModal.removeAttribute('hidden');
       catalogModal.hidden = false;
       catalogModal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('catalog-modal-open');
       document.body.style.overflow = 'hidden';
       setTimeout(() => catalogSearch.focus(), 0);
     }
 
     function zamknijKatalog() {
+      if (!catalogModal) return;
       catalogModal.hidden = true;
+      catalogModal.setAttribute('hidden', '');
       catalogModal.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
+      document.body.classList.remove('catalog-modal-open');
+      if (!document.body.classList.contains('gen-overlay-open')) {
+        document.body.style.overflow = '';
+      }
     }
 
-    btnKatalog.addEventListener('click', otworzKatalog);
-    btnZamknijCatalog.addEventListener('click', zamknijKatalog);
-    catalogBackdrop.addEventListener('click', zamknijKatalog);
+    if (btnKatalog) {
+      btnKatalog.addEventListener('click', (e) => {
+        e.preventDefault();
+        otworzKatalog();
+      });
+    }
+    if (btnZamknijCatalog) btnZamknijCatalog.addEventListener('click', zamknijKatalog);
+    if (catalogBackdrop) catalogBackdrop.addEventListener('click', zamknijKatalog);
     catalogSearch.addEventListener('input', () => renderujKatalog());
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !catalogModal.hidden) zamknijKatalog();
@@ -4689,7 +5844,70 @@
 
     // ── Milestones i nagrody ──────────────────────────────────────────────────
 
-    const MILESTONE_PROGI = [1, 5, 10, 25, 50, 100];
+    const MILESTONE_PROGI = [1, 5, 10, 25, 50, 100, 200, 500];
+
+    const MILESTONE_KONFIG = {
+      1: {
+        eyebrow: 'Pierwszy krok',
+        tytul: 'Pierwsza wycena',
+        opis: 'PDF jest w historii — możesz go od razu wysłać klientowi.',
+        confetti: true,
+        wibracja: [35, 25, 35],
+      },
+      5: {
+        eyebrow: 'Piąty dokument',
+        tytul: 'Rytm nabierany',
+        opis: 'Pięć wycen w księdze. Krótki dystans za Tobą.',
+        confetti: true,
+        wibracja: [45],
+      },
+      10: {
+        eyebrow: 'Dwucyfrowy wynik',
+        tytul: 'Dziesiąta wycena',
+        opis: 'Dziesięć ofert zapisanych w SumIt.',
+        confetti: true,
+        wibracja: [55],
+      },
+      25: {
+        eyebrow: 'Ćwierć setki',
+        tytul: '25 wycen',
+        opis: 'Systematyczna praca — historia rośnie sama.',
+        confetti: true,
+        wibracja: [60, 40, 60],
+      },
+      50: {
+        eyebrow: 'Pół setki',
+        tytul: '50 wycen',
+        opis: 'Pięćdziesiąt dokumentów. To już stały nawyk.',
+        confetti: true,
+        wibracja: [70, 50, 70],
+        czasMs: 5200,
+      },
+      100: {
+        eyebrow: 'Setny dokument',
+        tytul: '100 wycen',
+        opis: 'Sto ofert w historii — solidna baza do pracy.',
+        confetti: true,
+        wibracja: [80, 60, 80],
+        czasMs: 5600,
+      },
+      200: {
+        eyebrow: 'Dwieście',
+        tytul: '200 wycen',
+        opis: 'Biblioteka ofert, do której zawsze możesz wrócić.',
+        confetti: true,
+        wibracja: [90, 60, 90],
+        czasMs: 5600,
+      },
+      500: {
+        eyebrow: 'Pół tysiąca',
+        tytul: '500 wycen',
+        opis: 'Pięćset PDF-ów z SumIt. Rzadki poziom konsekwencji.',
+        confetti: true,
+        wibracja: [100, 70, 100],
+        czasMs: 6000,
+      },
+    };
 
     function sprawdzMilestone() {
       const historia = wczytajHistorie();
@@ -4703,20 +5921,13 @@
       const nowy = MILESTONE_PROGI.find(p => p === count && !osiagniete.includes(p));
       if (!nowy) return;
 
+      const konfig = MILESTONE_KONFIG[nowy];
+      if (!konfig) return;
+
       osiagniete.push(nowy);
       try { localStorage.setItem(STORAGE_KEY_MILESTONES, JSON.stringify(osiagniete)); } catch (_) {}
 
-      if (nowy === 1) {
-        setTimeout(() => {
-          pokazToast('Pierwsza wycena gotowa! Twój klient czeka.', 'success');
-          odpalConfetti();
-        }, 600);
-      } else {
-        setTimeout(() => {
-          pokazToast(`${nowy} wycen! Jesteś pro!`, 'success');
-          if (nowy >= 5) odpalConfetti();
-        }, 600);
-      }
+      setTimeout(() => pokazMilestone(nowy, konfig), 650);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -4879,12 +6090,14 @@
       const raw = String(zapytanie || '').trim();
       if (!raw) return null;
       const lista = wczytajKlientow();
-      if (lista.length === 0) return null;
       const cyfry = raw.replace(/\D/g, '');
       if (cyfry.length === 10) {
+        const wzbogacony = wzbogacRekordKlienta({ nip: cyfry, nazwa: '', adres: '' });
+        if (wzbogacony.nazwa || wzbogacony.adres) return wzbogacony;
         const trafioneNip = lista.find(k => _canonNip(k.nip) === cyfry);
-        if (trafioneNip) return trafioneNip;
+        if (trafioneNip) return wzbogacRekordKlienta(trafioneNip);
       }
+      if (lista.length === 0) return null;
       const nz = raw.toLowerCase();
       const trafioneNazwa = lista.find(k => k.nazwa && k.nazwa.toLowerCase() === nz);
       return trafioneNazwa || null;
@@ -5119,17 +6332,49 @@
       if (heatmapTooltip) heatmapTooltip.classList.remove('is-visible');
     }
 
+    function ustawPozycjeTooltipuStatystyk(tooltip, anchorEl) {
+      if (!tooltip || !anchorEl) return;
+      const margin = 10;
+      const anchorRect = anchorEl.getBoundingClientRect();
+      const viewportW = document.documentElement.clientWidth;
+
+      if (tooltip.parentElement !== document.body) {
+        document.body.appendChild(tooltip);
+      }
+
+      tooltip.style.position = 'fixed';
+      tooltip.style.visibility = 'hidden';
+      tooltip.style.left = '0px';
+      tooltip.style.top = '0px';
+      tooltip.style.transform = 'none';
+      tooltip.style.zIndex = '260';
+      tooltip.classList.add('is-visible');
+
+      const tooltipW = tooltip.offsetWidth;
+      const tooltipH = tooltip.offsetHeight;
+
+      let left = anchorRect.left + anchorRect.width / 2 - tooltipW / 2;
+      left = Math.max(margin, Math.min(left, viewportW - margin - tooltipW));
+
+      let top = anchorRect.top - 8;
+      let transform = 'translateY(-100%)';
+      if (top - tooltipH < margin) {
+        top = anchorRect.bottom + 8;
+        transform = 'none';
+      }
+
+      tooltip.style.left = Math.round(left) + 'px';
+      tooltip.style.top = Math.round(top) + 'px';
+      tooltip.style.transform = transform;
+      tooltip.style.visibility = '';
+    }
+
     function pokazTooltipHeatmapy(cell) {
-      const card = cell.closest('.heatmap-card');
-      if (!card) return;
-      if (!heatmapTooltip || heatmapTooltip.parentElement !== card) {
-        if (heatmapTooltip && heatmapTooltip.parentElement) {
-          heatmapTooltip.parentElement.removeChild(heatmapTooltip);
-        }
+      if (!cell.closest('.heatmap-card')) return;
+      if (!heatmapTooltip) {
         heatmapTooltip = document.createElement('div');
         heatmapTooltip.className = 'chart-tooltip heatmap-tooltip';
         heatmapTooltip.setAttribute('role', 'tooltip');
-        card.appendChild(heatmapTooltip);
       }
 
       const label = cell.dataset.label || '';
@@ -5145,12 +6390,7 @@
       heatmapTooltip.appendChild(t);
       heatmapTooltip.appendChild(c);
 
-      const cellRect = cell.getBoundingClientRect();
-      const cardRect = card.getBoundingClientRect();
-      heatmapTooltip.style.left = (cellRect.left - cardRect.left + cellRect.width / 2) + 'px';
-      heatmapTooltip.style.top = (cellRect.top - cardRect.top - 8) + 'px';
-      heatmapTooltip.style.transform = 'translate(-50%, -100%)';
-      heatmapTooltip.classList.add('is-visible');
+      ustawPozycjeTooltipuStatystyk(heatmapTooltip, cell);
     }
 
     function ukryjTooltipsStatystyk() {
@@ -5161,13 +6401,9 @@
     function pokazTooltipWykresu(bar) {
       const chartContainer = bar.closest('.chart-container');
       if (!chartContainer) return;
-      if (!chartTooltip || chartTooltip.parentElement !== chartContainer) {
-        if (chartTooltip && chartTooltip.parentElement) {
-          chartTooltip.parentElement.removeChild(chartTooltip);
-        }
+      if (!chartTooltip) {
         chartTooltip = document.createElement('div');
         chartTooltip.className = 'chart-tooltip';
-        chartContainer.appendChild(chartTooltip);
       }
       const label = bar.dataset.label || '';
       const suma = Number(bar.dataset.suma) || 0;
@@ -5187,12 +6423,7 @@
       chartTooltip.appendChild(a);
       chartTooltip.appendChild(c);
 
-      const barRect = bar.getBoundingClientRect();
-      const containerRect = chartContainer.getBoundingClientRect();
-      chartTooltip.style.left = (barRect.left - containerRect.left + barRect.width / 2) + 'px';
-      chartTooltip.style.top = (barRect.top - containerRect.top - 8) + 'px';
-      chartTooltip.style.transform = 'translate(-50%, -100%)';
-      chartTooltip.classList.add('is-visible');
+      ustawPozycjeTooltipuStatystyk(chartTooltip, bar);
     }
 
     function ukryjTooltipWykresu() {
@@ -5328,13 +6559,22 @@
 
       const thead = document.createElement('thead');
       const trh = document.createElement('tr');
-      [
-        { txt: 'Klient', cls: '' },
-        { txt: 'Liczba wycen', cls: 'col-num' },
-        { txt: 'Łączna wartość', cls: 'col-num' },
-        { txt: 'Średnia wartość', cls: 'col-num' },
-        { txt: 'Ostatnia wycena', cls: 'col-num' }
-      ].forEach(h => {
+      const naglowki = MOBILE_MQL.matches
+        ? [
+            { txt: 'Klient', cls: '' },
+            { txt: 'Wycen', cls: 'col-num' },
+            { txt: 'Łącznie', cls: 'col-num' },
+            { txt: 'Średnia', cls: 'col-num' },
+            { txt: 'Ostatnia', cls: 'col-num col-ostatnia' }
+          ]
+        : [
+            { txt: 'Klient', cls: '' },
+            { txt: 'Liczba wycen', cls: 'col-num' },
+            { txt: 'Łączna wartość', cls: 'col-num' },
+            { txt: 'Średnia wartość', cls: 'col-num' },
+            { txt: 'Ostatnia wycena', cls: 'col-num col-ostatnia' }
+          ];
+      naglowki.forEach(h => {
         const th = document.createElement('th');
         th.textContent = h.txt;
         if (h.cls) th.className = h.cls;
@@ -5369,7 +6609,7 @@
         tr.appendChild(tdA);
 
         const tdD = document.createElement('td');
-        tdD.className = 'col-num';
+        tdD.className = 'col-num col-ostatnia';
         tdD.textContent = formatujDateKrotka(k.ostatniaMs);
         tr.appendChild(tdD);
 
@@ -5486,6 +6726,7 @@
           cell.addEventListener('mouseleave', ukryjTooltipHeatmapy);
           cell.addEventListener('focus', () => pokazTooltipHeatmapy(cell));
           cell.addEventListener('blur', ukryjTooltipHeatmapy);
+          cell.addEventListener('click', () => pokazTooltipHeatmapy(cell));
           grid.appendChild(cell);
         }
       }
@@ -5514,9 +6755,56 @@
       return card;
     }
 
+    function etykietaOkresuStat(okres) {
+      if (!MOBILE_MQL.matches) return okres.label;
+      const krotkie = { '7': '7d', '30': '30d', '90': '90d', '365': 'Rok', 'all': 'Wsz.' };
+      return krotkie[okres.id] || okres.label;
+    }
+
+    function wyczyscOkresToolbar() {
+      const toolbar = document.getElementById('stats-okres-toolbar');
+      if (!toolbar) return;
+      toolbar.innerHTML = '';
+      toolbar.setAttribute('hidden', '');
+    }
+
+    function utworzOkresBar(aktywnyOkres) {
+      const okresBar = document.createElement('div');
+      okresBar.className = 'stats-okres-bar';
+      okresBar.setAttribute('role', 'tablist');
+      okresBar.setAttribute('aria-label', 'Filtr okresu statystyk');
+      STATS_OKRESY.forEach(o => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip' + (o.id === aktywnyOkres ? ' is-active' : '');
+        chip.textContent = etykietaOkresuStat(o);
+        chip.setAttribute('aria-pressed', o.id === aktywnyOkres ? 'true' : 'false');
+        chip.dataset.okres = o.id;
+        chip.addEventListener('click', () => {
+          if (o.id === aktywnyOkres) return;
+          renderStatystyki(o.id);
+        });
+        okresBar.appendChild(chip);
+      });
+      return okresBar;
+    }
+
+    function montujOkresBar(aktywnyOkres) {
+      const okresBar = utworzOkresBar(aktywnyOkres);
+      const toolbar = document.getElementById('stats-okres-toolbar');
+      if (MOBILE_MQL.matches && toolbar) {
+        toolbar.innerHTML = '';
+        toolbar.appendChild(okresBar);
+        toolbar.removeAttribute('hidden');
+        return null;
+      }
+      return okresBar;
+    }
+
     function renderStatystyki(okresArg) {
       if (!statsSection) return;
       ukryjTooltipsStatystyk();
+      wyczyscOkresToolbar();
       const calaHistoria = wczytajHistorie();
 
       statsSection.innerHTML = '';
@@ -5538,28 +6826,12 @@
         : wczytajOkresStat();
       zapiszOkresStat(aktywnyOkres);
 
-      const okresBar = document.createElement('div');
-      okresBar.className = 'stats-okres-bar';
-      okresBar.setAttribute('role', 'tablist');
-      okresBar.setAttribute('aria-label', 'Filtr okresu statystyk');
-      STATS_OKRESY.forEach(o => {
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'chip' + (o.id === aktywnyOkres ? ' is-active' : '');
-        chip.textContent = o.label;
-        chip.setAttribute('aria-pressed', o.id === aktywnyOkres ? 'true' : 'false');
-        chip.dataset.okres = o.id;
-        chip.addEventListener('click', () => {
-          if (o.id === aktywnyOkres) return;
-          renderStatystyki(o.id);
-        });
-        okresBar.appendChild(chip);
-      });
-      statsSection.appendChild(okresBar);
+      const okresBar = montujOkresBar(aktywnyOkres);
 
       const lista = filtrujHistoriePoOkresie(calaHistoria, aktywnyOkres);
 
       if (lista.length === 0) {
+        if (okresBar) statsSection.appendChild(okresBar);
         const empty = document.createElement('div');
         empty.className = 'stats-empty';
         empty.textContent = 'Brak wycen w wybranym okresie';
@@ -5616,6 +6888,8 @@
         .slice(0, 5);
 
       const topDzien = policzTopDzienTygodnia(lista);
+
+      if (okresBar) statsSection.appendChild(okresBar);
 
       const grid = document.createElement('div');
       grid.className = 'stats-grid';
@@ -5678,8 +6952,8 @@
 
       const chartContainer = document.createElement('div');
       chartContainer.className = 'chart-container';
-      const chartTitle = document.createElement('h3');
-      chartTitle.className = 'chart-title';
+      const chartTitle = document.createElement('div');
+      chartTitle.className = 'stats-card-label';
       chartTitle.textContent = 'Wartość wycen (ostatnie 6 miesięcy)';
       chartContainer.appendChild(chartTitle);
       const chartBars = document.createElement('div');
@@ -6010,8 +7284,6 @@
     }
 
     btnHistoria.addEventListener('click', otworzHistorie);
-    const btnHistoriaBack = document.getElementById('btn-historia-back');
-    if (btnHistoriaBack) btnHistoriaBack.addEventListener('click', () => pokazViewHome());
     const btnHistoriaWyczyscPage = document.getElementById('btn-historia-wyczysc-page');
     if (btnHistoriaWyczyscPage) {
       btnHistoriaWyczyscPage.addEventListener('click', () => {
@@ -6602,10 +7874,10 @@
       // Aktualizuj tekst przycisku generuj
       const btnGenerujEl = document.getElementById('btn-generuj');
       if (btnGenerujEl) {
-        if (MOBILE_MQL.matches && _wizardGotowy && _wizardKrok === 3) {
-          btnGenerujEl.textContent = 'GENERUJ';
+        if (MOBILE_MQL.matches && _wizardGotowy && _wizardKrok === WIZARD_KROK_MAX) {
+          ustawEtykietePrzyciskuGeneruj('GENERUJ');
         } else if (isInvoice) {
-          btnGenerujEl.textContent = 'Generuj dokument';
+          ustawEtykietePrzyciskuGeneruj('Generuj dokument');
         } else {
           if (typeof aktualizujTekstPrzyciskuGeneruj === 'function') aktualizujTekstPrzyciskuGeneruj();
         }

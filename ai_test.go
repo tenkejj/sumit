@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -264,4 +266,71 @@ func TestHandleParse_sukcesTekst(t *testing.T) {
 	if len(items) != 1 || items[0].Nazwa != "Montaż" {
 		t.Fatalf("items=%+v", items)
 	}
+}
+
+func TestLiveGroqIntegration(t *testing.T) {
+	apiKey := strings.TrimSpace(os.Getenv("GROQ_API_KEY"))
+	if apiKey == "" {
+		t.Skip("pominięto: brak GROQ_API_KEY")
+	}
+
+	t.Run("pozycje_tekst", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/parse", strings.NewReader(`{"tekst":"montaż hydrauliki 2 szt po 150 zł, materiały 500 zł"}`))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		handleParse(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+		}
+		var items []parseItem
+		if err := json.Unmarshal(rec.Body.Bytes(), &items); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if len(items) == 0 {
+			t.Fatal("brak pozycji")
+		}
+		t.Logf("pozycje: %+v", items)
+	})
+
+	t.Run("klient_tekst", func(t *testing.T) {
+		body := `{"tekst":"ABC Sp. z o.o., NIP 5261040828, ul. Marszałkowska 1, Warszawa","tryb":"klient"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/parse", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		handleParse(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+		}
+		var resp parseClientResponse
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if resp.Client.Nazwa == "" && resp.Client.NIP == "" {
+			t.Fatalf("pusty klient: %+v", resp.Client)
+		}
+		t.Logf("klient: %+v", resp.Client)
+	})
+
+	t.Run("klient_obraz", func(t *testing.T) {
+		img, err := os.ReadFile("testdata_wizytowka.png")
+		if err != nil {
+			t.Skip("pominięto: brak testdata_wizytowka.png (wygeneruj skryptem testowym)")
+		}
+		body := fmt.Sprintf(`{"obraz":%q,"mime_type":"image/png","tryb":"klient"}`, base64.StdEncoding.EncodeToString(img))
+		req := httptest.NewRequest(http.MethodPost, "/api/parse", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		handleParse(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+		}
+		var resp parseClientResponse
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if resp.Client.NIP == "" && resp.Client.Nazwa == "" {
+			t.Fatalf("pusty klient z obrazu: %+v", resp.Client)
+		}
+		t.Logf("klient z obrazu: %+v", resp.Client)
+	})
 }

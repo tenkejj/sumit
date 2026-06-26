@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -61,6 +62,18 @@ func formatPolishPaymentQR(nrb string, amountPLN float64, name, title string) st
 		"",
 		"",
 	}, "|")
+}
+
+// formatKSeFVerifyURL buduje adres weryfikacji faktury w KSeF.
+func formatKSeFVerifyURL(sellerNIP, invoiceNumber string) string {
+	var nip strings.Builder
+	for _, r := range strings.TrimSpace(strings.ToUpper(sellerNIP)) {
+		if r >= '0' && r <= '9' {
+			nip.WriteRune(r)
+		}
+	}
+	num := strings.TrimSpace(invoiceNumber)
+	return "https://ksef.podatki.gov.pl/web/verify?nip=" + nip.String() + "&numer=" + url.QueryEscape(num)
 }
 
 // generateQRPNG zwraca obraz PNG kodu QR (256 px) z poziomem korekcji błędów M.
