@@ -18,15 +18,6 @@
       && typeof navigator.share === 'function';
 
     const STORAGE_KEY_SOURCE = 'sumit_source';
-    const PAGE_SIGNATURE = 'Franciszek Dranka';
-
-    function createPageSignatureElement(extraClass) {
-      const p = document.createElement('p');
-      p.className = extraClass ? 'page-signature ' + extraClass : 'page-signature';
-      p.setAttribute('aria-hidden', 'true');
-      p.textContent = PAGE_SIGNATURE;
-      return p;
-    }
 
     function zachowajPozycjeScroll(fn) {
       const y = window.scrollY || document.documentElement.scrollTop || 0;
@@ -7715,7 +7706,6 @@
       card.appendChild(akceptacjaWrap);
 
       container.appendChild(card);
-      container.appendChild(createPageSignatureElement('klient-viewer-footer'));
 
       window._klientViewerDane = dane;
 

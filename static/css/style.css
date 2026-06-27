@@ -3097,6 +3097,18 @@
       stroke: none;
     }
 
+    .settings-creator-credit {
+      margin: 12px 0 0;
+      padding: 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
     .settings-section-danger .settings-section-title {
       color: var(--text);
     }
@@ -3620,10 +3632,6 @@
 
       .page-signature--form {
         display: none !important;
-      }
-
-      #view-kreator > .page-signature {
-        display: flex !important;
       }
 
       .page-nav-row.header-toolbar,
@@ -4447,10 +4455,6 @@
       font-size: 11px;
       color: var(--text-muted);
       margin: 0;
-    }
-
-    .klient-viewer-footer {
-      margin-top: 32px;
     }
 
     .klient-viewer-error {

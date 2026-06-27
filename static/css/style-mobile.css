@@ -355,7 +355,7 @@ body {
 #oferta-form > .accordion-section[data-accordion-id="pozycje"] { order: 1; }
 #oferta-form > .accordion-section[data-accordion-id="klient"] { order: 2; }
 #oferta-form > .accordion-section[data-accordion-id="szczegoly"] { order: 3; }
-#oferta-form > .page-signature--form { order: 4; }
+#oferta-form > .submit-wrap { order: 4; }
 #oferta-form > #message { order: 5; }
 
 /* === Header: sticky logo + blur przy scrollu === */
@@ -911,50 +911,17 @@ body[data-active-view="view-kreator"] .mobile-chrome {
   box-shadow: none !important;
 }
 
-/* Podpis — mobile: Home, Statystyki, Historia + Ustawienia; bez kreatora i Moja firma (CTA) */
-#view-kreator > .page-signature,
-#oferta-form > .page-signature--form,
-#view-firma > .page-signature {
-  display: none !important;
-}
-
-.page-signature {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  margin: 0;
-  border-top: none;
-  color: var(--m-muted, var(--text-muted));
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  font-weight: 400;
-  opacity: 0.65;
-  pointer-events: none;
-}
-
-#view-home > .page-signature--home,
-#view-statystyki > .page-signature,
-#view-historia > .page-signature--historia {
-  display: flex !important;
-  flex: 0 0 auto;
-  flex-shrink: 0;
-}
-
-#view-home > .page-signature--home,
-#view-historia > .page-signature--historia {
-  padding: 2px 16px 10px;
-}
-
-#view-statystyki > .page-signature {
-  padding: 4px 16px 10px;
-}
-
-#app-settings-modal .app-settings-signature {
-  display: flex !important;
-  margin: 0;
-  padding: 8px 20px 2px;
+/* Podpis twórcy — tylko w Ustawieniach, sekcja Kontakt */
+.settings-creator-credit {
+  margin: 10px 0 0;
+  padding: 0;
+  text-align: center;
   color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 #app-settings-modal .settings-contact-link {
@@ -966,15 +933,6 @@ body[data-active-view="view-kreator"] .mobile-chrome {
 
 #app-settings-modal .settings-contact-link:active {
   opacity: 0.85;
-}
-
-.page.is-viewer-mode .klient-viewer-footer.page-signature {
-  display: flex !important;
-  position: static;
-  height: auto;
-  margin-top: 24px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
-  pointer-events: none;
 }
 
 #btn-udostepnij-pdf-desktop {
@@ -5613,8 +5571,7 @@ body[data-active-view="view-historia"] #view-historia > .historia-scroll-wrap {
   min-height: 0;
 }
 
-body[data-active-view="view-historia"] #view-historia > .historia-page-footer,
-body[data-active-view="view-historia"] #view-historia > .page-signature--historia {
+body[data-active-view="view-historia"] #view-historia > .historia-page-footer {
   flex: 0 0 auto;
 }
 
@@ -7109,10 +7066,7 @@ body.home-wizard-anim-back #wizard-mobile-chrome.is-active {
 
 body.home-wizard-anim-prep .home-footer,
 body.home-wizard-anim-forward .home-footer,
-body.home-wizard-anim-back .home-footer,
-body.home-wizard-anim-prep #view-home > .page-signature--home,
-body.home-wizard-anim-forward #view-home > .page-signature--home,
-body.home-wizard-anim-back #view-home > .page-signature--home {
+body.home-wizard-anim-back .home-footer {
   opacity: 0 !important;
   visibility: hidden !important;
 }
