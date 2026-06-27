@@ -5,6 +5,10 @@
 <h3 align="center">PDF estimates for tradespeople. No signup.</h3>
 
 <p align="center">
+  <a href="https://www.sum-it.app/">https://www.sum-it.app/</a>
+</p>
+
+<p align="center">
   <a href="#english">English</a> · <a href="#polski">Polski</a>
 </p>
 

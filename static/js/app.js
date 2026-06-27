@@ -3568,10 +3568,11 @@
         document.body.style.position = '';
       }
 
-      function otworz() {
+      function otworz(opts) {
         if (!mql.matches) return;
-        if (typeof wyczyscZdjecieAi === 'function') wyczyscZdjecieAi();
-        if (typeof ustawAiParseStatus === 'function') ustawAiParseStatus('');
+        const zachowajZdjecie = !!(opts && opts.zachowajZdjecie);
+        if (!zachowajZdjecie && typeof wyczyscZdjecieAi === 'function') wyczyscZdjecieAi();
+        if (!zachowajZdjecie && typeof ustawAiParseStatus === 'function') ustawAiParseStatus('');
         modal.classList.remove('hidden');
         modal.removeAttribute('hidden');
         modal.setAttribute('aria-hidden', 'false');
@@ -5056,11 +5057,27 @@
     function zamknijPodgladAi() {
       if (!modalAiPreview) return;
       modalAiPreview.classList.add('hidden');
+      modalAiPreview.setAttribute('hidden', '');
       modalAiPreview.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
       aiPendingItems = [];
       if (aiPreviewTbody) aiPreviewTbody.innerHTML = '';
       if (aiPreviewMeta) aiPreviewMeta.textContent = '';
+    }
+
+    function zastosujPozycjeAiNaMobileWizard(pozycje) {
+      const dodane = wstrzyknijPozycjeZAi(pozycje);
+      if (dodane <= 0) return 0;
+
+      if (typeof window.zamknijAiInputSheet === 'function') {
+        window.zamknijAiInputSheet();
+      }
+      if (aiNotatka) aiNotatka.value = '';
+      wyczyscZdjecieAi();
+      ustawAiParseStatus('');
+      pokazToast('Dodano ' + dodane + ' pozycji do wyceny.', 'success');
+      wibruj([20]);
+      return dodane;
     }
 
     function pokazPodgladAi(items) {
@@ -5109,6 +5126,7 @@
       }
 
       modalAiPreview.classList.remove('hidden');
+      modalAiPreview.removeAttribute('hidden');
       modalAiPreview.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
       if (btnAiPreviewDodaj) btnAiPreviewDodaj.focus();
@@ -5405,6 +5423,11 @@
           return;
         }
 
+        if (MOBILE_MQL.matches && wizardMobileAktywny() && _wizardKrok === 2) {
+          if (zastosujPozycjeAiNaMobileWizard(pozycje) > 0) return;
+          return;
+        }
+
         ustawAiParseStatus('Znaleziono ' + pozycje.length + ' pozycji — sprawdź przed dodaniem.', 'success');
         pokazPodgladAi(pozycje);
       } catch (err) {
@@ -5513,7 +5536,7 @@
           if (!file) return;
           ustawAiParseStatus('');
           if (MOBILE_MQL.matches && typeof window.otworzAiInputSheet === 'function') {
-            window.otworzAiInputSheet();
+            window.otworzAiInputSheet({ zachowajZdjecie: true });
           }
           try {
             wyczyscZdjecieAi();
