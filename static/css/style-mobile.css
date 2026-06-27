@@ -5331,6 +5331,92 @@ body[data-active-view="view-home"] .btn-home-settings {
   flex-shrink: 0;
 }
 
+.home-resume-draft {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  max-width: var(--home-cta-max-w);
+  margin: 0 auto 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(192, 20, 60, 0.45);
+  background: rgba(192, 20, 60, 0.1);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.home-resume-draft:active {
+  transform: scale(0.99);
+  background: rgba(192, 20, 60, 0.16);
+}
+
+.home-resume-draft[hidden] {
+  display: none !important;
+}
+
+.home-resume-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--m-accent);
+}
+
+.home-resume-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.home-resume-meta {
+  font-size: 12px;
+  color: var(--m-muted, var(--text-muted));
+}
+
+#tab-kreator.has-draft .tab-label {
+  position: relative;
+}
+
+#tab-kreator.has-draft .tab-label::after {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 3px;
+  margin-bottom: 2px;
+  border-radius: 50%;
+  background: var(--m-accent);
+  vertical-align: middle;
+}
+
+.wizard-dalej-hint {
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 0 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 500;
+  color: var(--m-accent);
+  text-align: center;
+}
+
+.wizard-dalej-hint[hidden] {
+  display: none !important;
+}
+
+body[data-active-view="view-kreator"]:not([data-wizard-krok="1"]):not([data-wizard-krok="2"]) .wizard-dalej-hint,
+body[data-active-view="view-home"] .wizard-dalej-hint,
+body[data-active-view="view-historia"] .wizard-dalej-hint,
+body[data-active-view="view-firma"] .wizard-dalej-hint,
+body[data-active-view="view-statystyki"] .wizard-dalej-hint {
+  display: none !important;
+}
+
 .btn-home-cta {
   width: 100%;
   aspect-ratio: 1 / 1;

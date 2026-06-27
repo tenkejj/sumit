@@ -33,7 +33,7 @@
       <nav class="view-tabs" role="tablist" aria-label="Widoki aplikacji">
         <button type="button" class="view-tab is-active" role="tab" id="tab-kreator" aria-selected="true" aria-controls="view-kreator" data-view-target="view-kreator">
           <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span class="tab-label">Wycena</span>
+          <span class="tab-label" id="tab-kreator-label">Start</span>
         </button>
         <button type="button" class="view-tab mobile-only-tab" role="tab" id="tab-historia" aria-selected="false" aria-controls="view-historia" data-view-target="view-historia">
           <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -92,6 +92,11 @@
       </header>
       <div class="home-body">
         <div class="home-main">
+        <button type="button" id="home-resume-draft" class="home-resume-draft" hidden>
+          <span class="home-resume-eyebrow">Niedokończona wycena</span>
+          <span class="home-resume-title" id="home-resume-title"></span>
+          <span class="home-resume-meta" id="home-resume-meta"></span>
+        </button>
         <div class="home-cta-group">
           <button type="button" id="btn-home-wycena" class="btn btn-home-cta btn-home-cta-primary" data-home-action="wycena">
             <span class="home-btn-icon" aria-hidden="true">
@@ -423,6 +428,7 @@
         </section>
 
         <div class="submit-wrap">
+          <p id="wizard-dalej-hint" class="wizard-dalej-hint" role="alert" hidden></p>
           <div class="cta-row">
             <button type="button" id="btn-wizard-dalej" class="btn-primary wizard-dalej-btn" hidden>Dalej</button>
             <button type="submit" class="btn-primary" id="btn-generuj">
@@ -753,6 +759,10 @@
             <button type="button" class="btn-clear settings-link-btn" id="btn-app-wyczysc-szkic">Wyczyść bieżącą wycenę</button>
             <button type="button" class="btn-clear settings-link-btn" id="btn-app-wyczysc-historie">Wyczyść historię wycen</button>
           </div>
+        </section>
+        <section class="settings-section settings-section-pwa" id="settings-pwa-section" hidden>
+          <h4 class="settings-section-title">Aplikacja na telefonie</h4>
+          <p class="settings-hint">Na iPhone otwórz SumIt w <strong>Safari</strong>, dotknij <strong>Udostępnij</strong> (kwadrat ze strzałką) i wybierz <strong>Do ekranu początkowego</strong>.</p>
         </section>
         <section class="settings-section settings-section-contact">
           <h4 class="settings-section-title">Kontakt</h4>

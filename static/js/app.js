@@ -2406,6 +2406,7 @@
     function otworzAppSettings() {
       if (!appSettingsModal) return;
       odswiezWszystkieChipyAppSettings();
+      odswiezPwaHint();
       appSettingsModal.hidden = false;
       appSettingsModal.removeAttribute('hidden');
       appSettingsModal.setAttribute('aria-hidden', 'false');
@@ -2574,10 +2575,19 @@
         if (el) dane[id] = el.value;
       });
       dane._docType = getActiveDocType();
+      if (MOBILE_MQL.matches
+          && document.body.dataset.activeView === 'view-kreator'
+          && _wizardGotowy
+          && _wizardKrok >= 1) {
+        dane._wizardKrok = _wizardKrok;
+        const vk = document.getElementById('view-kreator');
+        dane._wizardManualMode = !!(vk && vk.classList.contains('wizard-manual-mode'));
+      }
       try {
         localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(dane));
       } catch (e) {}
       aktualizujLivePodglad();
+      odswiezSzkicUI();
     }
 
     const saveDraftDebounced = debounce(saveDraft, 500);
@@ -2624,6 +2634,117 @@
       odswiezStanPresetow();
       aktualizujSzacowanyZysk();
       odswiezWidocznoscWierszy();
+      odswiezSzkicUI();
+    }
+
+    function odczytajDraftSurowy() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_DRAFT);
+        if (!raw) return null;
+        const dane = JSON.parse(raw);
+        return dane && typeof dane === 'object' ? dane : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function szkicMaDane(dane) {
+      if (!dane || typeof dane !== 'object') return false;
+      if (String(dane.klient || '').trim()) return true;
+      if (Array.isArray(dane.pozycje) && dane.pozycje.some((p) => p && String(p.nazwa || '').trim())) return true;
+      const krok = Number(dane._wizardKrok);
+      if (Number.isFinite(krok) && krok > 1) return true;
+      return false;
+    }
+
+    function wyliczKrokZDraftu(dane) {
+      const src = dane || odczytajDraftSurowy() || {};
+      const zapisany = Number(src._wizardKrok);
+      if (Number.isFinite(zapisany) && zapisany >= 1 && zapisany <= 3) {
+        return zapisany;
+      }
+      const klientTxt = String(src.klient || '').trim();
+      const pozycje = Array.isArray(src.pozycje) ? src.pozycje : [];
+      const maPozycje = pozycje.some((p) => p && String(p.nazwa || '').trim());
+      if (!klientTxt) return 1;
+      if (!maPozycje) return 2;
+      return 3;
+    }
+
+    function etykietaKlientaZSzkicu(dane) {
+      const txt = String((dane && dane.klient) || '').trim();
+      if (!txt) return 'Bez klienta';
+      const first = txt.split('\n').map((s) => s.trim()).find(Boolean) || '';
+      if (first.length <= 34) return first;
+      return first.slice(0, 33) + '…';
+    }
+
+    function metaKrokuWizarda(krok) {
+      const tytuly = { 1: 'Dla kogo?', 2: 'Co wyceniasz?', 3: 'Ostatnie szczegóły' };
+      const nr = Math.max(1, Math.min(3, Number(krok) || 1));
+      return 'Krok ' + nr + ' z 3 · ' + (tytuly[nr] || '');
+    }
+
+    function odswiezTabKreatorLabel() {
+      const label = document.getElementById('tab-kreator-label');
+      const tab = document.getElementById('tab-kreator');
+      if (!label || !tab || !MOBILE_MQL.matches) return;
+      const maSzkic = szkicMaDane(odczytajDraftSurowy());
+      label.textContent = maSzkic ? 'Wycena' : 'Start';
+      tab.classList.toggle('has-draft', maSzkic);
+    }
+
+    function odswiezPwaHint() {
+      const sec = document.getElementById('settings-pwa-section');
+      if (!sec) return;
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+      const pokaz = MOBILE_MQL.matches && isIOS && !isStandalone;
+      sec.hidden = !pokaz;
+    }
+
+    function odswiezSzkicUI() {
+      if (!MOBILE_MQL.matches) return;
+      odswiezTabKreatorLabel();
+      const btn = document.getElementById('home-resume-draft');
+      const titleEl = document.getElementById('home-resume-title');
+      const metaEl = document.getElementById('home-resume-meta');
+      if (!btn || !titleEl || !metaEl) return;
+      const dane = odczytajDraftSurowy();
+      if (!szkicMaDane(dane) || document.body.dataset.activeView === 'view-kreator') {
+        btn.hidden = true;
+        return;
+      }
+      const krok = wyliczKrokZDraftu(dane);
+      titleEl.textContent = etykietaKlientaZSzkicu(dane);
+      metaEl.textContent = metaKrokuWizarda(krok);
+      btn.hidden = false;
+    }
+
+    function pokazWizardDalejHint(tekst) {
+      const hint = document.getElementById('wizard-dalej-hint');
+      if (!hint) return;
+      hint.textContent = tekst || '';
+      if (tekst) {
+        hint.removeAttribute('hidden');
+      } else {
+        hint.setAttribute('hidden', '');
+      }
+    }
+
+    function ukryjWizardDalejHint() {
+      pokazWizardDalejHint('');
+    }
+
+    function usunPusteWierszePozycji() {
+      [...tbody.querySelectorAll('tr')].forEach((tr) => {
+        if (wierszJestPusty(tr)) tr.remove();
+      });
+      if (!tbody.querySelector('tr')) {
+        dodajWiersz({ naKoniec: true });
+      }
+      odswiezNumery();
     }
 
     function ustawDomyslnaDate() {
@@ -2653,6 +2774,7 @@
       aktualizujSzacowanyZysk();
       odswiezWidocznoscWierszy();
       aktualizujLivePodglad();
+      odswiezSzkicUI();
     }
 
     function oczyscNIPWejscie(s) {
@@ -3676,6 +3798,8 @@
       initMobileAiSheet();
       initMobileScrollClamp();
 
+      odswiezPwaHint();
+
       form.addEventListener('input', saveDraftDebounced);
       btnDodaj.addEventListener('click', saveDraftDebounced);
       tbody.addEventListener('click', (e) => {
@@ -3857,7 +3981,10 @@
       });
     }
 
-    function wejdzWKreatorMobile(docType) {
+    function wejdzWKreatorMobile(docType, opts) {
+      opts = opts || {};
+      const resume = !!opts.resume;
+      const draftDane = resume ? (opts.dane || odczytajDraftSurowy()) : null;
       if (!MOBILE_MQL.matches) {
         if (typeof aktywujWidok === 'function') aktywujWidok('view-kreator');
         return;
@@ -3872,20 +3999,28 @@
       document.body.classList.remove('wizard-hide-step2-entry', 'wizard-klient-field-open', 'wizard-step-anim-forward', 'wizard-step-anim-back', 'home-wizard-anim-prep', 'home-wizard-anim-forward', 'home-wizard-anim-back', 'home-wizard-anim-back-prep');
       clearTimeout(_homeWizardAnimTimer);
       zamknijPoleKlientaWizarda();
+      ukryjWizardDalejHint();
       if (typeof setActiveDocType === 'function') {
-        setActiveDocType(docType !== undefined ? docType : '');
+        if (resume && draftDane && typeof draftDane._docType === 'string') {
+          setActiveDocType(draftDane._docType);
+        } else if (!resume) {
+          setActiveDocType(docType !== undefined ? docType : '');
+        }
       }
-      const animujWejscie = MOBILE_MQL.matches && animacjeWlaczone();
+      const animujWejscie = MOBILE_MQL.matches && animacjeWlaczone() && !resume;
       _wizardKrok = 0;
       delete document.body.dataset.wizardKrok;
+      const startKrok = resume ? (opts.krok || wyliczKrokZDraftu(draftDane)) : 1;
+      const wizardOpts = resume ? { poWznowieniu: true, dane: draftDane } : null;
       if (animujWejscie) {
         document.body.classList.add('home-wizard-anim-prep');
         const homeTotal = document.getElementById('home-total');
         if (homeTotal) homeTotal.setAttribute('hidden', '');
       }
       pokazWidokKreatora({ keepHomeVisible: animujWejscie });
+      odswiezSzkicUI();
       if (animujWejscie) {
-        inicjujWizard();
+        inicjujWizard(startKrok, wizardOpts);
         odswiezWizardChrome();
         requestAnimationFrame(() => {
           odpalAnimacjeHomeDoKreatora(() => {
@@ -3898,8 +4033,19 @@
           });
         });
       } else {
-        inicjujWizard();
+        inicjujWizard(startKrok, wizardOpts);
       }
+    }
+
+    function wznowSzkicMobile() {
+      if (!MOBILE_MQL.matches) return;
+      const dane = odczytajDraftSurowy();
+      if (!szkicMaDane(dane)) return;
+      wejdzWKreatorMobile(dane && dane._docType, {
+        resume: true,
+        krok: wyliczKrokZDraftu(dane),
+        dane,
+      });
     }
 
     function initViewTabs() {
@@ -3926,6 +4072,7 @@
         }
         const poprzedniWidok = document.body.dataset.activeView || 'view-home';
         if (MOBILE_MQL.matches && poprzedniWidok === 'view-kreator' && targetId !== 'view-kreator') {
+          if (typeof saveDraft === 'function') saveDraft();
           delete document.body.dataset.wizardKrok;
           document.body.classList.remove('wizard-hide-step2-entry', 'wizard-klient-field-open', 'wizard-step-anim-forward', 'wizard-step-anim-back', 'home-wizard-anim-prep', 'home-wizard-anim-forward', 'home-wizard-anim-back', 'home-wizard-anim-back-prep');
           const vk = document.getElementById('view-kreator');
@@ -3941,7 +4088,11 @@
         }
         if (MOBILE_MQL.matches && targetId === 'view-kreator') {
           pokazWidokKreatora();
-          inicjujWizard();
+          if (szkicMaDane(odczytajDraftSurowy())) {
+            wznowSzkicMobile();
+          } else {
+            inicjujWizard(1);
+          }
           return;
         }
         document.body.dataset.activeView = targetId;
@@ -4108,6 +4259,7 @@
       }
       window.scrollTo(0, 0);
       renderHomeScreen();
+      odswiezSzkicUI();
     }
 
     function renderHomeScreen() {
@@ -4136,6 +4288,7 @@
         amountEl.textContent = '';
         totalEl.setAttribute('hidden', '');
       }
+      odswiezSzkicUI();
     }
 
     // ── Sesja F2: swipe, pull-to-refresh, 30s autosave ───────────────────────
@@ -4221,6 +4374,13 @@
         e.preventDefault();
         e.stopPropagation();
       }
+      if (szkicMaDane(odczytajDraftSurowy())) {
+        const nowa = docType === 'faktura_vat' ? 'fakturę VAT' : 'wycenę';
+        if (!window.confirm('Masz niedokończoną wycenę. Rozpocząć nową ' + nowa + '? Obecny szkic zostanie usunięty.')) {
+          return;
+        }
+        wyczyscFormularz();
+      }
       wejdzWKreatorMobile(docType);
       if (typeof wibruj === 'function') wibruj([10]);
     }
@@ -4250,6 +4410,14 @@
       const btnNowaFaktura = document.getElementById('btn-home-faktura');
       if (btnNowaFaktura) {
         btnNowaFaktura.addEventListener('click', (e) => obsluzHomeCta(e, 'faktura_vat'));
+      }
+
+      const btnResume = document.getElementById('home-resume-draft');
+      if (btnResume) {
+        btnResume.addEventListener('click', (e) => {
+          e.preventDefault();
+          wznowSzkicMobile();
+        });
       }
 
       pokazViewHome();
@@ -4435,6 +4603,7 @@
 
     function irziNaKrok(krok) {
       if (!MOBILE_MQL.matches) return;
+      ukryjWizardDalejHint();
       const prevKrok = _wizardKrok;
       const nextKrok = Math.max(1, Math.min(WIZARD_KROK_MAX, krok));
       const kroiData = WIZARD_KROKI.find(k => k.nr === nextKrok);
@@ -4510,6 +4679,7 @@
       odswiezWizardChrome();
       odswiezWalidacjeKlientaWizarda();
       odpalAnimacjePrzejsciaKroku(prevKrok, nextKrok);
+      saveDraft();
     }
 
     function odswiezWidoczneSekcjeWizarda() {
@@ -4529,7 +4699,7 @@
       if (krok === 1) {
         const klientEl = document.getElementById('klient');
         if (!klientEl || !String(klientEl.value || '').trim()) {
-          pokazToast('Podaj nazwę klienta.', 'error');
+          pokazWizardDalejHint('Podaj nazwę klienta, aby przejść dalej.');
           wibruj([40, 30, 40]);
           if (klientEl) klientEl.focus();
           return false;
@@ -4541,15 +4711,33 @@
           return inp && String(inp.value || '').trim().length > 0;
         });
         if (!maRzad) {
-          pokazToast('Dodaj przynajmniej jedną pozycję.', 'error');
+          pokazWizardDalejHint('Dodaj przynajmniej jedną pozycję, aby przejść dalej.');
           wibruj([40, 30, 40]);
           return false;
         }
       }
+      ukryjWizardDalejHint();
       return true;
     }
 
-    function inicjujWizard() {
+    function zastosujWizardStanPoWznowieniu(dane) {
+      const vk = document.getElementById('view-kreator');
+      if (!vk || !MOBILE_MQL.matches) return;
+      const src = dane || odczytajDraftSurowy() || {};
+      const maPozycje = [...tbody.querySelectorAll('tr')].some((tr) => !wierszJestPusty(tr));
+      if (_wizardKrok === 2 && (src._wizardManualMode || maPozycje)) {
+        vk.classList.add('wizard-manual-mode');
+        if (maPozycje) vk.classList.add('wizard-has-pozycje');
+        odswiezWizardPozycjeEntry();
+        odswiezWizardPozycjeUI();
+        odswiezWidocznoscWierszy();
+      }
+      if (_wizardKrok === 1 && String(src.klient || '').trim()) {
+        otworzPoleKlientaWizarda();
+      }
+    }
+
+    function inicjujWizard(startKrok, opcje) {
       if (!MOBILE_MQL.matches) return;
 
       if (!_wizardGotowy) {
@@ -4581,8 +4769,11 @@
 
       }
 
-
-      irziNaKrok(1);
+      const krok = Math.max(1, Math.min(WIZARD_KROK_MAX, startKrok || 1));
+      irziNaKrok(krok);
+      if (opcje && opcje.poWznowieniu) {
+        zastosujWizardStanPoWznowieniu(opcje.dane);
+      }
     }
 
     function initMobileWizard() {
@@ -5166,6 +5357,9 @@
         ustawAiParseStatus('Nie znaleziono poprawnych pozycji do dodania.', 'error');
         return 0;
       }
+
+      usunPusteWierszePozycji();
+      odswiezWidocznoscWierszy();
 
       const viewKreator = document.getElementById('view-kreator');
       if (viewKreator && window.matchMedia('(max-width: 1023px)').matches) {
