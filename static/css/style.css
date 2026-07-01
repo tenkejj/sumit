@@ -1845,6 +1845,7 @@
     .ai-parse-status.is-success { color: var(--text-muted); }
 
     .modal-card.ai-preview-card { max-width: 560px; }
+    .modal-card.confirm-card { max-width: 440px; }
     .ai-preview-table-wrap {
       overflow-x: auto;
       margin-top: 8px;

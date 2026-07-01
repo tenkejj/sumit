@@ -2731,6 +2731,7 @@
       } else {
         hint.setAttribute('hidden', '');
       }
+      requestAnimationFrame(() => syncWizardCtaBarHeight());
     }
 
     function ukryjWizardDalejHint() {
@@ -2786,8 +2787,47 @@
     const nipInput = document.getElementById('nip-input');
     const btnNipAnuluj = document.getElementById('btn-nip-anuluj');
     const btnNipPobierz = document.getElementById('btn-nip-pobierz');
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmModalBackdrop = document.getElementById('confirm-modal-backdrop');
+    const confirmModalTitle = document.getElementById('confirm-modal-title');
+    const confirmModalMessage = document.getElementById('confirm-modal-message');
+    const confirmModalCancel = document.getElementById('confirm-modal-cancel');
+    const confirmModalOk = document.getElementById('confirm-modal-ok');
 
     let nipFetchController = null;
+    let confirmModalResolver = null;
+
+    function zamknijConfirmModal(wynik) {
+      if (!confirmModal) return;
+      confirmModal.classList.add('hidden');
+      confirmModal.setAttribute('hidden', '');
+      confirmModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      const resolve = confirmModalResolver;
+      confirmModalResolver = null;
+      if (typeof resolve === 'function') resolve(!!wynik);
+    }
+
+    function pokazConfirmModal(opts) {
+      if (!confirmModal || !confirmModalTitle || !confirmModalMessage) {
+        return Promise.resolve(window.confirm((opts && opts.message) || 'Czy na pewno?'));
+      }
+      const cfg = opts || {};
+      confirmModalTitle.textContent = cfg.title || 'Potwierdzenie';
+      confirmModalMessage.textContent = cfg.message || 'Czy na pewno chcesz kontynuować?';
+      if (confirmModalOk) confirmModalOk.textContent = cfg.confirmText || 'OK';
+      if (confirmModalCancel) confirmModalCancel.textContent = cfg.cancelText || 'Anuluj';
+      confirmModal.classList.remove('hidden');
+      confirmModal.removeAttribute('hidden');
+      confirmModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      return new Promise((resolve) => {
+        confirmModalResolver = resolve;
+        requestAnimationFrame(() => {
+          if (confirmModalCancel) confirmModalCancel.focus();
+        });
+      });
+    }
 
     function ustawStanLadowaniaNIP(loading) {
       const btnInline = document.getElementById('btn-pobierz-nip');
@@ -2818,6 +2858,7 @@
       if (!modalNIP || !nipInput) return;
       nipInput.value = prefill ? String(prefill).replace(/\D/g, '').slice(0, 10) : '';
       ustawStanLadowaniaNIP(false);
+      modalNIP.removeAttribute('hidden');
       modalNIP.classList.remove('hidden');
       modalNIP.setAttribute('aria-hidden', 'false');
       document.body.classList.add('nip-modal-open');
@@ -2902,7 +2943,11 @@
       await pobierzDaneKlientaPoNIP(nipInput.value, { zamknijModal: true });
     }
 
-    function pobierzKlientaPoNIP() {
+    function pobierzKlientaPoNIP(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       const klientEl = document.getElementById('klient');
       const nipZZawartosci = klientEl ? wyciagnijNipZPolaKlienta(klientEl.value) : '';
       if (MOBILE_MQL.matches && wizardMobileAktywny()) {
@@ -3391,6 +3436,24 @@
       }
     }
 
+    function syncWizardCtaBarHeight() {
+      if (!MOBILE_MQL.matches
+        || document.body.dataset.activeView !== 'view-kreator'
+        || !document.body.dataset.wizardKrok) {
+        document.documentElement.style.removeProperty('--wizard-cta-stack-h');
+        return;
+      }
+      const wrap = document.querySelector('#oferta-form > .submit-wrap');
+      if (!wrap) return;
+      const style = window.getComputedStyle(wrap);
+      if (style.display === 'none' || style.visibility === 'hidden') {
+        document.documentElement.style.setProperty('--wizard-cta-stack-h', '0px');
+        return;
+      }
+      const h = Math.ceil(wrap.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--wizard-cta-stack-h', h + 'px');
+    }
+
     function odswiezWizardChrome() {
       if (!MOBILE_MQL.matches) return;
       const chrome = document.getElementById('wizard-mobile-chrome');
@@ -3401,6 +3464,7 @@
       chrome.classList.toggle('is-active', pokaz);
       requestAnimationFrame(() => {
         syncMobileTopChromeHeight();
+        syncWizardCtaBarHeight();
       });
     }
 
@@ -4312,7 +4376,7 @@
       viewKreator.addEventListener('touchend', (e) => {
         if (document.body.classList.contains('gen-overlay-open')) return;
         if (!_wizardGotowy) return;
-        if (e.target.closest('.wizard-input-btn, #wizard-klient-methods, #btn-wizard-dalej, #btn-generuj, #btn-dodaj, #btn-katalog, .items-actions')) return;
+        if (e.target.closest('.wizard-input-btn, #wizard-klient-methods, #btn-wizard-dalej, #btn-generuj, #btn-dodaj, #btn-katalog, .items-actions, #btn-pobierz-nip, .btn-link-nip')) return;
         const t = e.changedTouches[0];
         const dx = t.clientX - touchStartX;
         const dy = t.clientY - touchStartY;
@@ -4369,14 +4433,20 @@
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    function obsluzHomeCta(e, docType) {
+    async function obsluzHomeCta(e, docType) {
       if (e) {
         e.preventDefault();
         e.stopPropagation();
       }
       if (szkicMaDane(odczytajDraftSurowy())) {
         const nowa = docType === 'faktura_vat' ? 'fakturę VAT' : 'wycenę';
-        if (!window.confirm('Masz niedokończoną wycenę. Rozpocząć nową ' + nowa + '? Obecny szkic zostanie usunięty.')) {
+        const ok = await pokazConfirmModal({
+          title: 'Niedokończona wycena',
+          message: 'Masz niedokończoną wycenę. Rozpocząć nową ' + nowa + '? Obecny szkic zostanie usunięty.',
+          confirmText: 'Rozpocznij nową',
+          cancelText: 'Anuluj',
+        });
+        if (!ok) {
           return;
         }
         wyczyscFormularz();
@@ -4425,13 +4495,25 @@
       if (!window._mobileChromeResizeWired) {
         window._mobileChromeResizeWired = true;
         window.addEventListener('resize', syncMobileTopChromeHeight, { passive: true });
+        window.addEventListener('resize', syncWizardCtaBarHeight, { passive: true });
         if (typeof MOBILE_MQL.addEventListener === 'function') {
           MOBILE_MQL.addEventListener('change', syncMobileTopChromeHeight);
+          MOBILE_MQL.addEventListener('change', syncWizardCtaBarHeight);
         } else if (typeof MOBILE_MQL.addListener === 'function') {
           MOBILE_MQL.addListener(syncMobileTopChromeHeight);
+          MOBILE_MQL.addListener(syncWizardCtaBarHeight);
         }
       }
     }
+
+    if (confirmModalBackdrop) confirmModalBackdrop.addEventListener('click', () => zamknijConfirmModal(false));
+    if (confirmModalCancel) confirmModalCancel.addEventListener('click', () => zamknijConfirmModal(false));
+    if (confirmModalOk) confirmModalOk.addEventListener('click', () => zamknijConfirmModal(true));
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (!confirmModal || confirmModal.classList.contains('hidden')) return;
+      zamknijConfirmModal(false);
+    });
 
     // ── Wizard Krok 1-3 ────────────────────────────────────────────────────
 
@@ -4446,6 +4528,7 @@
       document.body.classList.remove('wizard-klient-field-open');
       const field = document.querySelector('#wizard-klient-methods .field-klient-plain');
       if (field) field.setAttribute('hidden', '');
+      requestAnimationFrame(() => syncWizardCtaBarHeight());
     }
 
     function otworzPoleKlientaWizarda() {
@@ -4454,6 +4537,7 @@
       if (field) field.removeAttribute('hidden');
       const bodyKlient = document.getElementById('accordion-body-klient');
       if (bodyKlient) bodyKlient.scrollTop = 0;
+      requestAnimationFrame(() => syncWizardCtaBarHeight());
     }
 
     function initWizardKlientMethodButtons() {

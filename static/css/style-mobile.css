@@ -31,6 +31,7 @@
   --gen-progress-ms: 12000;
   --gen-finish-ms: 1800;
   --cta-bar-h: 96px;
+  --wizard-cta-stack-h: var(--cta-bar-h);
   --ksef-hint-stack-h: 0px;
   --chrome-gap: 6px;
   --wizard-big-btn-pad-x: 22px;
@@ -1248,7 +1249,7 @@ body[data-active-view="view-kreator"] .mobile-chrome {
   border: 1px solid var(--m-border);
   border-radius: 12px;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.45;
   box-sizing: border-box;
   resize: vertical;
@@ -3489,7 +3490,7 @@ body[data-active-view="view-kreator"][data-wizard-krok="2"]:not(.wizard-hide-ste
   border: 1px solid var(--m-border) !important;
   border-radius: 12px;
   color: var(--text) !important;
-  font-size: 15px !important;
+  font-size: 16px !important;
   padding: 12px 14px !important;
   resize: none;
   font-family: 'Inter', system-ui, sans-serif;
@@ -3692,7 +3693,7 @@ body[data-active-view="view-kreator"] #oferta-form {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding-bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + var(--chrome-gap) + var(--cta-bar-h));
+  padding-bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + var(--chrome-gap) + var(--wizard-cta-stack-h, var(--cta-bar-h)));
 }
 
 body[data-active-view="view-kreator"][data-wizard-krok] #oferta-form {
@@ -4496,9 +4497,18 @@ select {
     padding: 0;
     align-items: flex-end;
   }
+  #confirm-modal {
+    padding: 24px;
+    align-items: center;
+  }
   .modal-card {
     border-radius: 12px 12px 0 0;
     max-height: 92vh;
+  }
+  #confirm-modal .modal-card.confirm-card {
+    border-radius: 16px;
+    width: min(100%, 420px);
+    max-height: none;
   }
   .modal-body iframe {
     height: 60vh;
@@ -5312,6 +5322,7 @@ body[data-active-view="view-home"] .btn-home-settings {
 .home-main {
   display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 0;
@@ -5337,8 +5348,9 @@ body[data-active-view="view-home"] .btn-home-settings {
   align-items: flex-start;
   gap: 2px;
   width: 100%;
-  max-width: var(--home-cta-max-w);
-  margin: 0 auto 12px;
+  max-width: 100%;
+  margin: 0 0 12px;
+  flex: 0 0 auto;
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid rgba(192, 20, 60, 0.45);
@@ -6355,7 +6367,7 @@ body[data-active-view="view-kreator"][data-wizard-krok="3"]
   right: 0 !important;
   bottom: calc(
     var(--tab-bar-h, 68px) + env(safe-area-inset-bottom, 0px) +
-    var(--chrome-gap, 6px) + var(--cta-bar-h, 96px) + var(--ksef-hint-stack-h, 0px)
+    var(--chrome-gap, 6px) + var(--wizard-cta-stack-h, var(--cta-bar-h, 96px)) + var(--ksef-hint-stack-h, 0px)
   ) !important;
   z-index: 120 !important;
   overflow-x: hidden !important;
@@ -6841,6 +6853,10 @@ body[data-active-view="view-kreator"][data-wizard-krok="1"] .wizard-klient-btn-m
   display: none;
 }
 
+body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] .wizard-klient-methods > .wizard-input-btn {
+  display: none !important;
+}
+
 body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] .btn-link-nip-wizard {
   display: inline-flex !important;
   align-self: flex-end;
@@ -6869,7 +6885,7 @@ body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok=
 body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] .wizard-klient-methods {
   flex: 1 1 auto !important;
   justify-content: flex-start !important;
-  padding-top: 20px !important;
+  padding-top: 12px !important;
   padding-bottom: 8px !important;
   min-height: 0;
 }
@@ -6895,6 +6911,10 @@ body[data-active-view="view-kreator"] .klient-wrapper-wizard #klient {
 
 body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] .klient-wrapper-wizard #klient {
   min-height: 148px;
+}
+
+body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] .klient-wrapper-wizard {
+  padding-bottom: 4px;
 }
 
 body[data-active-view="view-kreator"] .klient-wrapper-wizard #klient-autocomplete {
