@@ -49,7 +49,7 @@
     var(--tab-bar-h) + var(--cta-bar-h) +
     env(safe-area-inset-bottom, 0px) + var(--chrome-gap)
   );
-  --firma-footer-h: 76px;
+  --firma-footer-h: 0px;
   --firma-scroll-pad-bottom: calc(
     var(--tab-bar-h) + var(--firma-footer-h) +
     env(safe-area-inset-bottom, 0px) + 12px
@@ -4298,7 +4298,7 @@ body[data-active-view="view-firma"] .firma-save-status:not(:empty) {
   position: fixed;
   left: var(--pad);
   right: var(--pad);
-  bottom: calc(var(--tab-bar-h) + var(--firma-footer-h) + env(safe-area-inset-bottom, 0px) + 4px);
+  bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 8px);
   z-index: 81;
   margin: 0;
   padding: 8px 12px;
@@ -4309,22 +4309,7 @@ body[data-active-view="view-firma"] .firma-save-status:not(:empty) {
 }
 
 body[data-active-view="view-firma"] .firma-section-actions {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
-  z-index: 80;
-  display: block;
-  margin: 0;
-  padding: 12px var(--pad);
-  min-height: 0;
-  box-sizing: border-box;
-  border-top: 1px solid var(--m-border);
-  border-bottom: none;
-  background: var(--m-bg) !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
+  display: none;
 }
 
 body[data-active-view="view-firma"] .firma-section-actions .cta-row {
@@ -4836,6 +4821,141 @@ select {
     font-weight: 600;
     border-radius: 12px;
   }
+
+  #firma-quick-modal {
+    padding: 24px 16px;
+    align-items: flex-end;
+  }
+
+  #firma-quick-modal .modal-card.firma-quick-card {
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-height: 92vh;
+  }
+
+  #firma-quick-modal .modal-card.firma-quick-card .modal-header {
+    padding: 20px 20px 0;
+  }
+
+  #firma-quick-modal .modal-card.firma-quick-card .modal-title {
+    font-size: 17px;
+  }
+
+  #firma-quick-modal .modal-card.firma-quick-card .modal-body {
+    padding: 10px 20px 4px;
+  }
+
+  #firma-quick-modal .modal-card.firma-quick-card .modal-body .settings-hint {
+    font-size: 13px;
+  }
+
+  #firma-quick-modal .modal-card.firma-quick-card .modal-footer {
+    padding: 14px 16px 18px;
+    gap: 8px;
+  }
+
+  #firma-quick-modal .modal-card.firma-quick-card .modal-footer .btn-secondary,
+  #firma-quick-modal .modal-card.firma-quick-card .modal-footer .btn-primary {
+    min-height: 48px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 12px;
+  }
+
+  #modal-ai-preview .modal-card.ai-preview-card {
+    border-radius: 16px 16px 0 0;
+  }
+
+  #modal-ai-preview .modal-card.ai-preview-card .modal-body {
+    padding: 12px 16px 4px;
+  }
+
+  #modal-ai-preview .ai-preview-table-wrap {
+    margin-top: 10px;
+    border: 1px solid var(--m-border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--m-surface);
+  }
+
+  #modal-ai-preview .ai-preview-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  #modal-ai-preview .ai-preview-table thead {
+    display: table-header-group;
+  }
+
+  #modal-ai-preview .ai-preview-table tbody {
+    display: table-row-group;
+  }
+
+  #modal-ai-preview .ai-preview-table tr {
+    display: table-row;
+    position: static;
+    padding: 0;
+    border: none;
+  }
+
+  #modal-ai-preview .ai-preview-table th,
+  #modal-ai-preview .ai-preview-table td {
+    display: table-cell;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--m-border);
+    width: auto !important;
+    vertical-align: middle;
+  }
+
+  #modal-ai-preview .ai-preview-table thead th {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: color-mix(in srgb, var(--m-border) 40%, var(--m-bg));
+    border-bottom: 1px solid var(--m-border);
+  }
+
+  #modal-ai-preview .ai-preview-table thead th.col-num,
+  #modal-ai-preview .ai-preview-table tbody td.col-num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  #modal-ai-preview .ai-preview-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  #modal-ai-preview .ai-preview-table tbody td:first-child {
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  #modal-ai-preview #ai-preview-meta {
+    margin: 12px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  #modal-ai-preview .modal-footer {
+    padding: 14px 16px 18px;
+    gap: 8px;
+  }
+
+  #modal-ai-preview .modal-footer .btn-secondary,
+  #modal-ai-preview .modal-footer .btn-primary {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 48px;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 12px;
+  }
+
   .modal-body iframe {
     height: 60vh;
   }

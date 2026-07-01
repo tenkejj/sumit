@@ -980,6 +980,39 @@
     </div>
   </div>
 
+  <div class="modal hidden" id="firma-quick-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="firma-quick-modal-title">
+    <div class="modal-backdrop" id="firma-quick-modal-backdrop"></div>
+    <div class="modal-card firma-quick-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="firma-quick-modal-title">Kto wystawia wycenę?</h3>
+      </div>
+      <div class="modal-body">
+        <p class="settings-hint" id="firma-quick-modal-hint">Podaj nazwę firmy — pojawi się na PDF jako sprzedawca.</p>
+        <div class="field">
+          <label for="firma-quick-nazwa">Nazwa firmy</label>
+          <input type="text" id="firma-quick-nazwa" placeholder="Nazwa Twojej firmy" autocomplete="organization">
+        </div>
+        <div class="field field-firma-quick-nip">
+          <label for="firma-quick-nip">NIP <span class="firma-quick-optional">opcjonalnie</span></label>
+          <input type="text" id="firma-quick-nip" placeholder="000-000-00-00" title="10 cyfr NIP (dopuszczalne myślniki)" inputmode="numeric">
+          <button type="button" class="btn-link-nip btn-link-nip-firma" id="btn-firma-quick-pobierz-nip" aria-label="Pobierz dane firmy po NIP z Białej Listy Ministerstwa Finansów">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="7" cy="7" r="4.5"></circle>
+              <line x1="10.5" y1="10.5" x2="14" y2="14"></line>
+            </svg>
+            <span class="btn-link-nip-label">Pobierz z MF</span>
+          </button>
+        </div>
+        <p id="firma-quick-error" class="message" role="alert" hidden></p>
+        <button type="button" class="btn-text-link" id="btn-firma-quick-pelne">Logo, konto, QR → Moja firma</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="firma-quick-cancel">Anuluj</button>
+        <button type="button" class="btn-primary" id="firma-quick-ok">Generuj PDF</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal hidden" id="confirm-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
     <div class="modal-backdrop" id="confirm-modal-backdrop"></div>
     <div class="modal-card confirm-card">

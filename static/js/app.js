@@ -1100,6 +1100,53 @@
       };
     }
 
+    function opiszBladWalidacjiQuote(built) {
+      const payload = built && built.payload ? built.payload : {};
+      if (!String(payload.nazwa_firmy || '').trim()) {
+        return 'Podaj nazwę firmy (sprzedawca na PDF).';
+      }
+      if (!String(payload.klient || '').trim()) {
+        return 'Podaj dane klienta.';
+      }
+      if (!Array.isArray(payload.pozycje) || payload.pozycje.length === 0) {
+        return 'Dodaj co najmniej jedną pozycję z nazwą, ilością większą od zera i ceną nieujemną.';
+      }
+      const docSwitcher = document.querySelector('#doc-type-switcher .chip.is-active');
+      const wantedType = docSwitcher ? (docSwitcher.dataset.docType || '') : '';
+      const isInvoice = wantedType === 'faktura_proforma' || wantedType === 'faktura_vat';
+      if (isInvoice) {
+        const numerFaktury = document.getElementById('numer_faktury') ? document.getElementById('numer_faktury').value.trim() : '';
+        const dataSprzedazy = document.getElementById('data_sprzedazy') ? document.getElementById('data_sprzedazy').value : '';
+        if (!numerFaktury) return 'Podaj numer faktury w kroku 3 (sekcja danych faktury).';
+        if (!dataSprzedazy) return 'Podaj datę sprzedaży w kroku 3 (sekcja danych faktury).';
+      }
+      if (payload.typ_dokumentu === 'faktura_vat') {
+        for (let i = 0; i < payload.pozycje.length; i++) {
+          const v = payload.pozycje[i].stawka_vat;
+          if (![0, 5, 8, 23].includes(v)) {
+            return 'Pozycja ' + (i + 1) + ': wybierz stawkę VAT (0, 5, 8 lub 23%).';
+          }
+        }
+      }
+      return '';
+    }
+
+    function poprawWizardPoBladzieGenerowania(komunikat) {
+      if (!MOBILE_MQL.matches || !_wizardGotowy || !komunikat) return;
+      const txt = komunikat.toLowerCase();
+      if (txt.includes('klient')) {
+        irziNaKrok(1);
+        return;
+      }
+      if (txt.includes('pozycj')) {
+        irziNaKrok(2);
+        return;
+      }
+      if (txt.includes('faktur') || txt.includes('sprzedaż')) {
+        irziNaKrok(3);
+      }
+    }
+
     const livePodgladMql = (window.matchMedia && window.matchMedia('(min-width: 1024px)')) || { matches: false, addEventListener() {}, addListener() {} };
     const pdfFrame1 = document.getElementById('pdf-frame-1');
     const pdfFrame2 = document.getElementById('pdf-frame-2');
@@ -1398,9 +1445,7 @@
 
         const cfg = wczytajConfig();
         if (!String(cfg.nazwa_firmy || '').trim()) {
-          pokazKomunikat('Uzupełnij nazwę firmy w zakładce Moja firma.', 'error');
-          przejdzDoMojaFirma();
-          return;
+          if (!(await zapewnijDaneFirmyDoPdf())) return;
         }
 
         const { payload, koszty } = budujPayloadZFormularza();
@@ -1724,18 +1769,17 @@
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      ukryjKomunikat();
-
-      const cfg = wczytajConfig();
-      if (!String(cfg.nazwa_firmy || '').trim()) {
-        pokazKomunikat('Uzupełnij nazwę firmy w zakładce Moja firma.', 'error');
-        przejdzDoMojaFirma();
+    async function wykonajGenerowaniePdf() {
+      const built = budujPayloadZFormularza();
+      const blad = opiszBladWalidacjiQuote(built);
+      if (blad) {
+        pokazKomunikat(blad, 'error');
+        poprawWizardPoBladzieGenerowania(blad);
+        wibruj([40, 30, 40]);
         return;
       }
 
-      const { payload, koszty } = budujPayloadZFormularza();
+      const { payload, koszty } = built;
       const desktopTryb = livePodgladMql.matches;
 
       btnGeneruj.disabled = true;
@@ -1804,6 +1848,28 @@
         btnGeneruj.disabled = false;
         aktualizujTekstPrzyciskuGeneruj();
       }
+    }
+
+    async function zapewnijDaneFirmyDoPdf() {
+      const cfg = wczytajConfig();
+      if (String(cfg.nazwa_firmy || '').trim()) return true;
+      const ok = await pokazFirmaQuickModal();
+      if (!ok) return false;
+      const poZapisie = wczytajConfig();
+      if (!String(poZapisie.nazwa_firmy || '').trim()) {
+        pokazKomunikat('Nie udało się zapisać nazwy firmy. Uzupełnij dane w Moja firma.', 'error');
+        return false;
+      }
+      return true;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      ukryjKomunikat();
+
+      if (!(await zapewnijDaneFirmyDoPdf())) return;
+
+      await wykonajGenerowaniePdf();
     });
 
     const pdfModal = document.getElementById('pdf-modal');
@@ -2215,8 +2281,10 @@
     function zapiszConfig(cfg) {
       try {
         localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(cfg));
+        return true;
       } catch (e) {
         pokazKomunikatCfg('Nie udało się zapisać ustawień (brak miejsca w przeglądarce).', 'error');
+        return false;
       }
     }
 
@@ -2288,6 +2356,25 @@
       odswiezPodgladFirmy();
     }
 
+    function zsynchronizujFormularzCfg(cfg) {
+      POLA_CONFIG.forEach(k => {
+        const el = document.getElementById('cfg-' + k);
+        if (el && typeof cfg[k] === 'string') el.value = cfg[k];
+      });
+      odswiezPodgladFirmy();
+    }
+
+    function zapiszFirmaQuick(partial) {
+      const cfg = wczytajConfig();
+      POLA_CONFIG.forEach(k => {
+        if (typeof partial[k] === 'string') cfg[k] = partial[k].trim();
+      });
+      if (!zapiszConfig(cfg)) return false;
+      zsynchronizujFormularzCfg(cfg);
+      pokazStatusZapisuFirmy();
+      return true;
+    }
+
     if (btnCfgDodajLogo) btnCfgDodajLogo.addEventListener('click', () => cfgLogoInput.click());
     if (btnCfgPobierzNip) btnCfgPobierzNip.addEventListener('click', pobierzFirmePoNIP);
 
@@ -2345,6 +2432,8 @@
       });
     }
 
+    let firmaAutoSaveTimer = null;
+
     if (settingsForm) {
       settingsForm.addEventListener('change', () => {
         if (!walidujNumerKonta()) return;
@@ -2353,6 +2442,12 @@
       });
       settingsForm.addEventListener('input', () => {
         odswiezPodgladFirmy();
+        if (firmaAutoSaveTimer) clearTimeout(firmaAutoSaveTimer);
+        firmaAutoSaveTimer = setTimeout(() => {
+          if (!walidujNumerKonta()) return;
+          zapiszCfgZFormularza();
+          if (typeof saveDraft === 'function') saveDraft();
+        }, 450);
       });
     }
 
@@ -2852,9 +2947,20 @@
     const confirmModalMessage = document.getElementById('confirm-modal-message');
     const confirmModalCancel = document.getElementById('confirm-modal-cancel');
     const confirmModalOk = document.getElementById('confirm-modal-ok');
+    const firmaQuickModal = document.getElementById('firma-quick-modal');
+    const firmaQuickModalBackdrop = document.getElementById('firma-quick-modal-backdrop');
+    const firmaQuickNazwa = document.getElementById('firma-quick-nazwa');
+    const firmaQuickNip = document.getElementById('firma-quick-nip');
+    const firmaQuickError = document.getElementById('firma-quick-error');
+    const btnFirmaQuickCancel = document.getElementById('firma-quick-cancel');
+    const btnFirmaQuickOk = document.getElementById('firma-quick-ok');
+    const btnFirmaQuickPelne = document.getElementById('btn-firma-quick-pelne');
+    const btnFirmaQuickPobierzNip = document.getElementById('btn-firma-quick-pobierz-nip');
 
     let nipFetchController = null;
     let confirmModalResolver = null;
+    let firmaQuickModalResolver = null;
+    let firmaQuickNipFetchController = null;
 
     function zamknijConfirmModal(wynik) {
       if (!confirmModal) return;
@@ -2884,6 +2990,137 @@
         confirmModalResolver = resolve;
         requestAnimationFrame(() => {
           if (confirmModalCancel) confirmModalCancel.focus();
+        });
+      });
+    }
+
+    function ustawBladFirmaQuick(tekst) {
+      if (!firmaQuickError) return;
+      if (tekst) {
+        firmaQuickError.textContent = tekst;
+        firmaQuickError.className = 'message error';
+        firmaQuickError.hidden = false;
+      } else {
+        firmaQuickError.textContent = '';
+        firmaQuickError.className = 'message';
+        firmaQuickError.hidden = true;
+      }
+    }
+
+    function ustawStanLadowaniaFirmaQuickNIP(loading) {
+      if (!btnFirmaQuickPobierzNip || !firmaQuickNip) return;
+      btnFirmaQuickPobierzNip.disabled = loading;
+      btnFirmaQuickPobierzNip.setAttribute('aria-busy', loading ? 'true' : 'false');
+      const label = btnFirmaQuickPobierzNip.querySelector('.btn-link-nip-label');
+      if (label) label.textContent = loading ? 'Pobieram…' : 'Pobierz z MF';
+      firmaQuickNip.disabled = loading;
+    }
+
+    async function pobierzFirmaQuickPoNIP() {
+      if (!firmaQuickNip) return;
+      const nip = oczyscNIPWejscie(firmaQuickNip.value);
+      if (nip.length !== 10) {
+        ustawBladFirmaQuick('NIP musi mieć dokładnie 10 cyfr.');
+        firmaQuickNip.focus();
+        return;
+      }
+
+      ustawBladFirmaQuick('');
+      ustawStanLadowaniaFirmaQuickNIP(true);
+      if (firmaQuickNipFetchController) firmaQuickNipFetchController.abort();
+      firmaQuickNipFetchController = new AbortController();
+
+      try {
+        const resp = await fetch('/api/nip?nip=' + encodeURIComponent(nip), {
+          headers: { Accept: 'application/json' },
+          signal: firmaQuickNipFetchController.signal,
+        });
+        let dane = null;
+        try { dane = await resp.json(); } catch (e) { dane = null; }
+
+        if (!resp.ok) {
+          const msg = (dane && dane.error) ? dane.error : 'Nie udało się pobrać danych z Białej Listy MF.';
+          ustawBladFirmaQuick(msg);
+          return;
+        }
+
+        if (firmaQuickNazwa && dane && dane.nazwa) firmaQuickNazwa.value = String(dane.nazwa);
+        if (dane && dane.nip) {
+          const s = String(dane.nip).replace(/\D/g, '');
+          if (s.length === 10) {
+            firmaQuickNip.value = s.slice(0, 3) + '-' + s.slice(3, 6) + '-' + s.slice(6, 8) + '-' + s.slice(8, 10);
+          }
+        }
+        ustawBladFirmaQuick('');
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        ustawBladFirmaQuick('Błąd sieci: nie udało się połączyć z serwerem.');
+      } finally {
+        firmaQuickNipFetchController = null;
+        ustawStanLadowaniaFirmaQuickNIP(false);
+      }
+    }
+
+    function zamknijFirmaQuickModal(wynik) {
+      if (!firmaQuickModal) return;
+      firmaQuickModal.classList.add('hidden');
+      firmaQuickModal.setAttribute('hidden', '');
+      firmaQuickModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      ustawStanLadowaniaFirmaQuickNIP(false);
+      const resolve = firmaQuickModalResolver;
+      firmaQuickModalResolver = null;
+      if (typeof resolve === 'function') resolve(!!wynik);
+    }
+
+    function zapiszZFormularzaFirmaQuick() {
+      const nazwa = firmaQuickNazwa ? firmaQuickNazwa.value.trim() : '';
+      if (!nazwa) {
+        ustawBladFirmaQuick('Podaj nazwę firmy.');
+        if (firmaQuickNazwa) firmaQuickNazwa.focus();
+        return false;
+      }
+      const partial = { nazwa_firmy: nazwa };
+      if (firmaQuickNip) {
+        const nip = oczyscNIPWejscie(firmaQuickNip.value);
+        if (nip.length > 0 && nip.length !== 10) {
+          ustawBladFirmaQuick('NIP musi mieć dokładnie 10 cyfr.');
+          firmaQuickNip.focus();
+          return false;
+        }
+        if (nip.length === 10) partial.nip = firmaQuickNip.value.trim();
+      }
+      if (!zapiszFirmaQuick(partial)) {
+        ustawBladFirmaQuick('Nie udało się zapisać danych. Sprawdź ustawienia przeglądarki.');
+        return false;
+      }
+      return true;
+    }
+
+    function pokazFirmaQuickModal() {
+      if (!firmaQuickModal || !firmaQuickNazwa) {
+        pokazKomunikat('Uzupełnij nazwę firmy w zakładce Moja firma.', 'error');
+        przejdzDoMojaFirma();
+        return Promise.resolve(false);
+      }
+
+      const cfg = wczytajConfig();
+      firmaQuickNazwa.value = typeof cfg.nazwa_firmy === 'string' ? cfg.nazwa_firmy : '';
+      if (firmaQuickNip) {
+        firmaQuickNip.value = typeof cfg.nip === 'string' ? cfg.nip : '';
+      }
+      ustawBladFirmaQuick('');
+      ustawStanLadowaniaFirmaQuickNIP(false);
+
+      firmaQuickModal.classList.remove('hidden');
+      firmaQuickModal.removeAttribute('hidden');
+      firmaQuickModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+
+      return new Promise((resolve) => {
+        firmaQuickModalResolver = resolve;
+        requestAnimationFrame(() => {
+          if (firmaQuickNazwa) firmaQuickNazwa.focus();
         });
       });
     }
@@ -3978,7 +4215,7 @@
         window.zamknijAiInputSheet();
       }
       document.querySelectorAll(
-        '.ai-sheet-modal, #pdf-modal, #app-settings-modal, #historia-modal, #modal-ai-preview, #modal-nip, #catalog-modal'
+        '.ai-sheet-modal, #pdf-modal, #app-settings-modal, #historia-modal, #modal-ai-preview, #modal-nip, #catalog-modal, #firma-quick-modal'
       ).forEach((el) => {
         el.classList.remove('is-open');
         el.classList.add('hidden');
@@ -4574,8 +4811,44 @@
     if (confirmModalBackdrop) confirmModalBackdrop.addEventListener('click', () => zamknijConfirmModal(false));
     if (confirmModalCancel) confirmModalCancel.addEventListener('click', () => zamknijConfirmModal(false));
     if (confirmModalOk) confirmModalOk.addEventListener('click', () => zamknijConfirmModal(true));
+    if (firmaQuickModalBackdrop) firmaQuickModalBackdrop.addEventListener('click', () => zamknijFirmaQuickModal(false));
+    if (btnFirmaQuickCancel) btnFirmaQuickCancel.addEventListener('click', () => zamknijFirmaQuickModal(false));
+    if (btnFirmaQuickOk) {
+      btnFirmaQuickOk.addEventListener('click', () => {
+        if (!zapiszZFormularzaFirmaQuick()) return;
+        zamknijFirmaQuickModal(true);
+      });
+    }
+    if (btnFirmaQuickPelne) {
+      btnFirmaQuickPelne.addEventListener('click', () => {
+        const nazwa = firmaQuickNazwa ? firmaQuickNazwa.value.trim() : '';
+        if (nazwa) {
+          const partial = { nazwa_firmy: nazwa };
+          if (firmaQuickNip) {
+            const nip = oczyscNIPWejscie(firmaQuickNip.value);
+            if (nip.length === 10) partial.nip = firmaQuickNip.value.trim();
+          }
+          zapiszFirmaQuick(partial);
+        }
+        zamknijFirmaQuickModal(false);
+        przejdzDoMojaFirma();
+      });
+    }
+    if (btnFirmaQuickPobierzNip) btnFirmaQuickPobierzNip.addEventListener('click', pobierzFirmaQuickPoNIP);
+    if (firmaQuickNazwa) {
+      firmaQuickNazwa.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (btnFirmaQuickOk) btnFirmaQuickOk.click();
+        }
+      });
+    }
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
+      if (firmaQuickModal && !firmaQuickModal.classList.contains('hidden')) {
+        zamknijFirmaQuickModal(false);
+        return;
+      }
       if (!confirmModal || confirmModal.classList.contains('hidden')) return;
       zamknijConfirmModal(false);
     });

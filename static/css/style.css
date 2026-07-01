@@ -1877,6 +1877,68 @@
 
     .modal-card.ai-preview-card { max-width: 560px; }
     .modal-card.confirm-card { max-width: 400px; }
+    .modal-card.firma-quick-card { max-width: 420px; }
+
+    .modal-card.firma-quick-card .modal-body .settings-hint {
+      margin: 0 0 12px;
+      font-size: 14px;
+      line-height: 1.4;
+      color: var(--text-muted);
+    }
+
+    .modal-card.firma-quick-card .modal-body .field {
+      margin-bottom: 12px;
+    }
+
+    .modal-card.firma-quick-card .modal-body .field:last-of-type {
+      margin-bottom: 8px;
+    }
+
+    .modal-card.firma-quick-card .firma-quick-optional {
+      font-weight: 400;
+      color: var(--text-muted);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .modal-card.firma-quick-card .field-firma-quick-nip {
+      position: relative;
+    }
+
+    .modal-card.firma-quick-card #firma-quick-error {
+      margin: 4px 0 8px;
+    }
+
+    .modal-card.firma-quick-card .btn-text-link {
+      display: inline-block;
+      margin: 4px 0 0;
+      padding: 0;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      cursor: pointer;
+    }
+
+    .modal-card.firma-quick-card .btn-text-link:active {
+      color: var(--text);
+    }
+
+    .modal-card.firma-quick-card .modal-footer {
+      justify-content: stretch;
+      gap: 10px;
+    }
+
+    .modal-card.firma-quick-card .modal-footer .btn-secondary,
+    .modal-card.firma-quick-card .modal-footer .btn-primary {
+      flex: 1 1 0;
+      min-width: 0;
+      justify-content: center;
+      text-align: center;
+    }
 
     .modal-card.confirm-card .modal-header {
       justify-content: center;
@@ -1921,6 +1983,9 @@
     .ai-preview-table-wrap {
       overflow-x: auto;
       margin-top: 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-soft);
     }
     .ai-preview-table {
       width: 100%;
@@ -1929,19 +1994,22 @@
     }
     .ai-preview-table thead th {
       text-align: left;
-      font-size: 12px;
-      font-weight: 500;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
       color: var(--text-muted);
-      padding: 0 8px 10px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--border) 35%, var(--bg));
     }
     .ai-preview-table thead th.col-num {
       text-align: right;
     }
     .ai-preview-table tbody td {
-      padding: 10px 8px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border);
-      vertical-align: top;
+      vertical-align: middle;
     }
     .ai-preview-table tbody td.col-num {
       text-align: right;
@@ -3544,6 +3612,30 @@
 
       table, thead, tbody, tr, td, th { display: block; }
       thead { display: none; }
+
+      #modal-ai-preview .ai-preview-table {
+        display: table;
+        width: 100%;
+        border-collapse: collapse;
+      }
+      #modal-ai-preview .ai-preview-table thead { display: table-header-group; }
+      #modal-ai-preview .ai-preview-table tbody { display: table-row-group; }
+      #modal-ai-preview .ai-preview-table tr {
+        display: table-row;
+        position: static;
+        padding: 0;
+        border-bottom: none;
+      }
+      #modal-ai-preview .ai-preview-table th,
+      #modal-ai-preview .ai-preview-table td {
+        display: table-cell;
+        padding: 10px 12px;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        width: auto !important;
+      }
+      #modal-ai-preview .ai-preview-table tbody tr:last-child td { border-bottom: none; }
+
       tbody tr {
         position: relative;
         padding: 16px 0;
