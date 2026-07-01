@@ -2731,11 +2731,22 @@
       } else {
         hint.setAttribute('hidden', '');
       }
-      requestAnimationFrame(() => syncWizardCtaBarHeight());
+      requestAnimationFrame(() => {
+        syncWizardCtaBarHeight();
+        requestAnimationFrame(syncWizardCtaBarHeight);
+      });
     }
 
     function ukryjWizardDalejHint() {
       pokazWizardDalejHint('');
+    }
+
+    function odswiezWizardHintKlienta() {
+      if (!MOBILE_MQL.matches || _wizardKrok !== 1) return;
+      const klientEl = document.getElementById('klient');
+      if (klientEl && String(klientEl.value || '').trim()) {
+        ukryjWizardDalejHint();
+      }
     }
 
     function usunPusteWierszePozycji() {
@@ -2968,6 +2979,7 @@
         klientEl.value = formatKlientBlok(rekord);
         klientEl.dispatchEvent(new Event('input', { bubbles: true }));
         if (MOBILE_MQL.matches && wizardMobileAktywny()) otworzPoleKlientaWizarda();
+        odswiezWizardHintKlienta();
         zapiszDoNipCache(rekord);
         upsertKlienta(rekord);
         saveDraft();
@@ -3358,6 +3370,7 @@
       delete klientTextarea.dataset.klientAutofill;
       ukryjAutocompleteKlient();
       saveDraft();
+      odswiezWizardHintKlienta();
       if (typeof zwinKlientaJesliWypelniony === 'function') zwinKlientaJesliWypelniony();
       klientTextarea.blur();
     }
@@ -3384,10 +3397,12 @@
       if (sprobujAutofillKlientaZKsiazki()) {
         ukryjAutocompleteKlient();
         if (typeof odswiezWizardKrok3Podsumowanie === 'function') odswiezWizardKrok3Podsumowanie();
+        odswiezWizardHintKlienta();
         return;
       }
       odswiezAutocompleteKlient();
       if (typeof odswiezWizardKrok3Podsumowanie === 'function') odswiezWizardKrok3Podsumowanie();
+      odswiezWizardHintKlienta();
     }
 
     function ustawAktywnyItemAutocomplete(idx) {
@@ -5639,6 +5654,7 @@
         klientEl.value = formatKlientBlok(rekord);
         klientEl.dispatchEvent(new Event('input', { bubbles: true }));
         if (MOBILE_MQL.matches && wizardMobileAktywny()) otworzPoleKlientaWizarda();
+        odswiezWizardHintKlienta();
         saveDraft();
         pokazToast('Dane klienta rozpoznane ✓', 'success');
         wibruj([20]);

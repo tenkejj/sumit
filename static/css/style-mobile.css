@@ -43,6 +43,7 @@
   --wizard-big-btn-label-size: 18px;
   --wizard-big-btn-hint-size: 14px;
   --wizard-big-btn-secondary-label-size: 17px;
+  --wizard-step2-icon-col: 44px;
   --mobile-bottom-chrome: calc(
     var(--tab-bar-h) + var(--cta-bar-h) +
     env(safe-area-inset-bottom, 0px) + var(--chrome-gap)
@@ -227,42 +228,44 @@
 [data-theme="light"] .wizard-step-2-entry .wizard-cta-photo,
 [data-theme="light"] .wizard-step-2-entry #btn-wizard-photo.wizard-cta-photo,
 [data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo {
-  background: var(--m-surface);
-  border: 1px solid var(--m-border) !important;
-  color: var(--text);
+  background: #C0143C;
+  border: none !important;
+  color: #ffffff;
 }
 
 [data-theme="light"] .wizard-step-2-entry .wizard-cta-photo .wizard-input-icon,
 [data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo .wizard-input-icon {
-  color: var(--text);
+  color: #ffffff;
 }
 
 [data-theme="light"] .wizard-step-2-entry .wizard-cta-photo .wizard-input-label,
 [data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo .wizard-input-label {
-  color: var(--text);
+  color: #ffffff;
 }
 
 [data-theme="light"] .wizard-step-2-entry .wizard-cta-photo .wizard-input-hint,
 [data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo .wizard-input-hint {
-  color: var(--m-muted);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 [data-theme="light"] .wizard-step-2-entry .wizard-cta-photo:active,
 [data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo:active {
-  background: var(--bg-hover);
+  background: color-mix(in srgb, #C0143C 88%, #000000);
 }
 
 [data-theme="light"] .wizard-step-2-entry .wizard-cta-manual-muted,
 [data-theme="light"] .wizard-step-2-entry #btn-wizard-manual.wizard-cta-manual-muted,
 [data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual {
-  background: transparent;
+  background: var(--m-surface);
   border: 1px solid var(--m-border) !important;
-  color: #666666;
+  color: var(--text);
 }
 
 [data-theme="light"] .wizard-step-2-entry .wizard-cta-manual-muted .wizard-input-icon,
-[data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual .wizard-input-icon {
-  color: #666666;
+[data-theme="light"] .wizard-step-2-entry .wizard-cta-manual-muted .wizard-input-label,
+[data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual .wizard-input-icon,
+[data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual .wizard-input-label {
+  color: var(--text);
 }
 
 /* ── Light theme — powierzchnie, chrome, głębia ─────────────────────────── */
@@ -4002,8 +4005,11 @@ body[data-active-view="view-kreator"][data-wizard-krok="2"] .wizard-step-2-entry
 body[data-active-view="view-kreator"][data-wizard-krok="2"] .wizard-step-2-methods {
   width: 100%;
   max-width: 100%;
-  padding: 20px 16px;
-  gap: 12px;
+  flex: 1;
+  padding: 16px var(--wizard-big-btn-pad-x);
+  padding-left: max(var(--wizard-big-btn-pad-x), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--wizard-big-btn-pad-x), env(safe-area-inset-right, 0px));
+  gap: var(--wizard-big-btn-gap);
   align-items: stretch;
   justify-content: center;
 }
@@ -4035,7 +4041,8 @@ body[data-active-view="view-kreator"] #view-kreator:not(.hidden):not([hidden]) #
   display: none !important;
 }
 
-body[data-active-view="view-kreator"][data-wizard-krok] #view-kreator:not(.hidden):not([hidden]) #oferta-form .submit-wrap {
+body[data-active-view="view-kreator"][data-wizard-krok] #view-kreator:not(.hidden):not([hidden]) #oferta-form .submit-wrap,
+body[data-active-view="view-kreator"][data-wizard-krok] #view-kreator:not(.hidden):not([hidden]) #oferta-form > .submit-wrap {
   display: flex !important;
   flex-direction: column;
   gap: 10px;
@@ -4045,10 +4052,12 @@ body[data-active-view="view-kreator"][data-wizard-krok] #view-kreator:not(.hidde
   bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + var(--chrome-gap));
   top: auto !important;
   z-index: 130;
-  flex: none;
+  flex: none !important;
   width: 100%;
-  height: auto;
+  height: auto !important;
+  min-height: 0;
   overflow: visible;
+  align-items: stretch;
   padding: 12px var(--pad);
   margin: 0;
   background: var(--m-bg) !important;
@@ -5215,6 +5224,143 @@ body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.w
   text-align: center;
 }
 
+/* Krok 2: układ przycisków jak krok 1 (ikona nad tekstem, wyśrodkowane) */
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-ai,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-ai,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-photo,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-manual,
+.wizard-step-2-entry #btn-wizard-ai,
+.wizard-step-2-entry #btn-wizard-photo,
+.wizard-step-2-entry #btn-wizard-manual,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-ai,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-photo,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-manual {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: unset !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  width: 100%;
+  flex: 1 1 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 20px 18px !important;
+  border-radius: var(--wizard-big-btn-radius) !important;
+  box-sizing: border-box;
+  text-align: center !important;
+}
+
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-ai,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-ai,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-photo,
+.wizard-step-2-entry #btn-wizard-ai,
+.wizard-step-2-entry #btn-wizard-photo,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-ai,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-photo {
+  min-height: var(--wizard-big-btn-primary-min) !important;
+  max-height: min(168px, 34vh) !important;
+  background: #C0143C !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-ai:active,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo:active,
+.wizard-step-2-entry #btn-wizard-ai:active,
+.wizard-step-2-entry #btn-wizard-photo:active,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-ai:active,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-photo:active {
+  background: color-mix(in srgb, #C0143C 88%, #000000) !important;
+}
+
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-ai .wizard-input-icon,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo .wizard-input-icon,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-ai .wizard-input-icon,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-photo .wizard-input-icon,
+.wizard-step-2-entry #btn-wizard-ai .wizard-input-icon,
+.wizard-step-2-entry #btn-wizard-photo .wizard-input-icon,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-ai .wizard-input-icon,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-photo .wizard-input-icon {
+  width: auto !important;
+  justify-self: auto !important;
+  color: #ffffff !important;
+}
+
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-ai .wizard-input-label,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo .wizard-input-label,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-ai .wizard-input-label,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-photo .wizard-input-label,
+.wizard-step-2-entry #btn-wizard-ai .wizard-input-label,
+.wizard-step-2-entry #btn-wizard-photo .wizard-input-label,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-ai .wizard-input-label,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-photo .wizard-input-label {
+  font-size: var(--wizard-big-btn-label-size) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  text-align: center !important;
+  width: 100% !important;
+  color: #ffffff !important;
+}
+
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-manual,
+.wizard-step-2-entry #btn-wizard-manual,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-manual {
+  min-height: var(--wizard-big-btn-secondary-min) !important;
+  max-height: min(148px, 28vh) !important;
+}
+
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual .wizard-input-icon,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual .wizard-input-label,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-manual .wizard-input-icon,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-manual .wizard-input-label,
+.wizard-step-2-entry #btn-wizard-manual .wizard-input-icon,
+.wizard-step-2-entry #btn-wizard-manual .wizard-input-label,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-manual .wizard-input-icon,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-manual .wizard-input-label {
+  width: auto !important;
+  justify-self: auto !important;
+  text-align: center !important;
+  font-size: var(--wizard-big-btn-secondary-label-size) !important;
+  font-weight: 500 !important;
+}
+
+/* Krok 2: „Wpisz ręcznie” — kolory napisu i ikony jak krok 1 */
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-manual,
+.wizard-step-2-entry #btn-wizard-manual,
+.wizard-step-2-entry #btn-wizard-manual.wizard-cta-manual-muted,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-manual,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) .wizard-cta-manual-muted {
+  background: var(--m-surface) !important;
+  border: 1px solid var(--m-border) !important;
+  color: var(--text) !important;
+}
+
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual .wizard-input-icon,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual .wizard-input-label,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-manual .wizard-input-icon,
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #view-kreator:not(.wizard-manual-mode) #btn-wizard-manual .wizard-input-label,
+.wizard-step-2-entry #btn-wizard-manual .wizard-input-icon,
+.wizard-step-2-entry #btn-wizard-manual .wizard-input-label,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-manual .wizard-input-icon,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-manual .wizard-input-label {
+  color: var(--text) !important;
+}
+
+body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual:active,
+.wizard-step-2-entry #btn-wizard-manual:active,
+#view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) #btn-wizard-manual:active {
+  background: color-mix(in srgb, var(--m-surface) 88%, var(--text)) !important;
+  color: var(--text) !important;
+}
+
 #view-kreator.wizard-krok-2:not(.wizard-manual-mode):not(.wizard-has-pozycje) .items-actions #btn-ai-fab {
   display: none !important;
 }
@@ -5583,13 +5729,16 @@ body[data-active-view="view-home"] .btn-home-settings {
 
 .wizard-dalej-hint {
   width: 100%;
-  margin: 0 0 8px;
-  padding: 0 6px;
+  margin: 0;
+  padding: 0 6px 2px;
   font-size: 13px;
-  line-height: 1.35;
+  line-height: 1.4;
   font-weight: 500;
   color: var(--m-accent);
   text-align: center;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
 .wizard-dalej-hint[hidden] {
@@ -7152,22 +7301,28 @@ body[data-active-view="view-kreator"][data-wizard-krok="1"] #oferta-form .submit
   display: none !important;
 }
 
-body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] #oferta-form .submit-wrap {
-  display: block !important;
+body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] #oferta-form .submit-wrap,
+body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] #oferta-form > .submit-wrap {
+  display: flex !important;
+  flex-direction: column;
+  height: auto !important;
+  overflow: visible;
 }
 body[data-active-view="view-kreator"][data-wizard-krok="2"] .wizard-step-2-entry .wizard-input-methods,
 body[data-active-view="view-kreator"][data-wizard-krok="2"] #wizard-step-2-entry .wizard-input-methods,
 body[data-active-view="view-kreator"][data-wizard-krok="2"] .wizard-step-2-entry .wizard-step-2-methods,
 body[data-active-view="view-kreator"][data-wizard-krok="2"] #wizard-step-2-entry .wizard-step-2-methods {
-  flex: 0 1 auto;
+  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 12px;
+  gap: var(--wizard-big-btn-gap);
   min-height: 0;
   width: 100%;
   max-width: 100%;
-  padding: 20px 16px;
+  padding: 16px var(--wizard-big-btn-pad-x);
+  padding-left: max(var(--wizard-big-btn-pad-x), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--wizard-big-btn-pad-x), env(safe-area-inset-right, 0px));
   box-sizing: border-box;
   align-items: stretch;
 }
@@ -7216,12 +7371,6 @@ body[data-active-view="view-kreator"][data-wizard-krok] #btn-wizard-manual .wiza
   text-align: center !important;
 }
 
-body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo .wizard-input-label,
-body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo .wizard-input-hint {
-  text-align: left !important;
-  width: auto;
-}
-
 body[data-active-view="view-kreator"][data-wizard-krok] .wizard-input-hint {
   text-align: center !important;
   width: 100%;
@@ -7231,8 +7380,12 @@ body[data-active-view="view-kreator"][data-wizard-krok="1"] #oferta-form .submit
   display: none !important;
 }
 
-body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] #oferta-form .submit-wrap {
-  display: block !important;
+body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] #oferta-form .submit-wrap,
+body.wizard-klient-field-open[data-active-view="view-kreator"][data-wizard-krok="1"] #oferta-form > .submit-wrap {
+  display: flex !important;
+  flex-direction: column;
+  height: auto !important;
+  overflow: visible;
 }
 
 /* ── Wizard: przejścia (prosty fade) ─────────────────────────────────────── */

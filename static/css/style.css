@@ -1,4 +1,4 @@
-﻿    :root {
+    :root {
       --bg: #eef0f4;
       --bg-soft: #ffffff;
       --bg-hover: #e4e6eb;
@@ -3162,7 +3162,7 @@
       width: 18px;
       height: 18px;
       flex-shrink: 0;
-      color: var(--text-muted);
+      color: var(--accent);
     }
 
     .settings-contact-icon--fb {
