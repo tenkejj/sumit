@@ -426,7 +426,7 @@ body {
   justify-self: start;
 }
 
-.home-logo-img--header,
+.home-logo-mask,
 .mobile-subpage-title,
 .wizard-step-info {
   grid-column: 2;
@@ -5253,14 +5253,16 @@ body[data-active-view="view-home"] #view-home {
   pointer-events: auto;
 }
 
-.home-logo-img--header {
+.home-logo-mask {
+  max-width: min(280px, 72vw);
+}
+
+.home-logo-mask > .home-logo-img--header {
   width: auto;
   height: var(--home-logo-header-h);
   max-width: min(280px, 72vw);
   object-fit: contain;
   object-position: center;
-  display: block;
-  filter: brightness(0) saturate(100%) invert(13%) sepia(94%) saturate(4000%) hue-rotate(340deg) brightness(90%) contrast(100%);
 }
 
 .home-header .btn-home-settings {
@@ -5967,13 +5969,12 @@ body.gen-overlay-open #view-kreator {
   border-bottom: 1px solid var(--m-border);
 }
 
-.gen-logo-img {
+.gen-logo-wrap.sumit-logo-kurenai > .gen-logo-img {
   width: var(--gen-logo-w);
   max-width: var(--gen-logo-w);
   height: auto;
   max-height: var(--gen-logo-max-h);
   object-fit: contain;
-  filter: brightness(0) saturate(100%) invert(13%) sepia(94%) saturate(4000%) hue-rotate(340deg) brightness(90%) contrast(100%);
 }
 
 .gen-progress-stage {

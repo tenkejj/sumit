@@ -375,6 +375,37 @@
       transition: background-color 0.3s ease;
     }
 
+    /* Logo w kolorze Kurenai (#C0143C) — maska zamiast filtra CSS */
+    .sumit-logo-kurenai {
+      position: relative;
+      display: inline-block;
+      line-height: 0;
+      flex-shrink: 0;
+    }
+
+    .sumit-logo-kurenai > img {
+      display: block;
+      visibility: hidden;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .sumit-logo-kurenai::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-color: var(--accent);
+      -webkit-mask-image: url('/static/images/sumit-logo.png');
+      mask-image: url('/static/images/sumit-logo.png');
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-position: center;
+    }
+
     .view-tab.is-active {
       background: var(--accent);
       color: #ffffff;
