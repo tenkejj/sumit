@@ -1876,7 +1876,48 @@
     .ai-parse-status.is-success { color: var(--text-muted); }
 
     .modal-card.ai-preview-card { max-width: 560px; }
-    .modal-card.confirm-card { max-width: 440px; }
+    .modal-card.confirm-card { max-width: 400px; }
+
+    .modal-card.confirm-card .modal-header {
+      justify-content: center;
+      padding: 24px 24px 0;
+      border-bottom: none;
+    }
+
+    .modal-card.confirm-card .modal-title {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      width: 100%;
+    }
+
+    .modal-card.confirm-card .modal-body {
+      padding: 10px 24px 4px;
+      text-align: center;
+    }
+
+    .modal-card.confirm-card .modal-body .settings-hint {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.4;
+      color: var(--text-muted);
+    }
+
+    .modal-card.confirm-card .modal-footer {
+      justify-content: stretch;
+      gap: 10px;
+      padding: 16px 20px 20px;
+      border-top: none;
+    }
+
+    .modal-card.confirm-card .modal-footer .btn-secondary,
+    .modal-card.confirm-card .modal-footer .btn-primary {
+      flex: 1 1 0;
+      min-width: 0;
+      justify-content: center;
+      text-align: center;
+    }
     .ai-preview-table-wrap {
       overflow-x: auto;
       margin-top: 8px;

@@ -2778,8 +2778,55 @@
       odswiezSzkicUI();
     }
 
+    function sanitizeNIP(str) {
+      return String(str || '').replace(/[\s\-\.]/g, '');
+    }
+
     function oczyscNIPWejscie(s) {
-      return String(s || '').replace(/\D/g, '');
+      return sanitizeNIP(s).replace(/\D/g, '');
+    }
+
+    function oczyscWartoscPolaNIP(el) {
+      if (!el) return;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const raw = el.value;
+      const cleaned = oczyscNIPWejscie(raw).slice(0, 10);
+      if (cleaned !== raw) {
+        el.value = cleaned;
+        if (typeof start === 'number' && typeof end === 'number') {
+          const pos = Math.min(start, cleaned.length);
+          el.setSelectionRange(pos, pos);
+        }
+      }
+    }
+
+    function oczyscNipWPoluKlienta(el) {
+      if (!el) return;
+      const raw = String(el.value || '');
+      const trimmed = raw.trim();
+      if (!trimmed || trimmed.includes('\n')) return;
+      const digits = oczyscNIPWejscie(trimmed).slice(0, 10);
+      if (!digits) return;
+      if (/^[\d\s\.\-]+$/i.test(trimmed.replace(/^PL/i, '')) && trimmed !== digits) {
+        el.value = digits;
+      }
+    }
+
+    function przypnijCzyszczenieNIP(el) {
+      if (!el || el.dataset.nipClean === '1') return;
+      el.dataset.nipClean = '1';
+      const oczysc = () => oczyscWartoscPolaNIP(el);
+      el.addEventListener('input', oczysc);
+      el.addEventListener('paste', () => requestAnimationFrame(oczysc));
+    }
+
+    function przypnijCzyszczenieNipWKliencie(el) {
+      if (!el || el.dataset.nipKlientClean === '1') return;
+      el.dataset.nipKlientClean = '1';
+      const oczysc = () => oczyscNipWPoluKlienta(el);
+      el.addEventListener('input', oczysc);
+      el.addEventListener('paste', () => requestAnimationFrame(oczysc));
     }
 
     const modalNIP = document.getElementById('modal-nip');
@@ -2856,7 +2903,7 @@
 
     function otworzModalNIP(prefill) {
       if (!modalNIP || !nipInput) return;
-      nipInput.value = prefill ? String(prefill).replace(/\D/g, '').slice(0, 10) : '';
+      nipInput.value = prefill ? oczyscNIPWejscie(prefill).slice(0, 10) : '';
       ustawStanLadowaniaNIP(false);
       modalNIP.removeAttribute('hidden');
       modalNIP.classList.remove('hidden');
@@ -2962,6 +3009,7 @@
     }
 
     const klientTextarea = document.getElementById('klient');
+    przypnijCzyszczenieNipWKliencie(klientTextarea);
     const klientAutocompleteEl = document.getElementById('klient-autocomplete');
     let autocompleteResults = [];
     let autocompleteIndex = -1;
@@ -3388,10 +3436,7 @@
     }
 
     if (nipInput) {
-      nipInput.addEventListener('input', () => {
-        const cleaned = nipInput.value.replace(/\D/g, '');
-        if (cleaned !== nipInput.value) nipInput.value = cleaned;
-      });
+      przypnijCzyszczenieNIP(nipInput);
       nipInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -3399,6 +3444,7 @@
         }
       });
     }
+    przypnijCzyszczenieNIP(document.getElementById('cfg-nip'));
     if (btnNipPobierz) btnNipPobierz.addEventListener('click', wyslijZapytanieNIP);
     if (btnNipAnuluj) btnNipAnuluj.addEventListener('click', zamknijModalNIP);
     if (modalNIPBackdrop) modalNIPBackdrop.addEventListener('click', zamknijModalNIP);
@@ -4439,11 +4485,10 @@
         e.stopPropagation();
       }
       if (szkicMaDane(odczytajDraftSurowy())) {
-        const nowa = docType === 'faktura_vat' ? 'fakturę VAT' : 'wycenę';
         const ok = await pokazConfirmModal({
-          title: 'Niedokończona wycena',
-          message: 'Masz niedokończoną wycenę. Rozpocząć nową ' + nowa + '? Obecny szkic zostanie usunięty.',
-          confirmText: 'Rozpocznij nową',
+          title: docType === 'faktura_vat' ? 'Nowa faktura?' : 'Nowa wycena?',
+          message: 'Szkic zostanie usunięty.',
+          confirmText: 'Od nowa',
           cancelText: 'Anuluj',
         });
         if (!ok) {
