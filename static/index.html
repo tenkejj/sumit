@@ -169,7 +169,7 @@
       </div>
 
       <div id="wizard-step-2-entry" class="wizard-step-2-entry">
-        <div id="wizard-input-methods" class="wizard-input-methods wizard-step-2-methods">
+        <div id="wizard-input-methods" class="wizard-input-methods wizard-step-2-methods wizard-step2-panel wizard-step2-panel--methods">
           <button type="button" id="btn-wizard-ai" class="wizard-input-btn wizard-cta-voice">
             <span class="wizard-input-icon wizard-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -188,6 +188,28 @@
             </span>
             <span class="wizard-input-label">Wpisz ręcznie</span>
           </button>
+        </div>
+
+        <div id="wizard-step2-voice" class="wizard-step2-panel wizard-step2-panel--voice" hidden>
+          <div class="wizard-step2-voice-hero">
+            <button type="button" id="btn-wizard-step2-mic" class="wizard-step2-voice-mic" aria-label="Zatrzymaj nagrywanie">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="32" height="32"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <p id="wizard-step2-voice-status" class="wizard-step2-inline-status" role="status" aria-live="polite">Mów teraz…</p>
+          </div>
+          <p id="wizard-step2-voice-transcript" class="wizard-step2-voice-transcript" aria-live="polite"></p>
+          <button type="button" id="btn-wizard-step2-voice-parse" class="wizard-input-btn wizard-cta-voice wizard-step2-voice-cta" disabled aria-busy="false">
+            <span class="wizard-step2-voice-cta-label">Rozpoznaj pozycje</span>
+            <span class="btn-ai-parse-spinner wizard-step2-voice-spinner" id="wizard-step2-voice-spinner" hidden aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <div id="wizard-step2-photo" class="wizard-step2-panel wizard-step2-panel--photo" hidden>
+          <div class="wizard-step2-photo-preview">
+            <img id="wizard-step2-photo-img" class="wizard-step2-photo-img" alt="" width="120" height="120" hidden>
+            <span class="btn-ai-parse-spinner wizard-step2-photo-spinner" id="wizard-step2-photo-spinner" aria-hidden="true"></span>
+          </div>
+          <p id="wizard-step2-photo-status" class="wizard-step2-inline-status" role="status" aria-live="polite">Rozpoznaję notatkę…</p>
         </div>
       </div>
     </div>
@@ -290,6 +312,7 @@
                       <label for="termin_platnosci" class="field-label-mobile-wizard">Termin płatności</label>
                       <input type="text" id="termin_platnosci" name="termin_platnosci" placeholder="np. 14 dni">
                     </div>
+                    <p class="ksef-hint hidden" id="ksef-hint">XML pomocniczy — wgraj na <a href="https://ksef.podatki.gov.pl" target="_blank" rel="noopener">ksef.podatki.gov.pl</a>. SumIt nie wysyła do KSeF — odpowiedzialność po Twojej stronie.</p>
                   </div>
                 </div>
 
@@ -463,7 +486,6 @@
               Pobierz XML do KSeF
             </button>
           </div>
-          <p class="ksef-hint hidden" id="ksef-hint">Wgraj plik na <a href="https://ksef.podatki.gov.pl" target="_blank" rel="noopener">ksef.podatki.gov.pl</a>, aby wysłać fakturę do KSeF. SumIt generuje plik pomocniczy — odpowiedzialność za poprawność i wysyłkę ponosi użytkownik.</p>
         </div>
 
         <div id="message" class="message"></div>
@@ -878,8 +900,8 @@
         </svg>
       </button>
       <div class="ai-focus-top">
-        <h3 class="ai-focus-title" id="ai-input-modal-title">Opisz pracę</h3>
-        <p class="ai-focus-lead" id="ai-sheet-lead">Powiedz, wklej lub sfotografuj notatkę — AI rozbije ją na pozycje.</p>
+        <h3 class="ai-focus-title" id="ai-input-modal-title">Rozpoznaj pozycje</h3>
+        <p class="ai-focus-lead" id="ai-sheet-lead">Powiedz, wklej lub sfotografuj notatkę — rozbijemy ją na pozycje.</p>
       </div>
       <div class="ai-focus-body">
         <textarea id="ai-notatka" rows="4" placeholder="np. Udrożnienie kanalizacji 350 zł, przegląd instalacji 200 zł…" aria-describedby="ai-sheet-lead"></textarea>
@@ -911,7 +933,7 @@
     <div class="modal-backdrop" id="modal-ai-preview-backdrop"></div>
     <div class="modal-card ai-preview-card">
       <div class="modal-header">
-        <h3 class="modal-title" id="modal-ai-preview-title">Podgląd pozycji z AI</h3>
+        <h3 class="modal-title" id="modal-ai-preview-title">Podgląd pozycji</h3>
       </div>
       <div class="modal-body">
         <p class="settings-hint" id="ai-preview-hint">Sprawdź pozycje przed dodaniem do wyceny.</p>

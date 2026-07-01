@@ -4315,10 +4315,9 @@
     .ksef-hint a:hover { color: var(--text); }
 
     @media (min-width: 1024px) {
-      #oferta-form .submit-wrap .ksef-hint {
-        margin: 12px auto 0;
+      #invoice-fields .ksef-hint {
+        margin: 10px 0 0;
         max-width: 56ch;
-        text-align: center;
       }
     }
 

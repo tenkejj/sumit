@@ -7,6 +7,7 @@
 
     const MOBILE_MQL = window.matchMedia('(max-width: 1023px)');
     let _wizardKrok = 1;
+    let _wizardStep2Mode = '';
     let _wizardStepAnimTimer = null;
     let _homeWizardAnimTimer = null;
     const WIZARD_STEP_ANIM_MS = 220;
@@ -3526,6 +3527,7 @@
       requestAnimationFrame(() => {
         syncMobileTopChromeHeight();
         syncWizardCtaBarHeight();
+        syncWizardStep2ChromeHeight();
       });
     }
 
@@ -3968,6 +3970,9 @@
       const zamknijGen = !opts || opts.zamknijGenOverlay !== false;
       if (typeof zatrzymajDyktowanie === 'function') {
         try { zatrzymajDyktowanie(); } catch (_) {}
+      }
+      if (typeof wyjdzZTrybuInlineWizarda === 'function') {
+        wyjdzZTrybuInlineWizarda();
       }
       if (typeof window.zamknijAiInputSheet === 'function') {
         window.zamknijAiInputSheet();
@@ -4667,6 +4672,167 @@
         && !viewKreator.classList.contains('wizard-has-pozycje');
       entry.classList.toggle('is-visible', pokaz);
       document.body.classList.toggle('wizard-hide-step2-entry', !pokaz);
+      if (!pokaz) wyjdzZTrybuInlineWizarda();
+    }
+
+    function isWizardStep2EntryFlow() {
+      if (!MOBILE_MQL.matches || _wizardKrok !== 2) return false;
+      const viewKreator = document.getElementById('view-kreator');
+      if (!viewKreator) return false;
+      return !viewKreator.classList.contains('wizard-manual-mode')
+        && !viewKreator.classList.contains('wizard-has-pozycje');
+    }
+
+    function syncWizardStep2ChromeHeight() {
+      if (!MOBILE_MQL.matches || _wizardKrok !== 2) return;
+      if (document.body.classList.contains('wizard-hide-step2-entry')) {
+        document.documentElement.style.removeProperty('--wizard-chrome-h-step2');
+        return;
+      }
+      const chrome = document.getElementById('wizard-mobile-chrome');
+      if (!chrome) return;
+      const h = Math.ceil(chrome.getBoundingClientRect().height);
+      if (h > 0) {
+        document.documentElement.style.setProperty('--wizard-chrome-h-step2', h + 'px');
+      }
+    }
+
+    function ustawWizardStep2Mode(mode) {
+      _wizardStep2Mode = mode || '';
+      const entry = document.getElementById('wizard-step-2-entry');
+      const methodsPanel = document.getElementById('wizard-input-methods');
+      const voicePanel = document.getElementById('wizard-step2-voice');
+      const photoPanel = document.getElementById('wizard-step2-photo');
+
+      if (entry) {
+        entry.classList.toggle('wizard-step2-mode-voice', _wizardStep2Mode === 'voice');
+        entry.classList.toggle('wizard-step2-mode-photo', _wizardStep2Mode === 'photo');
+      }
+      if (_wizardStep2Mode) {
+        document.body.dataset.wizardStep2Mode = _wizardStep2Mode;
+      } else {
+        delete document.body.dataset.wizardStep2Mode;
+      }
+
+      if (methodsPanel) methodsPanel.hidden = _wizardStep2Mode !== '';
+      if (voicePanel) voicePanel.hidden = _wizardStep2Mode !== 'voice';
+      if (photoPanel) {
+        photoPanel.hidden = _wizardStep2Mode !== 'photo';
+        if (_wizardStep2Mode !== 'photo') photoPanel.classList.remove('is-loading');
+      }
+
+      const stepTitle = document.getElementById('wizard-step-title');
+      if (stepTitle && _wizardKrok === 2) {
+        if (_wizardStep2Mode === 'voice') stepTitle.textContent = 'Nagraj głosem';
+        else if (_wizardStep2Mode === 'photo') stepTitle.textContent = 'Zrób zdjęcie';
+        else stepTitle.textContent = 'Co wyceniasz?';
+      }
+
+      requestAnimationFrame(() => {
+        syncWizardStep2ChromeHeight();
+        syncWizardCtaBarHeight();
+      });
+    }
+
+    function odswiezWizardStep2Transkrypt() {
+      if (_wizardStep2Mode !== 'voice') return;
+      const transcript = document.getElementById('wizard-step2-voice-transcript');
+      const btnParse = document.getElementById('btn-wizard-step2-voice-parse');
+      const tekst = aiNotatka ? aiNotatka.value.trim() : '';
+      if (transcript) transcript.textContent = aiNotatka ? aiNotatka.value : '';
+      if (btnParse) btnParse.disabled = !tekst;
+      const micBtn = document.getElementById('btn-wizard-step2-mic');
+      if (micBtn) micBtn.classList.toggle('is-recording', !!speechRecording);
+    }
+
+    function ustawWizardStep2Status(tekst, typ) {
+      const el = _wizardStep2Mode === 'photo'
+        ? document.getElementById('wizard-step2-photo-status')
+        : document.getElementById('wizard-step2-voice-status');
+      if (!el) return;
+      el.textContent = tekst || '';
+      el.className = 'wizard-step2-inline-status' + (typ ? ' is-' + typ : '');
+    }
+
+    function wyjdzZTrybuInlineWizarda() {
+      if (!_wizardStep2Mode) return;
+      if (typeof zatrzymajDyktowanie === 'function') {
+        try { zatrzymajDyktowanie(); } catch (_) {}
+      }
+      ustawWizardStep2Mode('');
+      if (aiNotatka) aiNotatka.value = '';
+      speechBaseText = '';
+      if (typeof wyczyscZdjecieAi === 'function') wyczyscZdjecieAi();
+      const transcript = document.getElementById('wizard-step2-voice-transcript');
+      if (transcript) transcript.textContent = '';
+      const photoImg = document.getElementById('wizard-step2-photo-img');
+      if (photoImg) {
+        photoImg.hidden = true;
+        photoImg.removeAttribute('src');
+      }
+      const voiceStatus = document.getElementById('wizard-step2-voice-status');
+      if (voiceStatus) {
+        voiceStatus.textContent = 'Mów teraz…';
+        voiceStatus.className = 'wizard-step2-inline-status';
+      }
+      const photoStatus = document.getElementById('wizard-step2-photo-status');
+      if (photoStatus) {
+        photoStatus.textContent = 'Rozpoznaję notatkę…';
+        photoStatus.className = 'wizard-step2-inline-status';
+      }
+      const btnParse = document.getElementById('btn-wizard-step2-voice-parse');
+      if (btnParse) {
+        btnParse.disabled = true;
+        btnParse.setAttribute('aria-busy', 'false');
+      }
+      const voiceSpinner = document.getElementById('wizard-step2-voice-spinner');
+      if (voiceSpinner) voiceSpinner.hidden = true;
+      const photoPanel = document.getElementById('wizard-step2-photo');
+      if (photoPanel) photoPanel.classList.remove('is-loading');
+    }
+
+    function wejdzWTrybGlosuWizarda() {
+      if (!isWizardStep2EntryFlow()) return;
+      if (aiNotatka) aiNotatka.value = '';
+      speechBaseText = '';
+      ustawWizardStep2Mode('voice');
+      odswiezWizardStep2Transkrypt();
+      ustawWizardStep2Status('Mów teraz…');
+      requestAnimationFrame(() => {
+        if (typeof window.rozpocznijDyktowanieAi === 'function') {
+          window.rozpocznijDyktowanieAi();
+        }
+        odswiezWizardStep2Transkrypt();
+      });
+    }
+
+    async function przetworzZdjecieWizardaInline(file) {
+      if (!isWizardStep2EntryFlow()) return;
+      ustawWizardStep2Mode('photo');
+      const photoPanel = document.getElementById('wizard-step2-photo');
+      const photoImg = document.getElementById('wizard-step2-photo-img');
+      if (photoPanel) photoPanel.classList.add('is-loading');
+      ustawWizardStep2Status('Rozpoznaję notatkę…');
+
+      try {
+        if (typeof wyczyscZdjecieAi === 'function') wyczyscZdjecieAi();
+        const prepared = await przygotujObrazDoAi(file);
+        aiPhotoPayload = prepared;
+        if (photoImg) {
+          photoImg.src = prepared.previewUrl;
+          photoImg.hidden = false;
+        }
+        await przetworzNotatkeAi();
+      } catch (e) {
+        if (photoPanel) photoPanel.classList.remove('is-loading');
+        if (e && e.message === 'too_large') {
+          ustawWizardStep2Status('Zdjęcie jest zbyt duże (max 5 MB przed kompresją).', 'error');
+        } else if (e && e.message === 'bad_type') {
+          ustawWizardStep2Status('Wybierz plik JPG lub PNG.', 'error');
+        } else {
+          ustawWizardStep2Status('Nie udało się wczytać zdjęcia.', 'error');
+        }
+      }
     }
 
     function rozwinTylkoWierszPozycji(tr) {
@@ -4788,9 +4954,14 @@
 
       const btnBack = document.getElementById('btn-wizard-back');
       if (btnBack) {
-        btnBack.onclick = _wizardKrok === 1
-          ? () => pokazViewHome()
-          : () => irziNaKrok(_wizardKrok - 1);
+        btnBack.onclick = () => {
+          if (_wizardKrok === 2 && _wizardStep2Mode) {
+            wyjdzZTrybuInlineWizarda();
+            return;
+          }
+          if (_wizardKrok === 1) pokazViewHome();
+          else irziNaKrok(_wizardKrok - 1);
+        };
       }
 
       const viewKreator = document.getElementById('view-kreator');
@@ -4812,6 +4983,8 @@
       if (_wizardKrok !== 2) {
         const vk = document.getElementById('view-kreator');
         if (vk) vk.classList.remove('wizard-manual-mode');
+        wyjdzZTrybuInlineWizarda();
+        document.documentElement.style.removeProperty('--wizard-chrome-h-step2');
       }
       if (nextKrok !== 1 || prevKrok !== nextKrok) {
         zamknijPoleKlientaWizarda();
@@ -4900,10 +5073,33 @@
       const btnWizAi = document.getElementById('btn-wizard-ai');
       if (btnWizAi) {
         btnWizAi.addEventListener('click', () => {
-          if (typeof window.otworzAiInputSheet === 'function') window.otworzAiInputSheet();
-          requestAnimationFrame(() => {
-            if (typeof window.rozpocznijDyktowanieAi === 'function') window.rozpocznijDyktowanieAi();
-          });
+          wejdzWTrybGlosuWizarda();
+        });
+      }
+
+      const btnWizVoiceMic = document.getElementById('btn-wizard-step2-mic');
+      if (btnWizVoiceMic) {
+        btnWizVoiceMic.addEventListener('click', () => {
+          if (speechRecording) {
+            if (typeof zatrzymajDyktowanie === 'function') zatrzymajDyktowanie();
+            ustawWizardStep2Status('Nagranie zatrzymane — możesz rozpoznać pozycje.');
+            odswiezWizardStep2Transkrypt();
+            return;
+          }
+          if (typeof window.rozpocznijDyktowanieAi === 'function') {
+            window.rozpocznijDyktowanieAi();
+          }
+          odswiezWizardStep2Transkrypt();
+        });
+      }
+
+      const btnWizVoiceParse = document.getElementById('btn-wizard-step2-voice-parse');
+      if (btnWizVoiceParse) {
+        btnWizVoiceParse.addEventListener('click', () => {
+          if (speechRecording && typeof zatrzymajDyktowanie === 'function') {
+            zatrzymajDyktowanie();
+          }
+          przetworzNotatkeAi();
         });
       }
 
@@ -5264,12 +5460,32 @@
     let aiPhotoPayload = null;
 
     function ustawAiParseStatus(tekst, typ) {
+      if (_wizardStep2Mode && MOBILE_MQL.matches && wizardMobileAktywny() && _wizardKrok === 2) {
+        ustawWizardStep2Status(tekst, typ);
+        return;
+      }
       if (!aiParseStatus) return;
       aiParseStatus.textContent = tekst || '';
       aiParseStatus.className = 'ai-parse-status' + (typ ? ' is-' + typ : '');
     }
 
     function ustawStanLadowaniaAiParse(loading) {
+      const btnVoiceParse = document.getElementById('btn-wizard-step2-voice-parse');
+      const voiceSpinner = document.getElementById('wizard-step2-voice-spinner');
+      const voiceCtaLabel = document.querySelector('.wizard-step2-voice-cta-label');
+      const photoPanel = document.getElementById('wizard-step2-photo');
+
+      if (_wizardStep2Mode === 'voice' && btnVoiceParse) {
+        const maTekst = !!(aiNotatka && aiNotatka.value.trim());
+        btnVoiceParse.disabled = loading || !maTekst;
+        btnVoiceParse.setAttribute('aria-busy', loading ? 'true' : 'false');
+        if (voiceSpinner) voiceSpinner.hidden = !loading;
+        if (voiceCtaLabel) voiceCtaLabel.textContent = loading ? 'Przygotowuję…' : 'Rozpoznaj pozycje';
+      }
+      if (_wizardStep2Mode === 'photo' && photoPanel) {
+        photoPanel.classList.toggle('is-loading', !!loading);
+      }
+
       if (!btnAiParse) return;
       btnAiParse.disabled = loading;
       btnAiParse.setAttribute('aria-busy', loading ? 'true' : 'false');
@@ -5756,8 +5972,14 @@
           return;
         }
 
-        if (MOBILE_MQL.matches && wizardMobileAktywny() && _wizardKrok === 2) {
+        if (MOBILE_MQL.matches && wizardMobileAktywny() && _wizardKrok === 2 && !_wizardStep2Mode) {
           if (zastosujPozycjeAiNaMobileWizard(pozycje) > 0) return;
+          return;
+        }
+
+        if (MOBILE_MQL.matches && wizardMobileAktywny() && _wizardKrok === 2 && _wizardStep2Mode) {
+          wyjdzZTrybuInlineWizarda();
+          pokazPodgladAi(pozycje);
           return;
         }
 
@@ -5779,6 +6001,7 @@
         speechRecognition.stop();
       } catch (e) {}
       if (btnAiMic) btnAiMic.classList.remove('is-recording');
+      odswiezWizardStep2Transkrypt();
     }
 
     function initAiSpeech() {
@@ -5810,6 +6033,7 @@
           speechBaseText += finalTranscript;
         }
         aiNotatka.value = speechBaseText + interimTranscript;
+        odswiezWizardStep2Transkrypt();
       });
 
       speechRecognition.addEventListener('end', () => {
@@ -5822,6 +6046,7 @@
         } else if (btnAiMic) {
           btnAiMic.classList.remove('is-recording');
         }
+        odswiezWizardStep2Transkrypt();
       });
 
       speechRecognition.addEventListener('error', () => {
@@ -5840,7 +6065,8 @@
           speechBaseText = aiNotatka ? aiNotatka.value : '';
           btnAiMic.classList.add('is-recording');
           speechRecognition.start();
-          ustawAiParseStatus('Mów teraz — dotknij ponownie, aby zakończyć.', 'info');
+          ustawAiParseStatus('Mów teraz — dotknij mikrofonu, aby zakończyć.', 'info');
+          odswiezWizardStep2Transkrypt();
           return true;
         } catch (e) {
           zatrzymajDyktowanie();
@@ -5867,7 +6093,12 @@
         aiPhotoInput.addEventListener('change', async () => {
           const file = aiPhotoInput.files && aiPhotoInput.files[0];
           if (!file) return;
+          aiPhotoInput.value = '';
           ustawAiParseStatus('');
+          if (isWizardStep2EntryFlow()) {
+            await przetworzZdjecieWizardaInline(file);
+            return;
+          }
           if (MOBILE_MQL.matches && typeof window.otworzAiInputSheet === 'function') {
             window.otworzAiInputSheet({ zachowajZdjecie: true });
           }
@@ -8251,6 +8482,10 @@
       const ksefHint = document.getElementById('ksef-hint');
       if (btnXml) btnXml.classList.toggle('hidden', !isVAT);
       if (ksefHint) ksefHint.classList.toggle('hidden', !isVAT);
+
+      if (MOBILE_MQL.matches && typeof syncWizardCtaBarHeight === 'function') {
+        requestAnimationFrame(() => syncWizardCtaBarHeight());
+      }
 
       saveDraft();
     }
