@@ -220,7 +220,48 @@
 }
 
 [data-theme="light"] .wizard-step-2-entry .wizard-cta-manual-muted:active {
-  background: color-mix(in srgb, #1a1a1a 88%, #ffffff);
+  background: color-mix(in srgb, var(--m-border) 55%, #ffffff);
+  color: #666666;
+}
+
+[data-theme="light"] .wizard-step-2-entry .wizard-cta-photo,
+[data-theme="light"] .wizard-step-2-entry #btn-wizard-photo.wizard-cta-photo,
+[data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border) !important;
+  color: var(--text);
+}
+
+[data-theme="light"] .wizard-step-2-entry .wizard-cta-photo .wizard-input-icon,
+[data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo .wizard-input-icon {
+  color: var(--text);
+}
+
+[data-theme="light"] .wizard-step-2-entry .wizard-cta-photo .wizard-input-label,
+[data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo .wizard-input-label {
+  color: var(--text);
+}
+
+[data-theme="light"] .wizard-step-2-entry .wizard-cta-photo .wizard-input-hint,
+[data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo .wizard-input-hint {
+  color: var(--m-muted);
+}
+
+[data-theme="light"] .wizard-step-2-entry .wizard-cta-photo:active,
+[data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-photo:active {
+  background: var(--bg-hover);
+}
+
+[data-theme="light"] .wizard-step-2-entry .wizard-cta-manual-muted,
+[data-theme="light"] .wizard-step-2-entry #btn-wizard-manual.wizard-cta-manual-muted,
+[data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual {
+  background: transparent;
+  border: 1px solid var(--m-border) !important;
+  color: #666666;
+}
+
+[data-theme="light"] .wizard-step-2-entry .wizard-cta-manual-muted .wizard-input-icon,
+[data-theme="light"] body[data-active-view="view-kreator"][data-wizard-krok="2"] #btn-wizard-manual .wizard-input-icon {
   color: #666666;
 }
 

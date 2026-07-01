@@ -4886,6 +4886,9 @@
       if (btnWizAi) {
         btnWizAi.addEventListener('click', () => {
           if (typeof window.otworzAiInputSheet === 'function') window.otworzAiInputSheet();
+          requestAnimationFrame(() => {
+            if (typeof window.rozpocznijDyktowanieAi === 'function') window.rozpocznijDyktowanieAi();
+          });
         });
       }
 
@@ -7438,7 +7441,7 @@
       btnLoad.type = 'button';
       btnLoad.className = 'btn-historia-action';
       btnLoad.textContent = 'Wczytaj do formularza';
-      btnLoad.addEventListener('click', () => wczytajWpisDoFormularza(wpis));
+      btnLoad.addEventListener('click', () => { void wczytajWpisDoFormularza(wpis); });
 
       const btnPdf = document.createElement('button');
       btnPdf.type = 'button';
@@ -7467,7 +7470,7 @@
         btnFaktura.type = 'button';
         btnFaktura.className = 'btn-historia-action';
         btnFaktura.textContent = 'Wystaw fakturę';
-        btnFaktura.addEventListener('click', () => wystawFaktureZHistorii(wpis));
+        btnFaktura.addEventListener('click', () => { void wystawFaktureZHistorii(wpis); });
         actions.appendChild(btnFaktura);
       }
 
@@ -7497,9 +7500,14 @@
       });
     }
 
-    function wczytajWpisDoFormularza(wpis) {
+    async function wczytajWpisDoFormularza(wpis) {
       if (!wpis || !wpis.payload) return;
-      const ok = window.confirm('Wczytanie nadpisze obecny szkic wyceny. Kontynuować?');
+      const ok = await pokazConfirmModal({
+        title: 'Wczytać wycenę?',
+        message: 'Obecny szkic zostanie nadpisany.',
+        confirmText: 'Wczytaj',
+        cancelText: 'Anuluj',
+      });
       if (!ok) return;
 
       const p = wpis.payload;
@@ -7620,26 +7628,31 @@
       document.body.style.overflow = '';
     }
 
-    btnHistoria.addEventListener('click', otworzHistorie);
-    const btnHistoriaWyczyscPage = document.getElementById('btn-historia-wyczysc-page');
-    if (btnHistoriaWyczyscPage) {
-      btnHistoriaWyczyscPage.addEventListener('click', () => {
-        const ok = window.confirm('Wyczyścić całą historię wycen? Tej operacji nie można cofnąć.');
-        if (!ok) return;
-        zapiszHistorie([]);
-        renderujHistorie();
-        renderStatystyki();
+    async function potwierdzWyczyscHistorie() {
+      return pokazConfirmModal({
+        title: 'Wyczyścić historię?',
+        message: 'Tej operacji nie można cofnąć.',
+        confirmText: 'Wyczyść',
+        cancelText: 'Anuluj',
       });
     }
-    btnZamknijHistoria.addEventListener('click', zamknijHistorie);
-    historiaBackdrop.addEventListener('click', zamknijHistorie);
-    btnHistoriaWyczysc.addEventListener('click', () => {
-      const ok = window.confirm('Wyczyścić całą historię wycen? Tej operacji nie można cofnąć.');
+
+    async function wykonajWyczyscHistorie() {
+      const ok = await potwierdzWyczyscHistorie();
       if (!ok) return;
       zapiszHistorie([]);
       renderujHistorie();
       renderStatystyki();
-    });
+    }
+
+    btnHistoria.addEventListener('click', otworzHistorie);
+    const btnHistoriaWyczyscPage = document.getElementById('btn-historia-wyczysc-page');
+    if (btnHistoriaWyczyscPage) {
+      btnHistoriaWyczyscPage.addEventListener('click', () => { void wykonajWyczyscHistorie(); });
+    }
+    btnZamknijHistoria.addEventListener('click', zamknijHistorie);
+    historiaBackdrop.addEventListener('click', zamknijHistorie);
+    btnHistoriaWyczysc.addEventListener('click', () => { void wykonajWyczyscHistorie(); });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !historiaModal.hidden) zamknijHistorie();
     });
@@ -7733,20 +7746,19 @@
     const btnAppWyczyscHistorie = document.getElementById('btn-app-wyczysc-historie');
 
     if (btnAppWyczyscSzkic) {
-      btnAppWyczyscSzkic.addEventListener('click', () => {
-        const ok = window.confirm('Wyczyścić bieżącą wycenę? Pola formularza wrócą do wartości domyślnych.');
+      btnAppWyczyscSzkic.addEventListener('click', async () => {
+        const ok = await pokazConfirmModal({
+          title: 'Wyczyścić wycenę?',
+          message: 'Pola wrócą do wartości domyślnych.',
+          confirmText: 'Wyczyść',
+          cancelText: 'Anuluj',
+        });
         if (!ok) return;
         wyczyscFormularz();
       });
     }
     if (btnAppWyczyscHistorie) {
-      btnAppWyczyscHistorie.addEventListener('click', () => {
-        const ok = window.confirm('Wyczyścić całą historię wycen? Tej operacji nie można cofnąć.');
-        if (!ok) return;
-        zapiszHistorie([]);
-        renderujHistorie();
-        renderStatystyki();
-      });
+      btnAppWyczyscHistorie.addEventListener('click', () => { void wykonajWyczyscHistorie(); });
     }
 
     // ── Shareable URL: kodowanie / dekodowanie wyceny ────────────────────────
@@ -8115,10 +8127,9 @@
 
     // ── Faktura: Wystaw fakturę z historii ───────────────────────────────────
 
-    function wystawFaktureZHistorii(wpis) {
+    async function wystawFaktureZHistorii(wpis) {
       if (!wpis || !wpis.payload) return;
-      // Wczytaj wycenę do formularza
-      wczytajWpisDoFormularza(wpis);
+      await wczytajWpisDoFormularza(wpis);
       // Przełącz na typ "Faktura VAT" i ustaw nowy numer faktury
       if (typeof setActiveDocType === 'function') setActiveDocType('faktura_vat');
       const nrFakturyEl = document.getElementById('numer_faktury');
