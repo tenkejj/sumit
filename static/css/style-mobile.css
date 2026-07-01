@@ -1619,6 +1619,11 @@ body[data-active-view="view-kreator"][data-wizard-krok="3"] #data_waznosci {
   box-sizing: border-box;
 }
 
+#oferta-form tbody tr.is-row-invalid {
+  border-color: var(--m-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--m-accent) 35%, transparent);
+}
+
 #oferta-form tbody tr:not(.is-row-expanded) {
   grid-template-columns: minmax(0, 1fr) 32px;
   grid-template-areas: "nazwa akcje";
@@ -6099,7 +6104,6 @@ body[data-active-view="view-home"] .btn-home-settings {
   display: none !important;
 }
 
-body[data-active-view="view-kreator"]:not([data-wizard-krok="1"]):not([data-wizard-krok="2"]) .wizard-dalej-hint,
 body[data-active-view="view-home"] .wizard-dalej-hint,
 body[data-active-view="view-historia"] .wizard-dalej-hint,
 body[data-active-view="view-firma"] .wizard-dalej-hint,

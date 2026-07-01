@@ -730,6 +730,10 @@
 
     tbody.addEventListener('input', (e) => {
       if (!e.target) return;
+      const tr = e.target.closest ? e.target.closest('tr') : null;
+      if (tr && tr.classList.contains('is-row-invalid')) {
+        tr.classList.remove('is-row-invalid');
+      }
       if (e.target.classList && (
         e.target.classList.contains('in-ilosc') ||
         e.target.classList.contains('in-cena') ||
@@ -1103,13 +1107,14 @@
     function opiszBladWalidacjiQuote(built) {
       const payload = built && built.payload ? built.payload : {};
       if (!String(payload.nazwa_firmy || '').trim()) {
-        return 'Podaj nazwę firmy (sprzedawca na PDF).';
+        return { ok: false, komunikat: 'Podaj nazwę firmy (sprzedawca na PDF).', krok: null, tr: null };
       }
       if (!String(payload.klient || '').trim()) {
-        return 'Podaj dane klienta.';
+        return { ok: false, komunikat: 'Podaj dane klienta.', krok: 1, tr: null };
       }
-      if (!Array.isArray(payload.pozycje) || payload.pozycje.length === 0) {
-        return 'Dodaj co najmniej jedną pozycję z nazwą, ilością większą od zera i ceną nieujemną.';
+      const diagPozycje = diagnostykaPozycji();
+      if (!diagPozycje.ok) {
+        return { ok: false, komunikat: diagPozycje.komunikat, krok: 2, tr: diagPozycje.tr };
       }
       const docSwitcher = document.querySelector('#doc-type-switcher .chip.is-active');
       const wantedType = docSwitcher ? (docSwitcher.dataset.docType || '') : '';
@@ -1117,18 +1122,120 @@
       if (isInvoice) {
         const numerFaktury = document.getElementById('numer_faktury') ? document.getElementById('numer_faktury').value.trim() : '';
         const dataSprzedazy = document.getElementById('data_sprzedazy') ? document.getElementById('data_sprzedazy').value : '';
-        if (!numerFaktury) return 'Podaj numer faktury w kroku 3 (sekcja danych faktury).';
-        if (!dataSprzedazy) return 'Podaj datę sprzedaży w kroku 3 (sekcja danych faktury).';
+        if (!numerFaktury) {
+          return { ok: false, komunikat: 'Podaj numer faktury w kroku 3 (sekcja danych faktury).', krok: 3, tr: null };
+        }
+        if (!dataSprzedazy) {
+          return { ok: false, komunikat: 'Podaj datę sprzedaży w kroku 3 (sekcja danych faktury).', krok: 3, tr: null };
+        }
       }
       if (payload.typ_dokumentu === 'faktura_vat') {
         for (let i = 0; i < payload.pozycje.length; i++) {
           const v = payload.pozycje[i].stawka_vat;
           if (![0, 5, 8, 23].includes(v)) {
-            return 'Pozycja ' + (i + 1) + ': wybierz stawkę VAT (0, 5, 8 lub 23%).';
+            return {
+              ok: false,
+              komunikat: 'Pozycja ' + (i + 1) + ': wybierz stawkę VAT (0, 5, 8 lub 23%).',
+              krok: 2,
+              tr: null,
+            };
           }
         }
       }
-      return '';
+      return { ok: true };
+    }
+
+    function diagnostykaPozycji() {
+      const rows = [...tbody.querySelectorAll('tr')];
+      let poprawne = 0;
+      let pierwszyProblem = null;
+
+      rows.forEach((tr) => {
+        if (tr.classList.contains('is-row-empty-hidden')) return;
+
+        const nazwaVal = String((tr.querySelector('.in-nazwa') || {}).value || '').trim();
+        const iloscVal = parsujLiczbeInput(tr.querySelector('.in-ilosc'));
+        const cenaVal = parsujLiczbeInput(tr.querySelector('.in-cena'));
+        const cosWypelnione = nazwaVal || Number.isFinite(iloscVal) || Number.isFinite(cenaVal);
+        if (!cosWypelnione) return;
+
+        const kompletna = nazwaVal
+          && Number.isFinite(iloscVal) && iloscVal > 0
+          && Number.isFinite(cenaVal) && cenaVal >= 0;
+
+        if (kompletna) {
+          poprawne++;
+          return;
+        }
+
+        if (pierwszyProblem) return;
+
+        let czesc = 'uzupełnij dane';
+        if (!nazwaVal) czesc = 'brakuje nazwy';
+        else if (!Number.isFinite(iloscVal) || iloscVal <= 0) czesc = 'brakuje ilości';
+        else czesc = 'brakuje ceny';
+
+        const etykieta = nazwaVal || ('pozycja ' + (poprawne + 1));
+        pierwszyProblem = {
+          tr,
+          komunikat: '„' + etykieta + '” — ' + czesc + '. Uzupełnij, aby wygenerować PDF.',
+        };
+      });
+
+      if (poprawne === 0 && !pierwszyProblem) {
+        return {
+          ok: false,
+          komunikat: 'Dodaj przynajmniej jedną pozycję z nazwą, ilością i ceną.',
+          tr: null,
+        };
+      }
+      if (pierwszyProblem) {
+        return { ok: false, komunikat: pierwszyProblem.komunikat, tr: pierwszyProblem.tr };
+      }
+      return { ok: true, liczba: poprawne };
+    }
+
+    function podswietlWierszPozycji(tr) {
+      tbody.querySelectorAll('tr.is-row-invalid').forEach((row) => {
+        row.classList.remove('is-row-invalid');
+      });
+      if (!tr) return;
+      ujawnijWiersz(tr);
+      tr.classList.remove('is-row-empty-hidden');
+      tr.classList.add('is-row-invalid');
+      if (MOBILE_MQL.matches && typeof rozwinTylkoWierszPozycji === 'function') {
+        rozwinTylkoWierszPozycji(tr);
+      }
+      requestAnimationFrame(() => {
+        tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const focusEl = !String((tr.querySelector('.in-nazwa') || {}).value || '').trim()
+          ? tr.querySelector('.in-nazwa')
+          : (!Number.isFinite(parsujLiczbeInput(tr.querySelector('.in-ilosc'))) || parsujLiczbeInput(tr.querySelector('.in-ilosc')) <= 0)
+            ? tr.querySelector('.in-ilosc')
+            : tr.querySelector('.in-cena');
+        if (focusEl && typeof focusEl.focus === 'function') focusEl.focus();
+      });
+    }
+
+    function pokazBladGenerowania(wynik) {
+      const komunikat = (wynik && wynik.komunikat) || 'Uzupełnij formularz przed generowaniem PDF.';
+      const naWizardzie = MOBILE_MQL.matches
+        && _wizardGotowy
+        && document.body.dataset.activeView === 'view-kreator'
+        && document.body.dataset.wizardKrok;
+
+      if (naWizardzie) {
+        pokazWizardDalejHint(komunikat);
+      }
+      pokazKomunikat(komunikat, 'error');
+      pokazToast(komunikat, 'error');
+
+      if (wynik && wynik.krok && typeof irziNaKrok === 'function') {
+        irziNaKrok(wynik.krok);
+      }
+
+      if (wynik && wynik.tr) podswietlWierszPozycji(wynik.tr);
+      wibruj([40, 30, 40]);
     }
 
     function poprawWizardPoBladzieGenerowania(komunikat) {
@@ -1138,7 +1245,7 @@
         irziNaKrok(1);
         return;
       }
-      if (txt.includes('pozycj')) {
+      if (txt.includes('pozycj') || txt.includes('ilości') || txt.includes('ceny') || txt.includes('nazw')) {
         irziNaKrok(2);
         return;
       }
@@ -1771,11 +1878,9 @@
 
     async function wykonajGenerowaniePdf() {
       const built = budujPayloadZFormularza();
-      const blad = opiszBladWalidacjiQuote(built);
-      if (blad) {
-        pokazKomunikat(blad, 'error');
-        poprawWizardPoBladzieGenerowania(blad);
-        wibruj([40, 30, 40]);
+      const walidacja = opiszBladWalidacjiQuote(built);
+      if (!walidacja.ok) {
+        pokazBladGenerowania(walidacja);
         return;
       }
 
@@ -5295,13 +5400,10 @@
           return false;
         }
       } else if (krok === 2) {
-        const rows = [...tbody.querySelectorAll('tr')];
-        const maRzad = rows.some(tr => {
-          const inp = tr.querySelector('.in-nazwa, [name="nazwa[]"]');
-          return inp && String(inp.value || '').trim().length > 0;
-        });
-        if (!maRzad) {
-          pokazWizardDalejHint('Dodaj przynajmniej jedną pozycję, aby przejść dalej.');
+        const diag = diagnostykaPozycji();
+        if (!diag.ok) {
+          pokazWizardDalejHint(diag.komunikat);
+          if (diag.tr) podswietlWierszPozycji(diag.tr);
           wibruj([40, 30, 40]);
           return false;
         }
